@@ -1,0 +1,65 @@
+{{ template "head.html" . }}
+
+{{ $m := .m }}
+{{ $team := .team }}
+
+{{ template "refresh.html" }}
+
+<br>
+<h2>Scores</h2>
+
+<br>
+{{ if not .m.Tightlipped }}
+<img style="display: block; margin: 0 auto" src="assets/points.png"/>
+{{ end }}
+
+<br>
+<br>
+<table>
+    <th>Rank</th>
+    <th>Team</th>
+    {{ if not .m.Tightlipped }}
+    <th>Services</th>
+    <th>SLAs</th>
+    <th>Injects</th>
+    {{ end }}
+    <th>Total</th>
+
+    {{ range $index, $record := .records }}
+    <tr>
+        <td>{{ $index }}</td>
+        {{ if eq $record.Team $team }}
+            <td class="teamname">
+                <a href="/team/{{ $m.GetIdentifier $team.Name }}">
+                    {{ $record.Team.Name }}
+                </a>
+            </td>
+        {{ else }}
+            <td>{{ $record.Team.Name }}</td>
+        {{ end }}
+        {{ if not $m.Tightlipped }}
+            <td>{{ $record.ServicePoints }}</td>
+            <td>{{ $record.SlaViolations }}</td>
+            {{ if eq $record.Team $team }}
+                <td class="teamname">
+                    <a href="/injects/{{ $m.GetIdentifier $team.Name }}">
+                        {{ $record.InjectPoints }}
+                    </a>
+                </td>
+            {{ else }}
+                <td>{{ $record.InjectPoints }}</td>
+            {{ end }}
+        {{ end }}
+        <td><b>{{ $record.Total }}</b></td>
+    </tr>
+    {{ end }}
+</table>
+
+{{ if .records }}
+<br>
+<p style="text-align: center">
+    Scores calculated at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
+</p>
+{{ end }}
+
+{{ template "feet.html" }}

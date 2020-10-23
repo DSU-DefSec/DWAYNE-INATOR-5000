@@ -1,0 +1,114 @@
+{{ template "head.html" . }}
+
+{{ $m := .m }}
+{{ $loc := .loc }}
+{{ $team := .team }}
+
+{{ template "refresh.html" }}
+
+<br>
+<h2>{{ .team.Name }}</h2>
+
+<br>
+<h2>Status</h2>
+
+<br>
+<table>
+    {{ range $check := .m.CheckList }}
+    <th>{{ $check.Name }}</th>
+    {{ end }}
+    <tr>
+        {{ if .record }}
+        {{ range $check := .record.Checks }}
+        {{ template "boolheader.html" $check.Status }}
+            <a href="/team/{{ $m.GetIdentifier $check.Team.Name }}/{{ $check.Name }}">
+                {{ template "bool.html" $check.Status }}
+            </a>
+        </td>
+        {{ end }}
+        {{ end }}
+    </tr>
+</table>
+
+<br>
+<br>
+<h2>History</h2>
+<p style="text-align: center"><i>(last {{ .limit }} rounds)</i></p>
+<br>
+
+<table class="checks">
+    {{ if not $m.Tightlipped }}
+    <th>Round</th>
+    {{ end }}
+    <th>Time</th>
+    {{ range $check := .m.CheckList }}
+    <th>{{ $check.Name }}</th>
+    {{ end }}
+
+    {{ if .history }}
+    {{ range $index, $record := .history }}
+    <tr>
+        {{ if not $m.Tightlipped }}
+        <td>{{ $record.Round }}</td>
+        {{ end }}
+        <td>
+            {{ if eq $index 0 }}
+                <b>Current</b>
+            {{ else }}
+                {{ ($record.Time.In $loc).Format "03:04:05 PM" }}
+            {{ end }}
+        </td>
+    {{ range $check := $record.Checks }}
+        {{ template "boolheader.html" $check.Status }}
+            <a href="/team/{{ $m.GetIdentifier $check.Team.Name }}/{{ $check.Name }}">
+                {{ template "bool.html" $check.Status }}
+            </a>
+        </td>
+    {{ end }}
+    </tr>
+    {{ end }}
+    {{ end }}
+</table>
+
+{{ if not $m.Tightlipped }}
+<br>
+<br>
+<h2>External IPs</h2>
+<br>
+<table class="checks">
+    {{ range $check := .m.CheckList }}
+    <th>{{ $check.Name }}</th>
+    {{ end }}
+
+    <tr>
+    {{ range $check := .m.CheckList }}
+    <td>{{ $team.Prefix }}{{ $check.Suffix }}</td>
+    {{ end }}
+    </tr>
+
+</table>
+{{ end }}
+
+{{ if $m.Verbose }}
+<br>
+<br>
+<fieldset>
+<p>
+    Service points: {{ .record.ServicePoints }}
+
+    <br>
+    Inject points: {{ .record.InjectPoints }}
+
+    <br>
+    SLA Violations: {{ .record.SlaViolations }}
+
+    <br>
+    <b>Total points</b>: {{ .record.Total }}
+
+    <br>
+    <a href="/export/{{ $m.GetIdentifier .record.Team.Name }}">Export team data</a>
+</p>
+</fieldset>
+{{ end }}
+
+{{ template "feet.html" }}

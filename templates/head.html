@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Metadata and resources
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <title>{{ .event }} {{ .title }}</title>
+    <link rel="stylesheet" href="/assets/normalize.css">
+    <link rel="stylesheet" href="/assets/main.css">
+    <link rel="icon" type="image/ico" href="/assets/favicon.ico"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+
+<body>
+    <div class="container">
+        <div class="nav">
+            <h1>mew</h1>
+            <div>
+                {{ if .user }}
+                {{ if not .admin }}
+                <a href="/team/{{ .m.GetIdentifier .user }}">team</a>
+                {{ end }}
+                <a href="/pcr">pcr</a>
+                <a href="/injects">injects</a>
+                {{ end }}
+                <a href="/">status</a>
+                {{ if or .m.Verbose .admin }}
+                <a href="/scores">scores</a>
+                {{ end }}
+                {{ if .user }}
+                <a href="/logout">logout</a>
+                {{ else }}
+                <a href="/login">login</a>
+                {{ end }}
+            </div>
+        </div>
+        <hr>

@@ -1,0 +1,52 @@
+{{ template "head.html" . }}
+
+<br>
+<h2>Injects</h2>
+
+{{ $loc := .loc }}
+
+<br>
+<br>
+<table>
+    <th>Due</th>
+    <th>Inject Title</th>
+    <th>Status</th>
+    <th><b>View</b></th>
+
+    where injects is injects for team, or for admin, a summary of each status (ex. all, some, none)
+    {{ range $index, $inject := .injects }}
+    <tr {{ if .Status }}style="background-color: pink"{{ end }}>
+        <td>
+            {{ $inject.Due }}
+        </td>
+        <td>
+            {{ $inject.Title }}
+        </td>
+        <td>
+            {{ $inject.Status }}
+        </td>
+        <td>
+            <a href="/injects/{{ $index }}">
+                <b>Inject{{ $index }}</b>
+            </a>
+        </td>
+    </tr>
+    {{ end }}
+
+
+</table>
+
+<!--
+{{ if not .admin }}
+    posted injects
+    form to submit
+        file
+        textarea
+{{ else }}
+    admin interface to provide feedback on injects
+    /inject/injectname/[ team ]
+{{ end }}
+
+-->
+
+{{ template "feet.html" }}

@@ -1,0 +1,55 @@
+{{ template "head.html" . }}
+
+{{ $m := .m }}
+{{ $admin := .admin }}
+{{ $team := .team }}
+
+{{ template "refresh.html" }}
+
+<br>
+<h2>Status</h2>
+
+<br>
+<table>
+    <th>Team</th>
+    {{ range $check := .m.CheckList }}
+    <th>{{ $check.Name }}</th>
+    {{ end }}
+    {{ range $index, $record := .records }}
+    <tr>
+        <td class="teamname">
+            {{ if or (eq $record.Team $team) $admin }}
+            <a href="/red/{{ $m.GetIdentifier $record.Team.Name }}">
+            {{ end }}
+            {{ $record.Team.Name }}
+            {{ if or (eq $record.Team $team) $admin }}
+            </a>
+            {{ end }}
+        </td>
+
+        {{ range $check := $record.Checks }}
+        {{ template "boolheader.html" .Status }}
+            {{ if or (eq $record.Team $team) $admin }}
+            <a href="/team/{{ $m.GetIdentifier $record.Team.Name }}/{{ $check.Name }}">
+            {{ end }}
+            {{ template "bool.html" .Status }}
+            {{ if .Persist }}
+            <span style="background-color: black; border-radius: 0.3rem;">💀️</span>
+            {{ end }}
+            {{ if or (eq $record.Team $team) $admin }}
+            </a>
+            {{ end }}
+        </td>
+        {{ end }}
+    </tr>
+    {{ end }}
+</table>
+
+{{ if .records }}
+<br>
+<p style="text-align: center">
+Checks ran at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
+</p>
+{{ end }}
+
+{{ template "feet.html" }}

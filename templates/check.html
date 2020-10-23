@@ -1,0 +1,87 @@
+{{ template "head.html" . }}
+
+{{ $m := .m }}
+{{ $loc := .loc }}
+
+{{ template "refresh.html" }}
+
+<br>
+<h2>Team {{ .team.Name }}</h2>
+
+<br>
+<h2>Check {{ .check.Name }}</h2>
+
+<p style="text-align: center"><i>(last {{ .limit }} results)</i></p>
+
+
+{{ if .results }}
+{{ if .m.Verbose }}
+<br>
+<fieldset>
+<p>
+    {{ if not .m.Tightlipped }}
+    <p style="text-align: center">
+    External IP: <i>{{ .team.Prefix }}{{ .check.Suffix }}
+    </i></p>
+    {{ end }}
+    SLA Violations: {{ (index .results 0).SlaViolations }}
+</p>
+</fieldset>
+<br>
+{{ end }}
+{{ end }}
+
+
+<br>
+<table class="checks">
+    {{ if not $m.Tightlipped }}
+    <th>Round</th>
+    {{ end }}
+    <th>Time</th>
+    <th>Result</th>
+    <th>Error</th>
+    {{ if $m.Verbose }}
+    <th>Debug</th>
+    {{ end }}
+    {{ range $result := .results }}
+    <tr>
+        {{ if not $m.Tightlipped }}
+        <td>
+            {{ $result.Round }}
+        </td>
+        {{ end }}
+        <td>
+            {{ ($result.Time.In $loc).Format "03:04:05 PM" }}
+        </td>
+        {{ template "boolheader.html" $result.Status }}
+            {{ if $result.Status }}
+            ✅
+            {{ else }}
+            ❌
+            {{ end }}
+        </td>
+        <td>
+            {{ if $result.Error }}
+                {{ if $m.Tightlipped }}
+                    An error occurred.
+                {{ else }}
+                    {{ $result.Error }}
+                {{end}}
+            {{ else }}
+                All good!
+            {{ end }}
+        </td>
+            {{ if $m.Verbose }}
+        <td>
+            {{ if $result.Debug }}
+                {{ $result.Debug }}
+            {{ else }}
+                N/A
+            {{ end }}
+        </td>
+        {{ end }}
+    </tr>
+    {{ end }}
+</table>
+
+{{ template "feet.html" }}

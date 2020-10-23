@@ -1,0 +1,19 @@
+{{ template "head.html" }}
+
+<br>
+<br>
+<div style="display: flex; justify-content: flex-center;">
+    <form style="display: block; margin: 0 auto;" method="POST" action="/login">
+    {{ template "error.html" .error }}
+    <h1>Login</h1>
+        <div>
+            <input type="text" name="username" placeholder="Username"></input>
+        </div>
+        <div>
+            <input type="password" name="password" placeholder="Password"></input>
+        </div>
+        <input type="submit" value="Login"/>
+    </form>
+</div>
+
+{{ template "feet.html" }}

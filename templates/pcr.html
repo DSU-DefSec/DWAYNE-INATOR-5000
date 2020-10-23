@@ -1,0 +1,73 @@
+{{ template "head.html" . }}
+
+<br>
+<h2>Password Change Requests</h2>
+
+
+{{ $m := .m }}
+
+<br>
+{{ template "error.html" .error }}
+{{ template "message.html" .message }}
+<form style="width: 100%;" method="POST">
+    {{ if .admin }}
+    <label>Team:
+        <select name="team">
+            {{ range $team := .m.Team }}
+            <option value="{{ $m.GetIdentifier $team.Name }}">{{ $team.Name }}</option>
+            {{ end }}
+        </select>
+    </label>
+    {{ end }}
+    <label>Check:
+        <select name="check">
+            {{ range $check := .m.CheckList }}
+            <option value="{{ $check.Name }}">{{ $check.Name }}</option>
+            {{ end }}
+        </select>
+    </label>
+    <br><br>
+    <textarea name="pcr" placeholder="username:password"></textarea>
+    <input style="display: block; margin: 0 auto;" type="submit" value="Submit PCR"/>
+</form>
+
+
+
+{{ $admin := .admin }}
+{{ $loc := .loc }}
+
+<br>
+<br>
+<br>
+<h2>Services Last Updated</h2>
+
+<br>
+<table>
+    {{ if .admin }}
+    <th>Team</th>
+    {{ end }}
+    <th>Time</th>
+    <th>Service</th>
+    {{ range $index, $pcr := .pcrs }}
+    <tr>
+        {{ if $admin }}
+        <td class="teamname">
+            {{ $pcr.Team.Name }}
+        </td>
+        {{ end }}
+        <td>
+            {{ ($pcr.Time.In $loc).Format "03:04:05 PM" }}
+        </td>
+        <td>
+            {{ $pcr.Check }}
+        </td>
+        {{ if $admin }}
+        <td>
+            {{ $pcr.Creds }}
+        </td>
+        {{ end }}
+    </tr>
+    {{ end }}
+</table>
+
+{{ template "feet.html" }}
