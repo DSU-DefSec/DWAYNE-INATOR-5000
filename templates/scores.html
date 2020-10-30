@@ -6,7 +6,7 @@
 {{ template "refresh.html" }}
 
 <br>
-<h2>Scores</h2>
+<h2>Graph</h2>
 
 <br>
 {{ if not .m.Tightlipped }}
@@ -14,6 +14,8 @@
 {{ end }}
 
 <br>
+<br>
+<h2>Scores</h2>
 <br>
 <table>
     <th>Rank</th>
@@ -27,7 +29,7 @@
 
     {{ range $index, $record := .records }}
     <tr>
-        <td>{{ $index }}</td>
+        <td>{{ $index | increment }}</td>
         {{ if eq $record.Team $team }}
             <td class="teamname">
                 <a href="/team/{{ $m.GetIdentifier $team.Name }}">
@@ -55,11 +57,34 @@
     {{ end }}
 </table>
 
+{{ if ne .m.Kind "blue" }}
+<br>
+<br>
+<h2>Red</h2>
+<br>
+<table>
+    <th>Rank</th>
+    <th>Team</th>
+    <th>Points</th>
+    <!-- <th>Points Lost</th> -->
+    {{ range $index, $record := .redRecords }}
+        <tr>
+            <td>{{ $index | increment }}</td>
+            <td>{{ .Team.Name }}</td>
+            <td><b>{{ .RedContrib }}</b></td>
+            <!-- <td><b>{{ .RedDetract }}</b></td>-->
+        </tr>
+    {{ end }}
+</table>
+<br>
+{{ end }}
+
 {{ if .records }}
 <br>
 <p style="text-align: center">
     Scores calculated at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
 </p>
 {{ end }}
+<br>
 
 {{ template "feet.html" }}

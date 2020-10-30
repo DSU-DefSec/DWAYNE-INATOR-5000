@@ -17,9 +17,9 @@ type Ftp struct {
 	BadAttempts int
 }
 
-func (c Ftp) Run(teamPrefix string, res chan Result) {
+func (c Ftp) Run(boxIp string, res chan Result) {
 	// harcoded 5 second timeout
-	conn, err := ftp.Dial(teamPrefix+c.Suffix+":"+strconv.Itoa(c.Port), ftp.DialWithTimeout(time.Duration(c.Timeout)*time.Second))
+	conn, err := ftp.Dial(boxIp+":"+strconv.Itoa(c.Port), ftp.DialWithTimeout(time.Duration(c.Timeout)*time.Second))
 	if err != nil {
 		res <- Result{
 			Status: false,
@@ -34,7 +34,14 @@ func (c Ftp) Run(teamPrefix string, res chan Result) {
 		username = "anonymous"
 		password = "anonymous"
 	} else {
-		username, password = getCreds(c.CredLists)
+		username, password, err = getCreds(c.CredLists)
+		if err != nil {
+			res <- Result{
+				Status: false,
+				Error:  "no credlists supplied to check",
+			}
+			return
+		}
 	}
 	err = conn.Login(username, password)
 	if err != nil {

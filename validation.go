@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"regexp"
 	"strconv"
 
@@ -30,10 +29,11 @@ func (m *config) validateTeam(teamName string) (teamData, error) {
 }
 
 func (m *config) getCheck(checkName string) (checks.Check, error) {
-	for _, check := range m.CheckList {
-		fmt.Println("check.Name is", check.FetchName(), "checkNAme is", checkName)
-		if check.FetchName() == checkName {
-			return check, nil
+	for _, box := range m.Box {
+		for _, check := range box.CheckList {
+			if check.FetchName() == checkName {
+				return check, nil
+			}
 		}
 	}
 	return checks.Web{}, errors.New("check not found")
@@ -68,6 +68,7 @@ func (m *config) validateTeamIndex(teamName string, teamIndex string) (teamData,
 }
 
 func (m *config) getTeamByIndex(index int) (teamData, error) {
+	index--
 	if index >= 0 && index < len(m.Team) {
 		return m.Team[index], nil
 	}

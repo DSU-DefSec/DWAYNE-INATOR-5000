@@ -2,15 +2,17 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"io/ioutil"
 	"log"
+	"reflect"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
-	"github.com/DSU-DefSec/mew/checks"
-
 	"github.com/BurntSushi/toml"
+	"github.com/DSU-DefSec/mew/checks"
 )
 
 type config struct {
@@ -25,45 +27,52 @@ type config struct {
 	SlaPoints    int
 	Admin        []adminData
 	Team         []teamData
-	CheckList    []checks.Check
+	Box          []Box
 	Creds        []checks.CredData
-	AllChecks
 }
 
-type AllChecks struct {
-	Dns []checks.Dns
-	Ftp []checks.Ftp
-	Ldap []checks.Ldap
-	Rdp []checks.Rdp
-	Smb []checks.Smb
-	Ssh []checks.Ssh
-	Web []checks.Web
+type Box struct {
+	Name      string
+	Suffix    string
+	CheckList []checks.Check
+	Dns       []checks.Dns
+	Ftp       []checks.Ftp
+	Ldap      []checks.Ldap
+	Rdp       []checks.Rdp
+	Smb       []checks.Smb
+	Ssh       []checks.Ssh
+	Web       []checks.Web
 }
 
 const (
 	configPath = "./mew.conf"
 )
 
-func fillCheckList(m *config) {
+func getBoxChecks(b Box) []checks.Check {
 	// Gotta be a better way to do this
-	for _, c := range m.Dns {
-		m.CheckList = append(m.CheckList, c)
+	checkList := []checks.Check{}
+	for _, c := range b.Dns {
+		checkList = append(checkList, c)
 	}
-	for _, c := range m.Ftp {
-		m.CheckList = append(m.CheckList, c)
+	for _, c := range b.Ftp {
+		checkList = append(checkList, c)
 	}
-	for _, c := range m.Rdp {
-		m.CheckList = append(m.CheckList, c)
+	for _, c := range b.Ldap {
+		checkList = append(checkList, c)
 	}
-	for _, c := range m.Smb {
-		m.CheckList = append(m.CheckList, c)
+	for _, c := range b.Rdp {
+		checkList = append(checkList, c)
 	}
-	for _, c := range m.Ssh {
-		m.CheckList = append(m.CheckList, c)
+	for _, c := range b.Smb {
+		checkList = append(checkList, c)
 	}
-	for _, c := range m.Web {
-		m.CheckList = append(m.CheckList, c)
+	for _, c := range b.Ssh {
+		checkList = append(checkList, c)
 	}
+	for _, c := range b.Web {
+		checkList = append(checkList, c)
+	}
+	return checkList
 }
 
 func readConfig(conf *config) {
@@ -98,7 +107,7 @@ func checkConfig(conf *config) error {
 		return errors.New("illegal config: jitter not smaller than delay")
 	}
 
-	if conf.Timeout >= conf.Delay - conf.Jitter {
+	if conf.Timeout >= conf.Delay-conf.Jitter {
 		return errors.New("illegal config: timeout not smaller than delay minus jitter")
 	}
 
@@ -117,6 +126,11 @@ func checkConfig(conf *config) error {
 	}
 
 	// setting defaults
+
+	// apply default cred lists
+	if len(mewConf.Creds) > 0 {
+		checks.DefaultCredList = mewConf.Creds[0].Usernames
+	}
 
 	// If Tightlipped is enabled, Verbose can not be enabled.
 	if conf.Tightlipped && conf.Verbose {
@@ -167,72 +181,136 @@ func checkConfig(conf *config) error {
 	// look for missing team properties
 	for _, team := range conf.Team {
 		if team.Name == "" || team.Pw == "" || team.Prefix == "" {
-			return errors.New("team " + team.Name + "missing required property")
+			return errors.New("team " + team.Name + " missing required property, one of name, password, or prefix")
 		}
 	}
 
-	// sort CheckList
-	sort.SliceStable(conf.CheckList, func(i, j int) bool {
-		return conf.CheckList[i].FetchName() > conf.CheckList[j].FetchName()
-	})
-
 	// check validators
-	for i, c := range conf.CheckList {
-		switch c.(type) {
-		case checks.Ftp:
-			ck := c.(checks.Ftp)
-			if ck.Port == 0 {
-				ck.Port = 21
-			}
-			if ck.Timeout == 0 {
-				ck.Timeout = 5
-			}
-			conf.CheckList[i] = ck
-		case checks.Rdp:
-			ck := c.(checks.Rdp)
-			if ck.Port == 0 {
-				ck.Port = 3389
-				conf.CheckList[i] = ck
-			}
-		case checks.Smb:
-			ck := c.(checks.Smb)
-			if ck.Port == 0 {
-				ck.Port = 445
-				conf.CheckList[i] = ck
-			}
-		case checks.Ssh:
-			ck := c.(checks.Ssh)
-			if ck.Port == 0 {
-				ck.Port = 22
-				conf.CheckList[i] = ck
-			}
-		case checks.Web:
-			ck := c.(checks.Web)
-			if len(ck.Url) == 0 {
-				return errors.New("no urls specified for web check")
-			}
-			for j, u := range ck.Url {
-				if u.Scheme == "" {
-					ck.Url[j].Scheme = "http"
+	for i, b := range conf.Box {
+		conf.Box[i].CheckList = getBoxChecks(b)
+		for j, c := range conf.Box[i].CheckList {
+			switch c.(type) {
+			case checks.Dns:
+				ck := c.(checks.Dns)
+				ck.Suffix = b.Suffix
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + "dns"
 				}
-				if u.Port == 0 {
-					ck.Url[j].Port = 80
+				if ck.Display == "" {
+					ck.Display = "dns"
 				}
+				if ck.Port == 0 {
+					ck.Port = 53
+				}
+				conf.Box[i].CheckList[j] = ck
+			case checks.Ftp:
+				ck := c.(checks.Ftp)
+				ck.Suffix = b.Suffix
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + "ftp"
+				}
+				if ck.Display == "" {
+					ck.Display = "ftp"
+				}
+				if ck.Port == 0 {
+					ck.Port = 21
+				}
+				if ck.Timeout == 0 {
+					ck.Timeout = 5
+				}
+				conf.Box[i].CheckList[j] = ck
+			case checks.Ldap:
+				ck := c.(checks.Ldap)
+				ck.Suffix = b.Suffix
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + "ldap"
+				}
+				if ck.Display == "" {
+					ck.Display = "ldap"
+				}
+				if ck.Port == 0 {
+					ck.Port = 636
+				}
+				conf.Box[i].CheckList[j] = ck
+			case checks.Rdp:
+				ck := c.(checks.Rdp)
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + "rdp"
+				}
+				if ck.Display == "" {
+					ck.Display = "rdp"
+				}
+				ck.Suffix = b.Suffix
+				if ck.Port == 0 {
+					ck.Port = 3389
+				}
+				conf.Box[i].CheckList[j] = ck
+			case checks.Smb:
+				ck := c.(checks.Smb)
+				ck.Suffix = b.Suffix
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + "smb"
+				}
+				if ck.Display == "" {
+					ck.Display = "smb"
+				}
+				if ck.Port == 0 {
+					ck.Port = 445
+				}
+				conf.Box[i].CheckList[j] = ck
+			case checks.Ssh:
+				ck := c.(checks.Ssh)
+				ck.Suffix = b.Suffix
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + "ssh"
+				}
+				if ck.Display == "" {
+					ck.Display = "ssh"
+				}
+				if ck.Port == 0 {
+					ck.Port = 22
+				}
+				conf.Box[i].CheckList[j] = ck
+			case checks.Web:
+				ck := c.(checks.Web)
+				ck.Suffix = b.Suffix
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + "web"
+				}
+				if ck.Display == "" {
+					ck.Display = "web"
+				}
+				if ck.Port == 0 {
+					ck.Port = 80
+				}
+				if len(ck.Url) == 0 {
+					return errors.New("no urls specified for web check")
+				}
+				for j, u := range ck.Url {
+					if u.Scheme == "" {
+						ck.Url[j].Scheme = "http"
+					}
+				}
+				conf.Box[i].CheckList[j] = ck
 			}
-			conf.CheckList[i] = ck
 		}
+
 	}
 
 	// look for duplicate checks
-	for i := 0; i < len(conf.CheckList)-1; i++ {
-		if conf.CheckList[i].FetchName() == conf.CheckList[i+1].FetchName() {
-			return errors.New("duplicate check name found")
+	for _, b := range conf.Box {
+		for j := 0; j < len(b.CheckList)-1; j++ {
+			if b.CheckList[j].FetchName() == b.CheckList[j+1].FetchName() {
+				return errors.New("duplicate check name '" + b.CheckList[j].FetchName() + "' and '" + b.CheckList[j+1].FetchName() + "' for box " + b.Name)
+			}
 		}
 	}
 
 	return nil
 }
 
-func sortCheckList(checkList []checks.Check) []checks.Check {
-	return checkList
+func getCheckName(check checks.Check) string {
+	name := strings.Split(reflect.TypeOf(check).String(), ".")[1]
+	fmt.Println("name is ", name)
+	return name
 }

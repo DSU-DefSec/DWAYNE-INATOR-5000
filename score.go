@@ -13,7 +13,6 @@ import (
 )
 
 func Score(m *config) {
-	fillCheckList(mewConf)
 	err := checkConfig(mewConf)
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "illegal config"))
@@ -39,9 +38,11 @@ func Score(m *config) {
 					Round: roundNumber,
 				}
 
-				for _, check := range m.CheckList {
-					wg.Add(1)
-					go checks.RunCheck(team.Prefix, check, wg, resChan)
+				for _, b := range m.Box {
+					for _, check := range b.CheckList {
+						wg.Add(1)
+						go checks.RunCheck(team.Prefix, b.Suffix, b.Name, check, wg, resChan)
+					}
 				}
 				done := make(chan struct{})
 				go func() {
@@ -62,6 +63,8 @@ func Score(m *config) {
 								Status: res.Status,
 								Error:  res.Error,
 								Debug:  res.Debug,
+								Suffix: res.Suffix,
+								Box: res.Box,
 							},
 						}
 						newRecord.Checks = append(newRecord.Checks, resEntry)

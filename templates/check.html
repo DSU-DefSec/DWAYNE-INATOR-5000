@@ -54,10 +54,10 @@
             {{ ($result.Time.In $loc).Format "03:04:05 PM" }}
         </td>
         {{ template "boolheader.html" $result.Status }}
-            {{ if $result.Status }}
-            ✅
+            {{ if ne $m.Kind "blue" }}
+                {{ template "boolhacked.html" . }}
             {{ else }}
-            ❌
+                {{ template "bool.html" . }}
             {{ end }}
         </td>
         <td>

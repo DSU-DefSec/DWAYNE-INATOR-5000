@@ -72,7 +72,7 @@ func (m *config) GetIdentifier(teamName string) string {
 	var index int
 	for i, team := range m.Team {
 		if team.Name == teamName {
-			index = i
+			index = i + 1
 			break
 		}
 	}

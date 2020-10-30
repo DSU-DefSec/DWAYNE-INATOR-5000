@@ -38,8 +38,7 @@ func graphScores(records []teamRecord) {
 		}
 	}
 
-	err = plotutil.AddLinePoints(p,
-		graphData...)
+	err = plotutil.AddLinePoints(p, graphData...)
 	if err != nil {
 		fmt.Println("plot:", err)
 		return

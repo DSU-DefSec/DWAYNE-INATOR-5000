@@ -51,6 +51,10 @@ table a {
     text-align: center;
 }
 
+th {
+    font-weight: bold;
+}
+
 td, th {
     font-weight: normal;
     padding: 0.7rem;

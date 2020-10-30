@@ -21,8 +21,10 @@
     {{ end }}
     <label>Check:
         <select name="check">
-            {{ range $check := .m.CheckList }}
+            {{ range $box := .m.Box }}
+            {{ range $check := .CheckList }}
             <option value="{{ $check.Name }}">{{ $check.Name }}</option>
+            {{ end }}
             {{ end }}
         </select>
     </label>

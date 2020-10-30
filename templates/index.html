@@ -3,6 +3,7 @@
 {{ $m := .m }}
 {{ $admin := .admin }}
 {{ $team := .team }}
+{{ $records := .records }}
 
 {{ template "refresh.html" }}
 
@@ -11,15 +12,25 @@
 
 <br>
 <table>
+    <tr>
+        <th></th>
+        {{ range $box := .m.Box }}
+        <th colspan="{{ len .CheckList }}"> {{ .Name }}</th>
+        {{ end }}
+    </tr>
+    <tr>
     <th>Team</th>
-    {{ range $check := .m.CheckList }}
-    <th>{{ $check.Name }}</th>
+    {{ range $box := .m.Box }}
+    {{ range $check := .CheckList }}
+    <th>{{ $check.Display }}</th>
     {{ end }}
-    {{ range $index, $record := .records }}
+    {{ end }}
+    </tr>
+    {{ range $index, $record := $records }}
     <tr>
         <td class="teamname">
             {{ if or (eq $record.Team $team) $admin }}
-            <a href="/red/{{ $m.GetIdentifier $record.Team.Name }}">
+            <a href="/team/{{ $m.GetIdentifier $record.Team.Name }}">
             {{ end }}
             {{ $record.Team.Name }}
             {{ if or (eq $record.Team $team) $admin }}
@@ -32,9 +43,10 @@
             {{ if or (eq $record.Team $team) $admin }}
             <a href="/team/{{ $m.GetIdentifier $record.Team.Name }}/{{ $check.Name }}">
             {{ end }}
-            {{ template "bool.html" .Status }}
-            {{ if .Persist }}
-            <span style="background-color: black; border-radius: 0.3rem;">💀️</span>
+            {{ if ne $m.Kind "blue" }}
+                {{ template "boolhacked.html" . }}
+            {{ else }}
+                {{ template "bool.html" . }}
             {{ end }}
             {{ if or (eq $record.Team $team) $admin }}
             </a>

@@ -7,8 +7,8 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"sync"
 	"time"
+	"sync"
 
 	"github.com/DSU-DefSec/mew/checks"
 
@@ -26,8 +26,8 @@ var (
 	roundNumber   int
 	prevRecords   = make(map[teamData]teamRecord) // cached team records from last round
 	recordStaging = make(map[teamData]teamRecord) // currently being built team records
+	redPersists = make(map[string]map[string][]string) // for each team's box, which teams have claimed persistence on it
 )
-
 /*
 mew
 	status
@@ -64,6 +64,8 @@ type teamRecord struct {
 	Team          teamData      `json:"team,omitempty"`
 	Round         int           `json:"round,omitempty"`
 	Checks        []resultEntry `json:"checks,omitempty"`
+	RedDetract     int       `json:"reddetract,omitempty"`
+	RedContrib     int       `json:"redcontrib,omitempty"`
 	ServicePoints int           `json:"servicepoints,omitempty"`
 	InjectPoints  int           `json:"injectpoints,omitempty"`
 	SlaViolations int           `json:"slaviolations,omitempty"`
@@ -170,6 +172,7 @@ func getCheckResults(team teamData, check checks.Check, limit int) ([]resultEntr
 	if err := cursor.All(mongoCtx, &results); err != nil {
 		return results, err
 	}
+
 	return results, nil
 }
 
@@ -249,11 +252,8 @@ func getTeamRecords(team teamData, limit int) ([]teamRecord, error) {
 	}
 
 	// Sort -- could make other function or sort in Mongo
-	for index, rec := range records {
-		sort.SliceStable(rec.Checks, func(i, j int) bool {
-			return rec.Checks[i].Name > rec.Checks[j].Name
-		})
-		records[index] = rec
+	for i := range records {
+		records[i].Checks = sortResults(records[i].Checks)
 	}
 
 	return records, nil
@@ -438,51 +438,13 @@ func getStatus() ([]teamRecord, error) {
 		return records[i].Team.Name < records[j].Team.Name
 	})
 
-	for index, rec := range records {
-		sort.SliceStable(rec.Checks, func(i, j int) bool {
-			return rec.Checks[i].Name > rec.Checks[j].Name
-		})
-		records[index] = rec
+	for i := range records {
+		records[i].Checks = sortResults(records[i].Checks)
 	}
 
 	return records, nil
 }
 
-func getCsv() (string, error) {
-	/*
-		teamScores, err := getStatus()
-		if err != nil {
-			return "", err
-		}
-	*/
-	csvString := "Email,Alias,Team ID,Image,Score,Play Time,Elapsed Time\n"
-	/*
-		for _, score := range teamScores {
-			csvString += score.Team.Email + ","
-			csvString += score.Team.Alias + ","
-			csvString += score.Team.ID + ","
-			csvString += score.Image.Name + ","
-			csvString += fmt.Sprintf("%d,", score.Points)
-			csvString += formatTime(score.PlayTime) + ","
-			csvString += formatTime(score.ElapsedTime) + "\n"
-		}
-	*/
-	return csvString, nil
-}
-
-func getTeamRecord(team teamData) (teamRecord, error) {
-	record := teamRecord{}
-	statusRecords, err := getStatus()
-	if err != nil {
-		return record, err
-	}
-	for _, rec := range statusRecords {
-		if rec.Team == team {
-			return rec, nil
-		}
-	}
-	return record, errors.New("team not found in status")
-}
 
 func insertResult(newResult resultEntry) error {
 	coll := getCollection(mewConf.GetIdentifier(newResult.Team.Name) + "results")
@@ -506,54 +468,30 @@ func replaceStatusRecord(newTeamRecord teamRecord) error {
 	return nil
 }
 
-func processTeamRecord(rec teamRecord, mux *sync.Mutex) {
-	fmt.Println("processing record for", rec.Team.Name)
-	old := teamRecord{}
-	if val, ok := prevRecords[rec.Team]; ok {
-		fmt.Println("val exists")
-		old = val
-	} else {
-		fmt.Println("val doesnt exist, fetching from team records")
-		old, _ = getTeamRecord(rec.Team)
-	}
-
-	rec.ServicePoints = old.ServicePoints
-	rec.InjectPoints = old.InjectPoints
-	if len(old.Checks) != len(rec.Checks) {
-		fmt.Println("error copying over check values: length difference")
-	} else {
-		for i, c := range old.Checks {
-			rec.Checks[i].SlaCounter = c.SlaCounter
-			rec.Checks[i].SlaViolations = c.SlaViolations
-		}
-	}
-
-	slaViolations := 0
-	for i, c := range rec.Checks {
-		slaViolations += c.SlaViolations
-		if c.Status {
-			rec.ServicePoints++
-			rec.Checks[i].SlaCounter = 0
-		} else {
-			fmt.Println("slaCounter on this check is", c.SlaCounter)
-			if c.SlaCounter >= mewConf.SlaThreshold {
-				rec.Checks[i].SlaCounter = 0
-				rec.Checks[i].SlaViolations++
-			} else {
-				rec.Checks[i].SlaCounter++
-			}
-		}
-	}
-	rec.SlaViolations = slaViolations
-	rec.Total = rec.ServicePoints - (rec.SlaViolations * mewConf.SlaPoints) + rec.InjectPoints
-	mux.Lock()
-	recordStaging[rec.Team] = rec
-	mux.Unlock()
-}
-
 func pushTeamRecords(mux *sync.Mutex) {
 	fmt.Println("pushing records")
-	for _, rec := range recordStaging {
+	for i, rec := range recordStaging {
+		if mewConf.Kind != "blue" {
+			identifier := mewConf.GetIdentifier(rec.Team.Name)
+			mux.Lock()
+			if boxMap, ok := redPersists[identifier]; ok {
+				rec.RedDetract -= len(boxMap)
+				for i := range rec.Checks {
+					rec.Checks[i].Persists = boxMap
+				}
+			}
+			for _, boxMaps := range redPersists {
+				for _, hackerTeams := range boxMaps {
+					for _, hackerTeam := range hackerTeams {
+						if hackerTeam == identifier {
+							rec.RedContrib++
+						}
+					}
+				}
+			}
+			recordStaging[i] = rec
+			mux.Unlock()
+		}
 		coll := getCollection(mewConf.GetIdentifier(rec.Team.Name) + "records")
 		_, err := coll.InsertOne(context.TODO(), rec)
 		if err != nil {
@@ -566,6 +504,7 @@ func pushTeamRecords(mux *sync.Mutex) {
 	}
 	mux.Lock()
 	prevRecords = recordStaging
+	redPersists = make(map[string]map[string][]string)
 	recordStaging = make(map[teamData]teamRecord)
 	mux.Unlock()
 }

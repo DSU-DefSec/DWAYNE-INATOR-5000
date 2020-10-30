@@ -1,5 +1,9 @@
 package checks
 
+import (
+	"strconv"
+)
+
 type Ldap struct {
 	checkBase
 	Port   int
@@ -7,8 +11,20 @@ type Ldap struct {
 	// ??
 }
 
-func (c Ldap) Run(teamPrefix string, res chan Result) {
+func (c Ldap) Run(boxIp string, res chan Result) {
 	// execute commands
+
+	// PLACEHOLDER: test tcp only
+	err := tcpCheck(boxIp + ":" + strconv.Itoa(c.Port))
+	if err != nil {
+		res <- Result{
+			Status: false,
+			Error:  "connection error",
+			Debug:  err.Error(),
+		}
+		return
+	}
+
 	res <- Result{
 		Status: true,
 		Debug:  "check ran",

@@ -1,5 +1,9 @@
 package checks
 
+import (
+	"strconv"
+)
+
 type Smb struct {
 	checkBase
 	Port   int
@@ -7,26 +11,38 @@ type Smb struct {
 	// ??
 }
 
-func (c Smb) Run(teamPrefix string, res chan Result) {
+func (c Smb) Run(boxIp string, res chan Result) {
 	// Authenticated SMB
 	if len(c.CredLists) > 0 {
-		username, password := getCreds(c.CredLists)
+		username, password, _ := getCreds(c.CredLists)
 		// log in smb
 		// if err != nil {
-			// return bad result
+		// return bad result
 		// check if file is specified
-			// retrieve file
+		// retrieve file
 		// check if hash is specified
-			// compare hash
+		// compare hash
+
 		res <- Result{
 			Status: true,
-			Debug:  "creds used were " + username + ":" + password,
+			Debug:  "placeholder tcp. creds used were " + username + ":" + password,
 		}
 		return
+	} else {
+		// PLACEHOLDER: test tcp only
+		err := tcpCheck(boxIp + ":" + strconv.Itoa(c.Port))
+		if err != nil {
+			res <- Result{
+				Status: false,
+				Error:  "connection error",
+				Debug:  err.Error(),
+			}
+			return
+		}
 	}
 	res <- Result{
 		Status: true,
-		Debug:  "anonymous smb ran",
+		Debug:  "anonymous smb connected",
 	}
 	// anonymous smb
 }

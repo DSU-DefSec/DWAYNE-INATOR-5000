@@ -16,12 +16,19 @@ type Ssh struct {
 	Outputs     []string
 }
 
-func (c Ssh) Run(teamPrefix string, res chan Result) {
+func (c Ssh) Run(boxIp string, res chan Result) {
 	// if  pubkey
 	// var hostKey ssh.PublicKey
 	// pubkey
 	// else
-	username, password := getCreds(c.CredLists)
+	username, password, err := getCreds(c.CredLists)
+	if err != nil {
+		res <- Result{
+			Status: false,
+			Error:  "no credlists supplied to check",
+		}
+		return
+	}
 
 	// Create client config
 	config := &ssh.ClientConfig{
@@ -35,7 +42,7 @@ func (c Ssh) Run(teamPrefix string, res chan Result) {
 	}
 
 	// Connect to ssh server
-	conn, err := ssh.Dial("tcp", teamPrefix+c.Suffix+":"+strconv.Itoa(c.Port), config)
+	conn, err := ssh.Dial("tcp", boxIp+":"+strconv.Itoa(c.Port), config)
 	if err != nil {
 		res <- Result{
 			Status: false,

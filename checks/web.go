@@ -10,11 +10,11 @@ import (
 type Web struct {
 	checkBase
 	Timeout int
+	Port    int
 	Url     []urlData
 }
 
 type urlData struct {
-	Port   int
 	Scheme string
 	Path   string
 	// use creds list for check for login
@@ -24,7 +24,7 @@ type urlData struct {
 	Diff          int
 }
 
-func (c Web) Run(teamPrefix string, res chan Result) {
+func (c Web) Run(boxIp string, res chan Result) {
 	timeout := c.Timeout
 	if timeout == 0 {
 		timeout = 10
@@ -38,7 +38,7 @@ func (c Web) Run(teamPrefix string, res chan Result) {
 		// if usernameParam == nil
 		// post with username/pw as creds
 		// else
-		resp, err := client.Get(u.Scheme + "://" + teamPrefix + c.Suffix + ":" + strconv.Itoa(u.Port) + u.Path)
+		resp, err := client.Get(u.Scheme + "://" + boxIp + ":" + strconv.Itoa(c.Port) + u.Path)
 		if err != nil {
 			res <- Result{
 				Status: false,

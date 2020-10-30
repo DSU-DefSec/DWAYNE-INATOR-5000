@@ -1,0 +1,5 @@
+    {{ range $box := .m.Box }}
+    {{ range $check := .CheckList }}
+    <th>{{ $check.Display }}</th>
+    {{ end }}
+    {{ end }}

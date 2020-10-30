@@ -3,9 +3,11 @@ package main
 import (
 	"fmt"
 	"log"
+	"sort"
 	"net/http"
 	"strconv"
 	"time"
+	"html/template"
 
 	"github.com/DSU-DefSec/mew/checks"
 	"github.com/gin-gonic/gin"
@@ -35,6 +37,14 @@ func main() {
 	// Initialize Gin router
 	// gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
+
+   // Add... add function
+    r.SetFuncMap(template.FuncMap{
+            "increment": func(x int) int {
+                    return x + 1
+            },
+    })
+
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/assets", "./assets")
 	initCookies(r)
@@ -50,6 +60,7 @@ func main() {
 		routes.GET("/forbidden", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "forbidden.html", pageData(c, "forbidden", nil))
 		})
+		routes.GET("/persist/:id", persistHandler)
 		routes.POST("/login", login)
 	}
 
@@ -70,7 +81,7 @@ func main() {
 	initStatus()
 
 	go Score(mewConf)
-	r.Run()
+	r.Run(":80")
 }
 
 func viewStatus(c *gin.Context) {
@@ -206,14 +217,32 @@ func viewScores(c *gin.Context) {
 	if !mewConf.Tightlipped {
 		graphScores(records)
 	}
-	c.HTML(http.StatusOK, "scores.html", pageData(c, "scores", gin.H{"records": records}))
+
+	// sort redRecords based on inverse redPoints
+	sort.SliceStable(records, func(i, j int) bool {
+		return records[i].Total > records[j].Total
+	})
+
+	// sort redRecords based on inverse redPoints
+	redRecords := []teamRecord{}
+	for _, rec := range records {
+		redRecords = append(redRecords, rec)
+	}
+
+	sort.SliceStable(redRecords, func(i, j int) bool {
+		return (redRecords[i].RedContrib + redRecords[i].RedDetract) > (redRecords[j].RedContrib + redRecords[j].RedDetract)
+	})
+
+	c.HTML(http.StatusOK, "scores.html", pageData(c, "scores", gin.H{"records": records, "redRecords": redRecords}))
 }
 
 func exportTeamData(c *gin.Context) {
 	team := getTeamWithAdmin(c)
 	csvString := "time,round,service,inject,sla,"
-	for _, c := range mewConf.CheckList {
-		csvString += c.FetchName() + ","
+	for _, b := range mewConf.Box {
+		for _, c := range b.CheckList {
+			csvString += c.FetchName() + ","
+		}
 	}
 	csvString += "total\n"
 	records, err := getTeamRecords(team, 0)
@@ -258,4 +287,32 @@ func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {
 		newGinMap[key] = value
 	}
 	return newGinMap
+}
+
+func persistHandler(c *gin.Context) {
+	// if cyberconquest
+	if mewConf.Kind != "blue" {
+		c.Param("id")
+		// if red id exists
+			// find which box the request is coming from
+		redTeam := "team3" // get from id
+		sourceTeam := "team1"
+		sourceBox := "pumpkin"
+		// create map is not already created
+		if _, ok := redPersists[sourceTeam]; !ok {
+			redPersists[sourceTeam] = make(map[string][]string)
+		}
+		// if not already persisted for the given team, add team
+		if teamList, ok := redPersists[sourceTeam][sourceBox]; !ok {
+			redPersists[sourceTeam][sourceBox] = append(redPersists[sourceTeam][sourceBox], redTeam)
+		} else {
+			for _, team := range teamList {
+				if team != sourceTeam {
+					continue
+				}
+				redPersists[sourceTeam][sourceBox] = append(redPersists[sourceTeam][sourceBox], redTeam)
+				break
+			}
+		}
+	}
 }

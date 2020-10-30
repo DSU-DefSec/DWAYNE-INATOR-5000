@@ -1,9 +1,7 @@
 package checks
 
 import (
-	"net"
 	"strconv"
-	"time"
 
 	"github.com/icodeface/grdp"
 )
@@ -14,12 +12,10 @@ type Rdp struct {
 	// ??
 }
 
-func (c Rdp) Run(teamPrefix string, res chan Result) {
-	host := teamPrefix + c.Suffix + ":" + strconv.Itoa(c.Port)
-
+func (c Rdp) Run(boxIp string, res chan Result) {
 	if len(c.CredLists) == 0 {
 		// PLACEHOLDER: test tcp only
-		conn, err := net.DialTimeout("tcp", host, 3*time.Second)
+		err := tcpCheck(boxIp + ":" + strconv.Itoa(c.Port))
 		if err != nil {
 			res <- Result{
 				Status: false,
@@ -28,16 +24,22 @@ func (c Rdp) Run(teamPrefix string, res chan Result) {
 			}
 			return
 		}
-		defer conn.Close()
 		res <- Result{
 			Status: true,
 		}
 		return
 	}
 
-	username, password := getCreds(c.CredLists)
-	client := grdp.NewClient(host, 0)
-	err := client.Login(username, password)
+	username, password, err := getCreds(c.CredLists)
+	if err != nil {
+		res <- Result{
+			Status: false,
+			Error:  "no credlists supplied to check",
+		}
+		return
+	}
+	client := grdp.NewClient(boxIp, 0)
+	err = client.Login(username, password)
 	if err != nil {
 		res <- Result{
 			Status: false,
