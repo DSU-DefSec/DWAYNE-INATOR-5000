@@ -14,7 +14,7 @@
     <label>Team:
         <select name="team">
             {{ range $team := .m.Team }}
-            <option value="{{ $m.GetIdentifier $team.Name }}">{{ $team.Name }}</option>
+            <option value="{{ $m.GetIdentifier .Name }}">{{ .Name }}</option>
             {{ end }}
         </select>
     </label>
@@ -50,11 +50,14 @@
     {{ end }}
     <th>Time</th>
     <th>Service</th>
+    {{ if .admin }}
+    <th>Creds</th>
+    {{ end }}
     {{ range $index, $pcr := .pcrs }}
     <tr>
         {{ if $admin }}
         <td class="teamname">
-            {{ $pcr.Team.Name }}
+            {{ $pcr.Team }}
         </td>
         {{ end }}
         <td>

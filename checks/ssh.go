@@ -16,12 +16,12 @@ type Ssh struct {
 	Outputs     []string
 }
 
-func (c Ssh) Run(boxIp string, res chan Result) {
+func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	// if  pubkey
 	// var hostKey ssh.PublicKey
 	// pubkey
 	// else
-	username, password, err := getCreds(c.CredLists)
+	username, password, err := getCreds(c.CredLists, teamName, c.Name)
 	if err != nil {
 		res <- Result{
 			Status: false,
@@ -46,8 +46,8 @@ func (c Ssh) Run(boxIp string, res chan Result) {
 	if err != nil {
 		res <- Result{
 			Status: false,
-			Error:  "error connecting or logging in to ssh server",
-			Debug:  "error: " + err.Error() + " for creds " + username + ":" + password,
+			Error:  "error logging in to ssh server for creds " + username + ":" + password,
+			Debug:  "error: " + err.Error(),
 		}
 		return
 	}

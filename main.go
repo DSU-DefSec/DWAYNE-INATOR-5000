@@ -2,12 +2,12 @@ package main
 
 import (
 	"fmt"
+	"html/template"
 	"log"
-	"sort"
 	"net/http"
+	"sort"
 	"strconv"
 	"time"
-	"html/template"
 
 	"github.com/DSU-DefSec/mew/checks"
 	"github.com/gin-gonic/gin"
@@ -38,12 +38,12 @@ func main() {
 	// gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
-   // Add... add function
-    r.SetFuncMap(template.FuncMap{
-            "increment": func(x int) int {
-                    return x + 1
-            },
-    })
+	// Add... add function
+	r.SetFuncMap(template.FuncMap{
+		"increment": func(x int) int {
+			return x + 1
+		},
+	})
 
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/assets", "./assets")
@@ -79,6 +79,7 @@ func main() {
 
 	fmt.Println("Refreshing status data from records...")
 	initStatus()
+	initCreds()
 
 	go Score(mewConf)
 	r.Run(":80")
@@ -140,15 +141,22 @@ func viewPCR(c *gin.Context) {
 		fmt.Println("viewpcr:", err)
 		errorOutGraceful(c, err)
 	}
-	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems}))
+	// sort pcr items based on time
+	sort.SliceStable(pcrItems, func(i, j int) bool {
+		return pcrItems[i].Time.After(pcrItems[j].Time)
+	})
+
+	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "allPcrs": checks.Creds}))
 }
 
-func getPCRWeb(c *gin.Context) ([]pcrData, error) {
+func getPCRWeb(c *gin.Context) ([]checks.PcrData, error) {
 	var err error
 	team := teamData{}
-	pcrItems := []pcrData{}
+	pcrItems := []checks.PcrData{}
 	if mewConf.isAdmin(getUser(c)) {
+		fmt.Println("getting all pcr items")
 		pcrItems, err = getAllTeamPCRItems()
+		fmt.Println("pcrItems is", pcrItems)
 		if err != nil {
 			errorOutGraceful(c, err)
 		}
@@ -292,12 +300,41 @@ func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {
 func persistHandler(c *gin.Context) {
 	// if cyberconquest
 	if mewConf.Kind != "blue" {
-		c.Param("id")
-		// if red id exists
-			// find which box the request is coming from
-		redTeam := "team3" // get from id
-		sourceTeam := "team1"
-		sourceBox := "pumpkin"
+		redTeamId := c.Param("id")
+		sourceIp := c.ClientIP()
+		fmt.Println("Source ip is ", sourceIp)
+		var redTeam, sourceTeam, sourceBox string
+
+		for _, team := range mewConf.Team {
+			if team.Red == redTeamId {
+				redTeam = mewConf.GetIdentifier(team.Name)
+			}
+		}
+
+		if redTeam == "" {
+			c.JSON(400, gin.H{"error": "Invalid red team token"})
+			return
+		}
+
+		for _, team := range mewConf.Team {
+			if sourceTeam == "" {
+				for _, box := range mewConf.Box {
+					if team.Prefix+box.Suffix == sourceIp {
+						sourceTeam = mewConf.GetIdentifier(team.Name)
+						sourceBox = box.Name
+						break
+					}
+				}
+			}
+		}
+
+		if sourceBox == "" {
+			c.JSON(400, gin.H{"error": "Source IP " + sourceIp + " is not a from a valid box"})
+			return
+		}
+
+		fmt.Println("redTeam is", redTeam, "sourceTeam", sourceTeam, "sourceBox", sourceBox)
+
 		// create map is not already created
 		if _, ok := redPersists[sourceTeam]; !ok {
 			redPersists[sourceTeam] = make(map[string][]string)

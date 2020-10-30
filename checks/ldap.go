@@ -11,7 +11,7 @@ type Ldap struct {
 	// ??
 }
 
-func (c Ldap) Run(boxIp string, res chan Result) {
+func (c Ldap) Run(teamName, boxIp string, res chan Result) {
 	// execute commands
 
 	// PLACEHOLDER: test tcp only

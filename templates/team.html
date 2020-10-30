@@ -89,31 +89,20 @@
 {{ if not $m.Tightlipped }}
 <br>
 <br>
-<h2>External IPs</h2>
+<h2>External IPs and Ports</h2>
 <br>
 <table class="checks">
     <tr>
         {{ range $box := .m.Box }}
-        <th>{{ .Name }}</th>
+        <th colspan="{{ len .CheckList }}"> {{ .Name }}</th>
         {{ end }}
     </tr>
     <tr>
         {{ range $box := .m.Box }}
-        <td>{{ $team.Prefix }}{{ .Suffix }}</td>
+        <td style="text-align: center" colspan="{{ len .CheckList }}">{{ $team.Prefix }}{{ .Suffix }}</td>
         {{ end }}
     </tr>
-</table>
 
-<br>
-<br>
-<h2>Ports</h2>
-<br>
-<table class="checks">
-    <tr>
-        {{ range $box := .m.Box }}
-        <th colspan="{{ len .CheckList }}">{{ .Name }}</th>
-        {{ end }}
-    </tr>
     {{ template "boxlist.html" . }}
 
     <tr>

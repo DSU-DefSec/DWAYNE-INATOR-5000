@@ -24,6 +24,8 @@
     External IP: <i>{{ .team.Prefix }}{{ .check.Suffix }}
     </i></p>
     {{ end }}
+    SLA Counter: {{ (index .results 0).SlaCounter }}
+    <br>
     SLA Violations: {{ (index .results 0).SlaViolations }}
 </p>
 </fieldset>

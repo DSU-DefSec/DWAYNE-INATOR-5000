@@ -17,7 +17,7 @@ type Ftp struct {
 	BadAttempts int
 }
 
-func (c Ftp) Run(boxIp string, res chan Result) {
+func (c Ftp) Run(teamName, boxIp string, res chan Result) {
 	// harcoded 5 second timeout
 	conn, err := ftp.Dial(boxIp+":"+strconv.Itoa(c.Port), ftp.DialWithTimeout(time.Duration(c.Timeout)*time.Second))
 	if err != nil {
@@ -34,7 +34,7 @@ func (c Ftp) Run(boxIp string, res chan Result) {
 		username = "anonymous"
 		password = "anonymous"
 	} else {
-		username, password, err = getCreds(c.CredLists)
+		username, password, err = getCreds(c.CredLists, teamName, c.Name)
 		if err != nil {
 			res <- Result{
 				Status: false,
@@ -65,5 +65,6 @@ func (c Ftp) Run(boxIp string, res chan Result) {
 
 	res <- Result{
 		Status: true,
+		Debug:  "creds used were " + username + ":" + password,
 	}
 }

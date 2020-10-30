@@ -24,7 +24,7 @@ type urlData struct {
 	Diff          int
 }
 
-func (c Web) Run(boxIp string, res chan Result) {
+func (c Web) Run(teamName, boxIp string, res chan Result) {
 	timeout := c.Timeout
 	if timeout == 0 {
 		timeout = 10

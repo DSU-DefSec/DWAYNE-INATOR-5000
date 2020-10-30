@@ -12,27 +12,28 @@ import (
 
 var (
 	GlobalTimeout, _ = time.ParseDuration("5s")
-	Creds            = make(map[string]string)
+	DefaultCreds     = make(map[string]string)
+	Creds            = []PcrData{}
 	DefaultCredList  = []string{}
 	CredLists        = make(map[string][]string)
 )
 
 // checks for each service
 type Check interface {
-	Run(string, chan Result)
+	Run(string, string, chan Result)
 	FetchName() string
 	FetchDisplay() string
 	FetchSuffix() string
 }
 
 type Result struct {
-	Name    string   `json:"name,omitempty"`
-	Box 	string`json:"box,omitempty"`
-	Status  bool     `json:"status,omitempty"`
-	Suffix  int      `json:"suffix,omitempty"`
+	Name     string              `json:"name,omitempty"`
+	Box      string              `json:"box,omitempty"`
+	Status   bool                `json:"status,omitempty"`
+	Suffix   int                 `json:"suffix,omitempty"`
 	Persists map[string][]string `json:"persists,omitempty"`
-	Error   string   `json:"error,omitempty"`
-	Debug   string   `json:"debug,omitempty"`
+	Error    string              `json:"error,omitempty"`
+	Debug    string              `json:"debug,omitempty"`
 }
 
 type checkBase struct {
@@ -48,6 +49,13 @@ type CredData struct {
 	DefaultPw string
 }
 
+type PcrData struct {
+	Time  time.Time
+	Team  string
+	Check string
+	Creds map[string]string
+}
+
 func (c checkBase) FetchName() string {
 	return c.Name
 }
@@ -60,7 +68,7 @@ func (c checkBase) FetchSuffix() string {
 	return c.Suffix
 }
 
-func getCreds(credLists []string) (string, string, error) {
+func getCreds(credLists []string, teamName, checkName string) (string, string, error) {
 	allUsernames := []string{}
 	rand.Seed(time.Now().UnixNano())
 	if len(credLists) > 0 {
@@ -72,15 +80,32 @@ func getCreds(credLists []string) (string, string, error) {
 	}
 	if len(allUsernames) > 0 {
 		username := allUsernames[rand.Intn(len(allUsernames))]
-		return username, Creds[username], nil
+		credItem := findCreds(teamName, checkName)
+		if credItem.Team == "" {
+			return username, DefaultCreds[username], nil
+		}
+		if pw, ok := credItem.Creds[username]; !ok {
+			return username, DefaultCreds[username], nil
+		} else {
+			return username, pw, nil
+		}
 	}
 	return "", "", errors.New("getCreds: empty credlist")
 }
 
-func RunCheck(teamPrefix, boxSuffix, boxName string, check Check, wg *sync.WaitGroup, resChan chan Result) {
+func findCreds(teamName, checkName string) PcrData {
+	for i, pcr := range Creds {
+		if pcr.Team == teamName && pcr.Check == checkName {
+			return Creds[i]
+		}
+	}
+	return PcrData{}
+}
+
+func RunCheck(teamName, teamPrefix, boxSuffix, boxName string, check Check, wg *sync.WaitGroup, resChan chan Result) {
 	res := make(chan Result)
 	result := Result{}
-	go check.Run(teamPrefix+boxSuffix, res)
+	go check.Run(teamName, teamPrefix+boxSuffix, res)
 	select {
 	case result = <-res:
 	case <-time.After(GlobalTimeout):
@@ -98,6 +123,11 @@ func RunCheck(teamPrefix, boxSuffix, boxName string, check Check, wg *sync.WaitG
 func tcpCheck(hostIp string) error {
 	_, err := net.DialTimeout("tcp", hostIp, GlobalTimeout)
 	return err
+}
+
+func percentChangedCreds() map[string]float {
+	// get all usernames
+	// for each team, see which % of creds exist in pcritems
 }
 
 func (r Result) IsHacked() bool {

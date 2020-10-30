@@ -11,10 +11,10 @@ type Smb struct {
 	// ??
 }
 
-func (c Smb) Run(boxIp string, res chan Result) {
+func (c Smb) Run(teamName, boxIp string, res chan Result) {
 	// Authenticated SMB
 	if len(c.CredLists) > 0 {
-		username, password, _ := getCreds(c.CredLists)
+		username, password, _ := getCreds(c.CredLists, teamName, c.Name)
 		// log in smb
 		// if err != nil {
 		// return bad result

@@ -41,7 +41,7 @@ func Score(m *config) {
 				for _, b := range m.Box {
 					for _, check := range b.CheckList {
 						wg.Add(1)
-						go checks.RunCheck(team.Prefix, b.Suffix, b.Name, check, wg, resChan)
+						go checks.RunCheck(team.Name, team.Prefix, b.Suffix, b.Name, check, wg, resChan)
 					}
 				}
 				done := make(chan struct{})
@@ -64,7 +64,7 @@ func Score(m *config) {
 								Error:  res.Error,
 								Debug:  res.Debug,
 								Suffix: res.Suffix,
-								Box: res.Box,
+								Box:    res.Box,
 							},
 						}
 						newRecord.Checks = append(newRecord.Checks, resEntry)

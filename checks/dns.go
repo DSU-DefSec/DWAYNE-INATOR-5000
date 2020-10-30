@@ -1,8 +1,9 @@
 package checks
 
 import (
-	"github.com/miekg/dns"
 	"strconv"
+
+	"github.com/miekg/dns"
 )
 
 type Dns struct {
@@ -12,7 +13,7 @@ type Dns struct {
 	// ??
 }
 
-func (c Dns) Run(boxIp string, res chan Result) {
+func (c Dns) Run(teamName, boxIp string, res chan Result) {
 	println(new(dns.Client))
 	/*
 		client := new(dns.Client)

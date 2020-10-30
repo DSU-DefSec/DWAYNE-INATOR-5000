@@ -152,7 +152,7 @@ func checkConfig(conf *config) error {
 		usernameList = append(usernameList, c.Usernames...)
 		checks.CredLists[c.Name] = c.Usernames
 		for _, u := range c.Usernames {
-			checks.Creds[u] = c.DefaultPw
+			checks.DefaultCreds[u] = c.DefaultPw
 		}
 	}
 

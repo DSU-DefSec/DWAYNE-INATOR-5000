@@ -7,8 +7,8 @@ import (
 	"log"
 	"sort"
 	"strings"
-	"time"
 	"sync"
+	"time"
 
 	"github.com/DSU-DefSec/mew/checks"
 
@@ -24,10 +24,10 @@ var (
 	mongoCtx      context.Context
 	timeConn      time.Time
 	roundNumber   int
-	prevRecords   = make(map[teamData]teamRecord) // cached team records from last round
-	recordStaging = make(map[teamData]teamRecord) // currently being built team records
-	redPersists = make(map[string]map[string][]string) // for each team's box, which teams have claimed persistence on it
+	recordStaging = make(map[teamData]teamRecord)        // currently being built team records
+	redPersists   = make(map[string]map[string][]string) // for each team's box, which teams have claimed persistence on it
 )
+
 /*
 mew
 	status
@@ -64,8 +64,8 @@ type teamRecord struct {
 	Team          teamData      `json:"team,omitempty"`
 	Round         int           `json:"round,omitempty"`
 	Checks        []resultEntry `json:"checks,omitempty"`
-	RedDetract     int       `json:"reddetract,omitempty"`
-	RedContrib     int       `json:"redcontrib,omitempty"`
+	RedDetract    int           `json:"reddetract,omitempty"`
+	RedContrib    int           `json:"redcontrib,omitempty"`
 	ServicePoints int           `json:"servicepoints,omitempty"`
 	InjectPoints  int           `json:"injectpoints,omitempty"`
 	SlaViolations int           `json:"slaviolations,omitempty"`
@@ -77,7 +77,7 @@ type adminData struct {
 }
 
 type teamData struct {
-	Name, Prefix, Pw string
+	Name, Prefix, Red, Pw string
 }
 
 type injectSubmission struct {
@@ -97,13 +97,6 @@ type injectData struct {
 	FileUpload bool
 	TextEntry  bool
 	Status     string
-}
-
-type pcrData struct {
-	Time  time.Time
-	Team  teamData
-	Check string
-	Creds map[string]string
 }
 
 func initDatabase() {
@@ -176,14 +169,43 @@ func getCheckResults(team teamData, check checks.Check, limit int) ([]resultEntr
 	return results, nil
 }
 
-func getAllTeamPCRItems() ([]pcrData, error) {
-	// go through each team and get dem records
-	// sort by time
-	return []pcrData{}, nil
+func getAllTeamPCRItems() ([]checks.PcrData, error) {
+	allPcrItems := []checks.PcrData{}
+	for _, team := range mewConf.Team {
+		pcrItems := []checks.PcrData{}
+		coll := getCollection(mewConf.GetIdentifier(team.Name) + "pcr")
+
+		findOptions := options.Find()
+		findOptions.SetSort(bson.D{{"time", -1}})
+
+		mod := mongo.IndexModel{
+			Keys: bson.M{
+				"time": -1,
+			}, Options: nil,
+		}
+
+		_, err := coll.Indexes().CreateOne(context.TODO(), mod)
+		if err != nil {
+			return pcrItems, err
+		}
+
+		var cursor *mongo.Cursor
+		cursor, err = coll.Find(context.TODO(), bson.D{}, findOptions)
+
+		if err != nil {
+			return pcrItems, err
+		}
+
+		if err := cursor.All(mongoCtx, &pcrItems); err != nil {
+			return pcrItems, err
+		}
+		allPcrItems = append(allPcrItems, pcrItems...)
+	}
+	return allPcrItems, nil
 }
 
-func getPCRItems(team teamData, check checks.Check) ([]pcrData, error) {
-	pcrItems := []pcrData{}
+func getPCRItems(team teamData, check checks.Check) ([]checks.PcrData, error) {
+	pcrItems := []checks.PcrData{}
 	coll := getCollection(mewConf.GetIdentifier(team.Name) + "pcr")
 
 	// Create option and index (allow faster & larger sorts)
@@ -215,8 +237,6 @@ func getPCRItems(team teamData, check checks.Check) ([]pcrData, error) {
 	if err := cursor.All(mongoCtx, &pcrItems); err != nil {
 		return pcrItems, err
 	}
-
-	fmt.Println("pcritems is", pcrItems)
 
 	return pcrItems, nil
 }
@@ -307,20 +327,22 @@ func initRoundNumber(m *config) {
 	roundNumber = res.Round + 1
 }
 
-func initCreds(m *config) {
-	// map of username list to cred objects
-	// cred {username, password}
-	// initialize map
-	// if error getting row
-	// fill with default pw
-	// search mewConf.Creds for title
-	/*
-
-		for i, u := range usernames {
-			pcrItem.Creds[u] = passwords[i]
-			checks.Creds[u] = passwords[i]
+func initCreds() {
+	allCreds := []checks.PcrData{}
+	for _, team := range mewConf.Team {
+		creds := []checks.PcrData{}
+		coll := getCollection(mewConf.GetIdentifier(team.Name) + "pcr")
+		opts := options.Find()
+		cursor, err := coll.Find(context.TODO(), bson.D{}, opts)
+		if err != nil {
+			fmt.Println("[CREDS]", err.Error())
 		}
-	*/
+		if err = cursor.All(context.TODO(), &creds); err != nil {
+			fmt.Println("[CREDS]", err.Error())
+		}
+		allCreds = append(allCreds, creds...)
+	}
+	checks.Creds = allCreds
 }
 
 func parsePCR(team teamData, checkInput, pcrInput string) error {
@@ -346,31 +368,35 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 		return err
 	}
 
-	pcrItem := pcrData{}
+	pcrItem := checks.PcrData{}
 
 	// get previous pcr
 	cursor := coll.FindOne(context.TODO(), bson.D{{"check", checkInput}}, findOptions)
-	if err != nil {
-		return err
-	}
 	err = cursor.Decode(&pcrItem)
 
+	// if not found, create new struct
 	if err != nil {
-		pcrItem = pcrData{
-			Time:  time.Now(),
-			Team:  team,
+		pcrItem = checks.PcrData{
+			Team:  team.Name,
 			Check: check.FetchName(),
 			Creds: make(map[string]string),
 		}
 	}
 
+	// update pcr time
+	pcrItem.Time = time.Now()
+
+	// add each username/password to the map
 	usernames := []string{}
 	passwords := []string{}
 	splitPcr := strings.Split(pcrInput, "\n")
-	if len(splitPcr) == 0 || splitPcr[0] == "" || len(splitPcr) > 10000 {
+	if len(splitPcr) == 0 || splitPcr[0] == "" || len(splitPcr) > 1000 {
 		return errors.New("parsePCR: input empty or too large")
 	}
 	for _, p := range splitPcr {
+		if p == "" {
+			continue
+		}
 		splitItem := strings.Split(p, ":")
 		if len(splitItem) != 2 {
 			return errors.New("parsePCR: at least one username was an invalid format")
@@ -379,10 +405,11 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 		passwords = append(passwords, splitItem[1])
 	}
 
+	// add creds to pcrItem
 	for i, u := range usernames {
 		pcrItem.Creds[u] = passwords[i]
-		checks.Creds[u] = passwords[i]
 	}
+	updateVolatilePCR(pcrItem)
 
 	// ignoring deleteOne error
 	coll.DeleteOne(context.TODO(), bson.D{{"check", pcrItem.Check}})
@@ -445,7 +472,6 @@ func getStatus() ([]teamRecord, error) {
 	return records, nil
 }
 
-
 func insertResult(newResult resultEntry) error {
 	coll := getCollection(mewConf.GetIdentifier(newResult.Team.Name) + "results")
 	_, err := coll.InsertOne(context.TODO(), newResult)
@@ -489,6 +515,7 @@ func pushTeamRecords(mux *sync.Mutex) {
 					}
 				}
 			}
+
 			recordStaging[i] = rec
 			mux.Unlock()
 		}
@@ -503,8 +530,6 @@ func pushTeamRecords(mux *sync.Mutex) {
 		}
 	}
 	mux.Lock()
-	prevRecords = recordStaging
 	redPersists = make(map[string]map[string][]string)
-	recordStaging = make(map[teamData]teamRecord)
 	mux.Unlock()
 }

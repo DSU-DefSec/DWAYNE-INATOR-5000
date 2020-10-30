@@ -12,7 +12,7 @@ type Rdp struct {
 	// ??
 }
 
-func (c Rdp) Run(boxIp string, res chan Result) {
+func (c Rdp) Run(teamName, boxIp string, res chan Result) {
 	if len(c.CredLists) == 0 {
 		// PLACEHOLDER: test tcp only
 		err := tcpCheck(boxIp + ":" + strconv.Itoa(c.Port))
@@ -30,7 +30,7 @@ func (c Rdp) Run(boxIp string, res chan Result) {
 		return
 	}
 
-	username, password, err := getCreds(c.CredLists)
+	username, password, err := getCreds(c.CredLists, teamName, c.Name)
 	if err != nil {
 		res <- Result{
 			Status: false,
