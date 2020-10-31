@@ -41,6 +41,7 @@ type checkBase struct {
 	Display   string
 	Suffix    string
 	CredLists []string
+	Anonymous bool
 }
 
 type CredData struct {
@@ -125,10 +126,12 @@ func tcpCheck(hostIp string) error {
 	return err
 }
 
+/*
 func percentChangedCreds() map[string]float {
 	// get all usernames
 	// for each team, see which % of creds exist in pcritems
 }
+*/
 
 func (r Result) IsHacked() bool {
 	if _, ok := r.Persists[r.Box]; ok {

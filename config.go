@@ -193,6 +193,7 @@ func checkConfig(conf *config) error {
 			case checks.Dns:
 				ck := c.(checks.Dns)
 				ck.Suffix = b.Suffix
+				ck.Anonymous = true // call me when you need authed DNS
 				if ck.Name == "" {
 					ck.Name = b.Name + "-" + "dns"
 				}

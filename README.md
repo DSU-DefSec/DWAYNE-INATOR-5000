@@ -19,8 +19,12 @@ Configuration
 ```toml
 ```
 
+TODO:
+    checks
+        actually write code for them and dont just test tcp
+
+
 Screenshot
 -----------
 
 ![Main Status Page](screenshots/status.png)
-<hr>

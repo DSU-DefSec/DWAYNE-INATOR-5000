@@ -9,7 +9,6 @@ import (
 
 type Ftp struct {
 	checkBase
-	Anonymous   bool
 	Port        int
 	Timeout     int
 	Files       []string

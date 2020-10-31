@@ -393,16 +393,45 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 	if len(splitPcr) == 0 || splitPcr[0] == "" || len(splitPcr) > 1000 {
 		return errors.New("parsePCR: input empty or too large")
 	}
+
+	allUsernames := []string{}
+	for _, cred := range mewConf.Creds {
+		allUsernames = append(allUsernames, cred.Usernames...)
+	}
+
 	for _, p := range splitPcr {
+		p = strings.TrimSpace(p)
 		if p == "" {
 			continue
 		}
 		splitItem := strings.Split(p, ":")
 		if len(splitItem) != 2 {
-			return errors.New("parsePCR: at least one username was an invalid format")
+			return errors.New("parsePCR: at least one username was an invalid format: START" + splitItem[0] + "END")
 		}
-		usernames = append(usernames, splitItem[0])
-		passwords = append(passwords, splitItem[1])
+
+		if splitItem[0] == "all" {
+			for _, user := range allUsernames {
+				usernames = append(usernames, user)
+				passwords = append(passwords, splitItem[1])
+			}
+		} else {
+			validUser := false
+			for _, user := range allUsernames {
+				if user == splitItem[0] {
+					validUser = true
+					break
+				}
+			}
+
+			if !validUser {
+				return errors.New("parsePCR: invalid user: " + splitItem[0])
+			}
+
+			usernames = append(usernames, splitItem[0])
+			passwords = append(passwords, splitItem[1])
+
+		}
+
 	}
 
 	// add creds to pcrItem
@@ -516,7 +545,6 @@ func pushTeamRecords(mux *sync.Mutex) {
 				}
 			}
 
-			recordStaging[i] = rec
 			mux.Unlock()
 		}
 		coll := getCollection(mewConf.GetIdentifier(rec.Team.Name) + "records")
@@ -525,9 +553,11 @@ func pushTeamRecords(mux *sync.Mutex) {
 			fmt.Println("[CRITICAL] error:", err)
 		}
 		replaceStatusRecord(rec)
-		for _, c := range rec.Checks {
+		for i, c := range rec.Checks {
 			insertResult(c)
+			rec.Checks[i].Persists = make(map[string][]string)
 		}
+		recordStaging[i] = rec
 	}
 	mux.Lock()
 	redPersists = make(map[string]map[string][]string)

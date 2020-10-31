@@ -1,15 +1,16 @@
 {{ template "head.html" . }}
 
 {{ $m := .m }}
+{{ $admin := .admin }}
 {{ $team := .team }}
 
 {{ template "refresh.html" }}
 
+{{ if or (not .m.Tightlipped) .admin }}
 <br>
 <h2>Graph</h2>
 
 <br>
-{{ if not .m.Tightlipped }}
 <img style="display: block; margin: 0 auto" src="assets/points.png"/>
 {{ end }}
 
@@ -20,7 +21,7 @@
 <table>
     <th>Rank</th>
     <th>Team</th>
-    {{ if not .m.Tightlipped }}
+    {{ if or (not .m.Tightlipped) .admin }}
     <th>Services</th>
     <th>SLAs</th>
     <th>Injects</th>
@@ -39,7 +40,7 @@
         {{ else }}
             <td>{{ $record.Team.Name }}</td>
         {{ end }}
-        {{ if not $m.Tightlipped }}
+        {{ if or (not $m.Tightlipped) $admin }}
             <td>{{ $record.ServicePoints }}</td>
             <td>{{ $record.SlaViolations }}</td>
             {{ if eq $record.Team $team }}

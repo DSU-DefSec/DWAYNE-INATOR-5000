@@ -23,7 +23,9 @@
         <select name="check">
             {{ range $box := .m.Box }}
             {{ range $check := .CheckList }}
+            {{ if not .Anonymous }}
             <option value="{{ $check.Name }}">{{ $check.Name }}</option>
+            {{ end }}
             {{ end }}
             {{ end }}
         </select>
@@ -50,7 +52,7 @@
     {{ end }}
     <th>Time</th>
     <th>Service</th>
-    {{ if .admin }}
+    {{ if or $m.Verbose .admin }}
     <th>Creds</th>
     {{ end }}
     {{ range $index, $pcr := .pcrs }}
@@ -66,9 +68,12 @@
         <td>
             {{ $pcr.Check }}
         </td>
-        {{ if $admin }}
+        {{ if or $m.Verbose $admin }}
         <td>
-            {{ $pcr.Creds }}
+            {{ range $user, $pass := $pcr.Creds }}
+                {{ $user }}:{{ $pass }}
+                <br>
+            {{ end }}
         </td>
         {{ end }}
     </tr>
