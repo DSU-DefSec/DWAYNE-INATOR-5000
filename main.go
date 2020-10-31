@@ -4,9 +4,11 @@ import (
 	"fmt"
 	"html/template"
 	"log"
+	"net"
 	"net/http"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/DSU-DefSec/mew/checks"
@@ -301,7 +303,13 @@ func persistHandler(c *gin.Context) {
 	// if cyberconquest
 	if mewConf.Kind != "blue" {
 		redTeamId := c.Param("id")
-		sourceIp := c.ClientIP()
+		var sourceIp string
+		if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr)); err == nil {
+			sourceIp = ip
+		} else {
+			c.JSON(400, gin.H{"error": "Invalid source IP"})
+			return
+		}
 		fmt.Println("Source ip is ", sourceIp)
 		var redTeam, sourceTeam, sourceBox string
 
@@ -333,8 +341,6 @@ func persistHandler(c *gin.Context) {
 			return
 		}
 
-		fmt.Println("redTeam is", redTeam, "sourceTeam", sourceTeam, "sourceBox", sourceBox)
-
 		// create map is not already created
 		if _, ok := redPersists[sourceTeam]; !ok {
 			redPersists[sourceTeam] = make(map[string][]string)
@@ -343,12 +349,14 @@ func persistHandler(c *gin.Context) {
 		if teamList, ok := redPersists[sourceTeam][sourceBox]; !ok {
 			redPersists[sourceTeam][sourceBox] = append(redPersists[sourceTeam][sourceBox], redTeam)
 		} else {
+			found := false
 			for _, team := range teamList {
-				if team != sourceTeam {
-					continue
+				if team == sourceTeam {
+					found = true
 				}
+			}
+			if !found {
 				redPersists[sourceTeam][sourceBox] = append(redPersists[sourceTeam][sourceBox], redTeam)
-				break
 			}
 		}
 	}

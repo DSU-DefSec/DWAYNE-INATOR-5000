@@ -406,7 +406,11 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 		}
 		splitItem := strings.Split(p, ":")
 		if len(splitItem) != 2 {
-			return errors.New("parsePCR: at least one username was an invalid format: START" + splitItem[0] + "END")
+			return errors.New("parsePCR: username was an invalid format: " + p)
+		}
+
+		if splitItem[1] == "" {
+			continue
 		}
 
 		if splitItem[0] == "all" {
@@ -536,8 +540,11 @@ func pushTeamRecords(mux *sync.Mutex) {
 				}
 			}
 			for _, boxMaps := range redPersists {
+				fmt.Println("boxMaps is", boxMaps)
 				for _, hackerTeams := range boxMaps {
+					fmt.Println("hackerteams", hackerTeams)
 					for _, hackerTeam := range hackerTeams {
+						fmt.Println("checking if", identifier, "is", hackerTeam)
 						if hackerTeam == identifier {
 							rec.RedContrib++
 						}
@@ -553,13 +560,19 @@ func pushTeamRecords(mux *sync.Mutex) {
 			fmt.Println("[CRITICAL] error:", err)
 		}
 		replaceStatusRecord(rec)
-		for i, c := range rec.Checks {
+		for _, c := range rec.Checks {
 			insertResult(c)
-			rec.Checks[i].Persists = make(map[string][]string)
 		}
+		mux.Lock()
 		recordStaging[i] = rec
+		mux.Unlock()
 	}
 	mux.Lock()
+	for i, rec := range recordStaging {
+		for j := range rec.Checks {
+			recordStaging[i].Checks[j].Persists = make(map[string][]string)
+		}
+	}
 	redPersists = make(map[string]map[string][]string)
 	mux.Unlock()
 }
