@@ -24,34 +24,36 @@
     {{ if or (not .m.Tightlipped) .admin }}
     <th>Services</th>
     <th>SLAs</th>
-    <th>Injects</th>
+    <!-- <th>Injects</th> -->
     {{ end }}
     <th>Total</th>
 
     {{ range $index, $record := .records }}
     <tr>
         <td>{{ $index | increment }}</td>
-        {{ if eq $record.Team $team }}
+        {{ if eq $record.Team $team.Identifier }}
             <td class="teamname">
-                <a href="/team/{{ $m.GetIdentifier $team.Name }}">
-                    {{ $record.Team.Name }}
+                <a href="/team/{{ $record.Team }}">
+                    {{ $record.Team }}
                 </a>
             </td>
         {{ else }}
-            <td>{{ $record.Team.Name }}</td>
+            <td>{{ $record.Team }}</td>
         {{ end }}
         {{ if or (not $m.Tightlipped) $admin }}
             <td>{{ $record.ServicePoints }}</td>
             <td>{{ $record.SlaViolations }}</td>
-            {{ if eq $record.Team $team }}
-                <td class="teamname">
-                    <a href="/injects/{{ $m.GetIdentifier $team.Name }}">
+            <!--
+            {{ if eq $record.Team $team.Identifier }}
+                <td>
+                    <a href="/injects/{{ $team.Identifier }}">
                         {{ $record.InjectPoints }}
                     </a>
                 </td>
             {{ else }}
                 <td>{{ $record.InjectPoints }}</td>
             {{ end }}
+            --> 
         {{ end }}
         <td><b>{{ $record.Total }}</b></td>
     </tr>
@@ -66,12 +68,14 @@
 <table>
     <th>Rank</th>
     <th>Team</th>
+    <th>Color</th>
     <th>Points</th>
     <!-- <th>Points Lost</th> -->
     {{ range $index, $record := .redRecords }}
         <tr>
             <td>{{ $index | increment }}</td>
-            <td>{{ .Team.Name }}</td>
+            <td>{{ .Team }}</td>
+            <td><span style="background-color: {{ ($m.GetTeam .Team).Color }}; color: {{ ($m.GetTeam .Team).Color }}">hi:)</span></td>
             <td><b>{{ .RedContrib }}</b></td>
             <!-- <td><b>{{ .RedDetract }}</b></td>-->
         </tr>

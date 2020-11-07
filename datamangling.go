@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"sort"
 	"sync"
 
@@ -23,7 +22,7 @@ func getCsv() (string, error) {
 			csvString += score.Team.Alias + ","
 			csvString += score.Team.ID + ","
 			csvString += score.Image.Name + ","
-			csvString += fmt.Sprintf("%d,", score.Points)
+			csvString += strconv.Itoa(score.Points) + ","
 			csvString += formatTime(score.PlayTime) + ","
 			csvString += formatTime(score.ElapsedTime) + "\n"
 		}
@@ -31,7 +30,7 @@ func getCsv() (string, error) {
 	return csvString, nil
 }
 
-func getTeamRecord(team teamData) (teamRecord, error) {
+func getTeamRecord(team string) (teamRecord, error) {
 	record := teamRecord{}
 	statusRecords, err := getStatus()
 	if err != nil {
@@ -46,13 +45,13 @@ func getTeamRecord(team teamData) (teamRecord, error) {
 }
 
 func processTeamRecord(rec teamRecord, mux *sync.Mutex) {
-	fmt.Println("processing record for", rec.Team.Name)
+	debugPrint("processing record for", rec.Team)
 	old := teamRecord{}
 	mux.Lock()
 	if val, ok := recordStaging[rec.Team]; ok {
 		old = val
 	} else {
-		fmt.Println("val doesnt exist, fetching from team records")
+		debugPrint("val doesnt exist, fetching from team records")
 		old, _ = getTeamRecord(rec.Team)
 	}
 	mux.Unlock()
@@ -80,7 +79,7 @@ func processTeamRecord(rec teamRecord, mux *sync.Mutex) {
 			rec.Checks[i].SlaCounter = 0
 		} else {
 			if rec.Checks[i].SlaCounter >= mewConf.SlaThreshold {
-				fmt.Println(rec.Checks[i].Name, "triggered SLA violation!")
+				debugPrint(rec.Checks[i].Name, "triggered SLA violation!")
 				rec.Checks[i].SlaCounter = 0
 				rec.Checks[i].SlaViolations++
 			} else {

@@ -30,7 +30,7 @@ func graphScores(records []teamRecord) {
 	graphData := make([]interface{}, len(records)*2)
 
 	for i, rec := range records {
-		graphData[i*2] = rec.Team.Name
+		graphData[i*2] = rec.Team
 		graphData[(i*2)+1] = getTeamPoints(rec.Team)
 		if err != nil {
 			fmt.Println("plot:", err)
@@ -52,7 +52,7 @@ func graphScores(records []teamRecord) {
 }
 
 // randomPoints returns some random x, y points.
-func getTeamPoints(team teamData) plotter.XYs {
+func getTeamPoints(team string) plotter.XYs {
 	records, err := getTeamRecords(team, 0)
 	pts := make(plotter.XYs, len(records))
 	if err != nil {

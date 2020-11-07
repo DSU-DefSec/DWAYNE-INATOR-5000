@@ -7,7 +7,7 @@
 {{ template "refresh.html" }}
 
 <br>
-<h2>{{ .team.Name }}</h2>
+<h2>{{ .team.Identifier }}</h2>
 
 <br>
 <h2>Status</h2>
@@ -24,7 +24,7 @@
         {{ if .record }}
         {{ range $check := .record.Checks }}
         {{ template "boolheader.html" .Status }}
-            <a href="/team/{{ $m.GetIdentifier $check.Team.Name }}/{{ $check.Name }}">
+            <a href="/team/{{ $check.Team }}/{{ $check.Name }}">
             {{ if ne $m.Kind "blue" }}
                 {{ template "boolhacked.html" . }}
             {{ else }}
@@ -72,7 +72,7 @@
         </td>
     {{ range $check := $record.Checks }}
         {{ template "boolheader.html" $check.Status }}
-            <a href="/team/{{ $m.GetIdentifier $check.Team.Name }}/{{ $check.Name }}">
+            <a href="/team/{{ $check.Team }}/{{ $check.Name }}">
                 {{ if ne $m.Kind "blue" }}
                     {{ template "boolhacked.html" . }}
                 {{ else }}
@@ -133,7 +133,7 @@
     <b>Total points</b>: {{ .record.Total }}
 
     <br>
-    <a href="/export/{{ $m.GetIdentifier .record.Team.Name }}">Export team data</a>
+    <a href="/export/{{ .record.Team }}">Export team data</a>
 </p>
 </fieldset>
 {{ end }}

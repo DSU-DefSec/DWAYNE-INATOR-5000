@@ -59,6 +59,14 @@ func (c Web) Run(teamName, boxIp string, res chan Result) {
 
 		defer resp.Body.Close()
 		_, err = ioutil.ReadAll(resp.Body)
+		if err != nil {
+			res <- Result{
+				Status: false,
+				Error:  "error reading page content",
+				Debug:  "error was '" + err.Error() + "' for url " + strconv.Itoa(i),
+			}
+			return
+		}
 		// fmt.Println("body", body)
 	}
 

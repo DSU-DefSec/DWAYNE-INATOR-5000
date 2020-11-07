@@ -14,6 +14,7 @@ body {
     width: 80%;
     max-width: 800px;
     min-width: 200px;
+    display: table; /* flug */
 }
 
 /* headers and nav
@@ -43,6 +44,7 @@ hr {
 
 table {
     margin: 0 auto;
+    text-align: center;
 }
 
 table a {

@@ -21,7 +21,7 @@ func getUUID() string {
 // initCookies use gin-contrib/sessions{/cookie} to initalize a cookie store.
 // It generates a random secret for the cookie store -- not ideal for continuity or invalidating previous cookies, but it's secure and it works
 func initCookies(r *gin.Engine) {
-	r.Use(sessions.Sessions("sarpedon", cookie.NewStore([]byte(getUUID()))))
+	r.Use(sessions.Sessions("mew", cookie.NewStore([]byte(getUUID()))))
 }
 
 // authRequired provides authentication middleware for ensuring that a user is logged in.
@@ -55,8 +55,8 @@ func login(c *gin.Context) {
 		}
 	}
 
-	for _, record := range mewConf.Team {
-		if username == record.Name && password == record.Pw {
+	for _, t := range mewConf.Team {
+		if username == t.Identifier && password == t.Pw {
 			err = nil
 		}
 	}
@@ -78,6 +78,15 @@ func login(c *gin.Context) {
 func (m *config) isAdmin(userName string) bool {
 	for _, admin := range m.Admin {
 		if admin.Name == userName {
+			return true
+		}
+	}
+	return false
+}
+
+func (m *config) isRed(userName string) bool {
+	for _, redteam := range m.RedTeam {
+		if redteam.Display == userName {
 			return true
 		}
 	}

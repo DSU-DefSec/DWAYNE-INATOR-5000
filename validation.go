@@ -21,7 +21,7 @@ func (m *config) validateTeam(teamName string) (teamData, error) {
 	if !validateString(teamName) {
 		return teamData{}, errors.New("team string contains illegal characters")
 	}
-	team, err := m.getTeam(teamName)
+	team, err := m.GetTeam(teamName)
 	if err != nil {
 		return team, err
 	}
@@ -39,29 +39,29 @@ func (m *config) getCheck(checkName string) (checks.Check, error) {
 	return checks.Web{}, errors.New("check not found")
 }
 
-func (m *config) getTeam(teamName string) (teamData, error) {
+func (m *config) GetTeam(teamIdentifier string) (teamData, error) {
 	for _, team := range m.Team {
-		if team.Name == teamName {
+		if team.Identifier == teamIdentifier {
 			return team, nil
 		}
 	}
 	return teamData{}, errors.New("team not found")
 }
 
-func (m *config) validateTeamIndex(teamName string, teamIndex string) (teamData, error) {
+func (m *config) validateTeamIndex(teamIdentifier string, teamIndex string) (teamData, error) {
 	if len(teamIndex) < 5 {
 		return teamData{}, errors.New("team name had invalid length")
 	}
 	teamNum := teamIndex[4:]
 	index, err := strconv.Atoi(teamNum)
 	if err != nil {
-		return teamData{}, errors.New("team index string is not a number")
+		return teamData{}, errors.New("team index string is not a teamIndexnumber")
 	}
 	team, err := m.getTeamByIndex(index)
 	if err != nil {
 		return team, err
 	}
-	if team.Name != teamName {
+	if team.Identifier != teamIdentifier {
 		return team, errors.New("unauthorized team")
 	}
 	return team, nil

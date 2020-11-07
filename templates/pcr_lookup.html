@@ -1,0 +1,32 @@
+{{ template "head.html" . }}
+
+<br>
+<h2>Password Change Requests</h2>
+
+<br>
+<h2>Username lookup: <i>{{ .userLookup }}</i></h2>
+{{ $userLookup := .userLookup }}
+
+{{ range $team, $checkMap := .pwLookup }}
+<br>
+<br>
+<h2>Username {{ $userLookup }} for {{ $team }}</h2>
+<br>
+<table>
+    <th>Check</th>
+    <th>Creds</th>
+    {{ range $check, $cred := $checkMap }}
+    <tr>
+        <td>
+            {{ $check }}
+        </td>
+        <td>
+            {{ $cred }}
+        </td>
+    </tr>
+    {{ end }}
+</table>
+{{ end }}
+
+
+{{ template "feet.html" }}

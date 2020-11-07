@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	//"sort"
 	"strconv"
 	"time"
 
@@ -11,19 +10,19 @@ import (
 )
 
 func errorOut(c *gin.Context, err error) {
-	fmt.Println("error:", err)
+	errorPrint("error:", err)
 	c.JSON(400, gin.H{"error": "Invalid request."})
 	c.Abort()
 }
 
 func errorOutGraceful(c *gin.Context, err error) {
-	fmt.Println("error:", err)
+	errorPrint("error:", err)
 	c.Redirect(http.StatusSeeOther, "/")
 	c.Abort()
 }
 
 func errorOutAnnoying(c *gin.Context, err error) {
-	fmt.Println("error:", err)
+	errorPrint("error:", err)
 	c.Redirect(http.StatusSeeOther, "/forbidden")
 	c.Abort()
 }
@@ -71,10 +70,19 @@ func calcElapsedTime(newEntry, lastEntry *scoreEntry) error {
 func (m *config) GetIdentifier(teamName string) string {
 	var index int
 	for i, team := range m.Team {
-		if team.Name == teamName {
+		if team.Display == teamName {
 			index = i + 1
 			break
 		}
 	}
 	return "team" + strconv.Itoa(index)
+}
+
+func (m *config) GetTeamDisplay(identifier string) string {
+	for _, team := range m.Team {
+		if team.Identifier == identifier {
+			return team.Display
+		}
+	}
+	return "???"
 }

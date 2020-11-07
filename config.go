@@ -27,8 +27,10 @@ type config struct {
 	SlaPoints    int
 	Admin        []adminData
 	Team         []teamData
+	RedTeam      []teamData
 	Box          []Box
 	Creds        []checks.CredData
+	Flags        []flagData
 }
 
 type Box struct {
@@ -40,8 +42,14 @@ type Box struct {
 	Ldap      []checks.Ldap
 	Rdp       []checks.Rdp
 	Smb       []checks.Smb
+	Sql       []checks.Sql
 	Ssh       []checks.Ssh
 	Web       []checks.Web
+}
+
+type flagData struct {
+	// flag text
+	// point decrement
 }
 
 const (
@@ -64,6 +72,9 @@ func getBoxChecks(b Box) []checks.Check {
 		checkList = append(checkList, c)
 	}
 	for _, c := range b.Smb {
+		checkList = append(checkList, c)
+	}
+	for _, c := range b.Sql {
 		checkList = append(checkList, c)
 	}
 	for _, c := range b.Ssh {
@@ -145,6 +156,11 @@ func checkConfig(conf *config) error {
 		conf.SlaPoints = conf.SlaThreshold * 2
 	}
 
+	// assign team identifiers
+	for i, t := range conf.Team {
+		conf.Team[i].Identifier = mewConf.GetIdentifier(t.Display)
+	}
+
 	// credential list checking
 	usernameList := []string{}
 	for _, c := range conf.Creds {
@@ -169,20 +185,44 @@ func checkConfig(conf *config) error {
 
 	// look for duplicate team names
 	sort.SliceStable(conf.Team, func(i, j int) bool {
-		return conf.Team[i].Name < conf.Team[i].Name
+		return conf.Team[i].Display < conf.Team[i].Display
 	})
 
 	for i := 0; i < len(conf.Team)-1; i++ {
-		if conf.Team[i].Name == conf.Team[i+1].Name {
+		if conf.Team[i].Display == "" {
+			return errors.New("illegal config: empty display name found for team: " + conf.Team[i].Identifier)
+		}
+		if conf.Team[i].Display == conf.Team[i+1].Display {
 			return errors.New("illegal config: duplicate team name found")
 		}
 	}
 
-	// look for missing team properties
-	for _, team := range conf.Team {
-		if team.Name == "" || team.Pw == "" || team.Prefix == "" {
-			return errors.New("team " + team.Name + " missing required property, one of name, password, or prefix")
+	// look for duplicate team prefix
+	sort.SliceStable(conf.Team, func(i, j int) bool {
+		return conf.Team[i].Prefix < conf.Team[i].Prefix
+	})
+
+	for i := 0; i < len(conf.Team)-1; i++ {
+		if conf.Team[i].Prefix == "" {
+			return errors.New("non-set prefix for team: " + conf.Team[i].Display)
 		}
+		if conf.Team[i].Prefix == conf.Team[i+1].Prefix {
+			return errors.New("duplicate team prefix found: " + conf.Team[i].Display + " and " + conf.Team[i+1].Display)
+		}
+	}
+
+	// look for missing team properties
+	for i, team := range conf.Team {
+		if team.Display == "" || team.Pw == "" || team.Prefix == "" {
+			return errors.New("team " + team.Display + " missing required property, one of name, password, or prefix")
+		}
+		if team.Color == "#fff" || team.Color == "#FFF" || team.Color == "#FFFFFF" || team.Color == "#ffffff" {
+			return errors.New("team " + team.Display + " color should not be white (it'll look bad).")
+		}
+		if team.Color == "" {
+			conf.Team[i].Color = "#000000"
+		}
+		checks.Colors[team.Identifier] = conf.Team[i].Color
 	}
 
 	// check validators
@@ -199,6 +239,9 @@ func checkConfig(conf *config) error {
 				}
 				if ck.Display == "" {
 					ck.Display = "dns"
+				}
+				if len(ck.Record) < 1 {
+					return errors.New("dns check " + ck.Name + " has no records")
 				}
 				if ck.Port == 0 {
 					ck.Port = 53
@@ -259,6 +302,19 @@ func checkConfig(conf *config) error {
 					ck.Port = 445
 				}
 				conf.Box[i].CheckList[j] = ck
+			case checks.Sql:
+				ck := c.(checks.Sql)
+				ck.Suffix = b.Suffix
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + "sql"
+				}
+				if ck.Display == "" {
+					ck.Display = "sql"
+				}
+				if ck.Port == 0 {
+					ck.Port = 3306
+				}
+				conf.Box[i].CheckList[j] = ck
 			case checks.Ssh:
 				ck := c.(checks.Ssh)
 				ck.Suffix = b.Suffix
@@ -285,7 +341,10 @@ func checkConfig(conf *config) error {
 					ck.Port = 80
 				}
 				if len(ck.Url) == 0 {
-					return errors.New("no urls specified for web check")
+					return errors.New("no urls specified for web check " + ck.Name)
+				}
+				if len(ck.CredLists) == 0 {
+					ck.Anonymous = true
 				}
 				for j, u := range ck.Url {
 					if u.Scheme == "" {

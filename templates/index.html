@@ -30,9 +30,9 @@
     <tr>
         <td class="teamname">
             {{ if or (eq $record.Team $team) $admin }}
-            <a href="/team/{{ $m.GetIdentifier $record.Team.Name }}">
+            <a href="/team/{{ $record.Team }}">
             {{ end }}
-            {{ $record.Team.Name }}
+            {{ $record.Team }}
             {{ if or (eq $record.Team $team) $admin }}
             </a>
             {{ end }}
@@ -41,7 +41,7 @@
         {{ range $check := $record.Checks }}
         {{ template "boolheader.html" .Status }}
             {{ if or (eq $record.Team $team) $admin }}
-            <a href="/team/{{ $m.GetIdentifier $record.Team.Name }}/{{ $check.Name }}">
+            <a href="/team/{{ $record.Team }}/{{ $check.Name }}">
             {{ end }}
             {{ if ne $m.Kind "blue" }}
                 {{ template "boolhacked.html" . }}

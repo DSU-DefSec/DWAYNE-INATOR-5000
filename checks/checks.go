@@ -16,6 +16,7 @@ var (
 	Creds            = []PcrData{}
 	DefaultCredList  = []string{}
 	CredLists        = make(map[string][]string)
+	Colors           = make(map[string]string) // this sucks lol
 )
 
 // checks for each service
@@ -24,6 +25,7 @@ type Check interface {
 	FetchName() string
 	FetchDisplay() string
 	FetchSuffix() string
+	FetchAnonymous() bool
 }
 
 type Result struct {
@@ -69,6 +71,10 @@ func (c checkBase) FetchSuffix() string {
 	return c.Suffix
 }
 
+func (c checkBase) FetchAnonymous() bool {
+	return c.Anonymous
+}
+
 func getCreds(credLists []string, teamName, checkName string) (string, string, error) {
 	allUsernames := []string{}
 	rand.Seed(time.Now().UnixNano())
@@ -81,7 +87,7 @@ func getCreds(credLists []string, teamName, checkName string) (string, string, e
 	}
 	if len(allUsernames) > 0 {
 		username := allUsernames[rand.Intn(len(allUsernames))]
-		credItem := findCreds(teamName, checkName)
+		credItem := FindCreds(teamName, checkName)
 		if credItem.Team == "" {
 			return username, DefaultCreds[username], nil
 		}
@@ -94,7 +100,7 @@ func getCreds(credLists []string, teamName, checkName string) (string, string, e
 	return "", "", errors.New("getCreds: empty credlist")
 }
 
-func findCreds(teamName, checkName string) PcrData {
+func FindCreds(teamName, checkName string) PcrData {
 	for i, pcr := range Creds {
 		if pcr.Team == teamName && pcr.Check == checkName {
 			return Creds[i]
@@ -138,4 +144,14 @@ func (r Result) IsHacked() bool {
 		return true
 	}
 	return false
+}
+
+func (r Result) GetColors() []string {
+	colors := []string{}
+	if val, ok := r.Persists[r.Box]; ok {
+		for _, team := range val {
+			colors = append(colors, Colors[team])
+		}
+	}
+	return colors
 }

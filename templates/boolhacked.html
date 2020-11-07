@@ -1,5 +1,10 @@
                 {{ if .IsHacked }}
-                <span style="background: linear-gradient(#e66465, #9198e5); border-radius: 0.3rem; padding: 0.3rem;">💀</span>
+                    {{ $colors := .GetColors }}
+                    {{ if eq (len $colors) 1 }}
+                    <span style="background: linear-gradient({{ index $colors 0 }}, #fff); border-radius: 0.3rem; padding: 0.3rem;">💀</span>
+                    {{ else }}
+                    <span style="background: linear-gradient({{ range $index, $color := $colors }}{{ if $index }},{{ end }}{{ $color }}{{ end }}); border-radius: 0.3rem; padding: 0.3rem;">💀</span>
+                    {{ end }}
                 {{ else }}
                     {{ if .Status }}
                     ✅

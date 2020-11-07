@@ -18,10 +18,14 @@
             <div>
                 {{ if .user }}
                 {{ if not .admin }}
-                <a href="/team/{{ .m.GetIdentifier .user }}">team</a>
+                <a href="/team/{{ .user }}">team</a>
                 {{ end }}
+                {{ if .red }}
+                <a href="/pcr">pcr</a>
+                {{ else }}
                 <a href="/pcr">pcr</a>
                 <!-- <a href="/injects">injects</a> -->
+                {{ end }}
                 {{ end }}
                 <a href="/">status</a>
                 {{ if or .m.Verbose .admin }}

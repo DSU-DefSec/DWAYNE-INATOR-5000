@@ -1,17 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"html/template"
 	"log"
-	"net"
 	"net/http"
-	"sort"
-	"strconv"
-	"strings"
 	"time"
 
-	"github.com/DSU-DefSec/mew/checks"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
 )
@@ -22,12 +18,31 @@ const (
 )
 
 var (
+	verbose = false
 	mewConf = &config{}
 	injects = &[]injectData{}
 
 	// Hardcoded CST timezone
 	loc, _ = time.LoadLocation("America/Rainy_River")
 )
+
+func init() {
+	flag.BoolVar(&verbose, "v", false, "verbose/debug output")
+	flag.Parse()
+	log.SetFlags(0)
+}
+
+func errorPrint(a ...interface{}) {
+	if verbose {
+		log.Printf("[ERROR] %s", fmt.Sprintln(a...))
+	}
+}
+
+func debugPrint(a ...interface{}) {
+	if verbose {
+		log.Printf("[DEBUG] %s", fmt.Sprintln(a...))
+	}
+}
 
 func main() {
 	readConfig(mewConf)
@@ -73,6 +88,8 @@ func main() {
 		authRoutes.GET("/export/:team", exportTeamData)
 		authRoutes.GET("/pcr", viewPCR)
 		authRoutes.POST("/pcr", submitPCR)
+		authRoutes.GET("/flags", viewFlags)
+		authRoutes.POST("/flags", submitFlags)
 		authRoutes.GET("/injects", viewInjects)
 		authRoutes.POST("/injects", submitInject)
 		authRoutes.GET("/team/:team", viewTeam)
@@ -85,280 +102,4 @@ func main() {
 
 	go Score(mewConf)
 	r.Run(":80")
-}
-
-func viewStatus(c *gin.Context) {
-	records, err := getStatus()
-	if err != nil {
-		panic(err)
-	}
-	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"records": records}))
-}
-
-func viewTeam(c *gin.Context) {
-	team := getTeamWithAdmin(c)
-	limit := 10
-	history, err := getTeamRecords(team, limit)
-	if err != nil {
-		errorOutGraceful(c, err)
-	}
-	record := teamRecord{}
-	if len(history) >= 1 {
-		record = history[0]
-	}
-	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "record": record, "history": history, "limit": limit}))
-}
-
-func getTeamWithAdmin(c *gin.Context) teamData {
-	team, err := mewConf.validateTeamIndex(getUser(c), c.Param("team"))
-	if err != nil {
-		if err.Error() == "unauthorized team" {
-			if !mewConf.isAdmin(getUser(c)) {
-				errorOutAnnoying(c, err)
-			}
-		} else {
-			errorOutAnnoying(c, err)
-		}
-	}
-	return team
-}
-
-func viewCheck(c *gin.Context) {
-	team := getTeamWithAdmin(c)
-	check, err := mewConf.getCheck(c.Param("check"))
-	if err != nil {
-		errorOutAnnoying(c, err)
-	}
-	limit := 100
-	results, err := getCheckResults(team, check, limit)
-	if err != nil {
-		errorOutGraceful(c, err)
-	}
-	c.HTML(http.StatusOK, "check.html", pageData(c, "check X for X", gin.H{"team": team, "check": check, "results": results, "limit": limit}))
-}
-
-func viewPCR(c *gin.Context) {
-	pcrItems, err := getPCRWeb(c)
-	if err != nil {
-		fmt.Println("viewpcr:", err)
-		errorOutGraceful(c, err)
-	}
-	// sort pcr items based on time
-	sort.SliceStable(pcrItems, func(i, j int) bool {
-		return pcrItems[i].Time.After(pcrItems[j].Time)
-	})
-
-	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "allPcrs": checks.Creds}))
-}
-
-func getPCRWeb(c *gin.Context) ([]checks.PcrData, error) {
-	var err error
-	team := teamData{}
-	pcrItems := []checks.PcrData{}
-	if mewConf.isAdmin(getUser(c)) {
-		fmt.Println("getting all pcr items")
-		pcrItems, err = getAllTeamPCRItems()
-		fmt.Println("pcrItems is", pcrItems)
-		if err != nil {
-			errorOutGraceful(c, err)
-		}
-	} else {
-		team, err = mewConf.getTeam(getUser(c))
-		if err != nil {
-			errorOutAnnoying(c, err)
-		}
-		pcrItems, err = getPCRItems(team, checks.Web{})
-	}
-	return pcrItems, err
-}
-
-func submitPCR(c *gin.Context) {
-	c.Request.ParseForm()
-	team := teamData{}
-	var err error
-	if mewConf.isAdmin(getUser(c)) {
-		team, err = mewConf.validateTeamIndex(getUser(c), c.Request.Form.Get("team"))
-		if err != nil {
-			if err.Error() != "unauthorized team" {
-				errorOutAnnoying(c, err)
-			}
-		}
-	} else {
-		team, err = mewConf.getTeam(getUser(c))
-		if err != nil {
-			errorOutAnnoying(c, err)
-		}
-	}
-	submiterr := parsePCR(team, c.Request.Form.Get("check"), c.Request.Form.Get("pcr"))
-	var message string
-	if submiterr == nil {
-		message = "PCR submitted successfully!"
-	}
-
-	pcrItems, err := getPCRWeb(c)
-	if err != nil {
-		fmt.Println("submitpcr:", err)
-		errorOutGraceful(c, err)
-	}
-
-	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "error": submiterr, "message": message}))
-}
-
-func viewInjects(c *gin.Context) {
-	// view all injects and their statuses
-	// global injects table
-	yeetsauce := []injectData{{time.Now(), "nevah", "inject yeeeet", "bradkjadaD", []string{"file1.txt"}, false, false, "yee"}}
-	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": yeetsauce}))
-}
-
-func submitInject(c *gin.Context) {
-	// create submission (team0injects)
-	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{}))
-}
-
-func viewScores(c *gin.Context) {
-	if !mewConf.Verbose && !mewConf.isAdmin(getUser(c)) {
-		errorOutAnnoying(c, errors.New("access to score without admin or verbose mode"))
-	}
-	records, err := getStatus()
-	if err != nil {
-		errorOutGraceful(c, err)
-	}
-	if !mewConf.Tightlipped {
-		graphScores(records)
-	}
-
-	// sort redRecords based on inverse redPoints
-	sort.SliceStable(records, func(i, j int) bool {
-		return records[i].Total > records[j].Total
-	})
-
-	// sort redRecords based on inverse redPoints
-	redRecords := []teamRecord{}
-	for _, rec := range records {
-		redRecords = append(redRecords, rec)
-	}
-
-	sort.SliceStable(redRecords, func(i, j int) bool {
-		return (redRecords[i].RedContrib + redRecords[i].RedDetract) > (redRecords[j].RedContrib + redRecords[j].RedDetract)
-	})
-
-	c.HTML(http.StatusOK, "scores.html", pageData(c, "scores", gin.H{"records": records, "redRecords": redRecords}))
-}
-
-func exportTeamData(c *gin.Context) {
-	team := getTeamWithAdmin(c)
-	csvString := "time,round,service,inject,sla,"
-	for _, b := range mewConf.Box {
-		for _, c := range b.CheckList {
-			csvString += c.FetchName() + ","
-		}
-	}
-	csvString += "total\n"
-	records, err := getTeamRecords(team, 0)
-	if err != nil {
-		errorOutGraceful(c, err)
-	}
-	for _, r := range records {
-		csvString += r.Time.In(loc).Format("03:04:05 PM") + ","
-		csvString += strconv.Itoa(r.Round) + ","
-		csvString += strconv.Itoa(r.ServicePoints) + ","
-		csvString += strconv.Itoa(r.InjectPoints) + ","
-		slaViolations := 0
-		statusString := ""
-		for _, c := range r.Checks {
-			slaViolations += c.SlaViolations
-			if c.Status {
-				statusString += "up,"
-			} else {
-				statusString += "down,"
-			}
-		}
-		csvString += "-" + strconv.Itoa(slaViolations*mewConf.SlaPoints) + ","
-		csvString += statusString
-		csvString += strconv.Itoa(r.Total) + "\n"
-	}
-	c.Data(200, "text/csv", []byte(csvString))
-}
-
-func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {
-	newGinMap := gin.H{}
-	newGinMap["title"] = title
-	newGinMap["user"] = getUser(c)
-	team, err := mewConf.getTeam(getUser(c))
-	if err == nil {
-		newGinMap["team"] = team
-	}
-	newGinMap["admin"] = mewConf.isAdmin(getUser(c))
-	newGinMap["event"] = mewConf.Event
-	newGinMap["m"] = mewConf
-	newGinMap["loc"] = loc
-	for key, value := range ginMap {
-		newGinMap[key] = value
-	}
-	return newGinMap
-}
-
-func persistHandler(c *gin.Context) {
-	// if cyberconquest
-	if mewConf.Kind != "blue" {
-		redTeamId := c.Param("id")
-		var sourceIp string
-		if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr)); err == nil {
-			sourceIp = ip
-		} else {
-			c.JSON(400, gin.H{"error": "Invalid source IP"})
-			return
-		}
-		fmt.Println("Source ip is ", sourceIp)
-		var redTeam, sourceTeam, sourceBox string
-
-		for _, team := range mewConf.Team {
-			if team.Red == redTeamId {
-				redTeam = mewConf.GetIdentifier(team.Name)
-			}
-		}
-
-		if redTeam == "" {
-			c.JSON(400, gin.H{"error": "Invalid red team token"})
-			return
-		}
-
-		for _, team := range mewConf.Team {
-			if sourceTeam == "" {
-				for _, box := range mewConf.Box {
-					if team.Prefix+box.Suffix == sourceIp {
-						sourceTeam = mewConf.GetIdentifier(team.Name)
-						sourceBox = box.Name
-						break
-					}
-				}
-			}
-		}
-
-		if sourceBox == "" {
-			c.JSON(400, gin.H{"error": "Source IP " + sourceIp + " is not a from a valid box"})
-			return
-		}
-
-		// create map is not already created
-		if _, ok := redPersists[sourceTeam]; !ok {
-			redPersists[sourceTeam] = make(map[string][]string)
-		}
-		// if not already persisted for the given team, add team
-		if teamList, ok := redPersists[sourceTeam][sourceBox]; !ok {
-			redPersists[sourceTeam][sourceBox] = append(redPersists[sourceTeam][sourceBox], redTeam)
-		} else {
-			found := false
-			for _, team := range teamList {
-				if team == sourceTeam {
-					found = true
-				}
-			}
-			if !found {
-				redPersists[sourceTeam][sourceBox] = append(redPersists[sourceTeam][sourceBox], redTeam)
-			}
-		}
-	}
-	c.JSON(200, gin.H{"status": "ok"})
 }

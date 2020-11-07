@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"sort"
 	"strings"
@@ -24,7 +23,7 @@ var (
 	mongoCtx      context.Context
 	timeConn      time.Time
 	roundNumber   int
-	recordStaging = make(map[teamData]teamRecord)        // currently being built team records
+	recordStaging = make(map[string]teamRecord)          // currently being built team records
 	redPersists   = make(map[string]map[string][]string) // for each team's box, which teams have claimed persistence on it
 )
 
@@ -47,7 +46,7 @@ mew
 
 type resultEntry struct {
 	Time          time.Time `json:"time,omitempty"`
-	Team          teamData  `json:"team,omitempty"`
+	Team          string    `json:"team,omitempty"`
 	Round         int       `json:"round,omitempty"`
 	SlaCounter    int       `json:"slacounter,omitempty"`
 	SlaViolations int       `json:"slacounter,omitempty"`
@@ -61,7 +60,7 @@ type resultWrapper struct {
 
 type teamRecord struct {
 	Time          time.Time     `json:"time,omitempty"`
-	Team          teamData      `json:"team,omitempty"`
+	Team          string        `json:"team,omitempty"`
 	Round         int           `json:"round,omitempty"`
 	Checks        []resultEntry `json:"checks,omitempty"`
 	RedDetract    int           `json:"reddetract,omitempty"`
@@ -77,7 +76,7 @@ type adminData struct {
 }
 
 type teamData struct {
-	Name, Prefix, Red, Pw string
+	Identifier, Display, Prefix, Color, Red, Pw string
 }
 
 type injectSubmission struct {
@@ -114,7 +113,7 @@ func initDatabase() {
 	timeConn = time.Now()
 
 	if refresh {
-		fmt.Println("Refreshing mongodb connection...")
+		debugPrint("Refreshing mongodb connection...")
 		client, err := mongo.NewClient(options.Client().ApplyURI(dbURI))
 		if err != nil {
 			log.Fatal(err)
@@ -138,7 +137,7 @@ func getCollection(collectionName string) *mongo.Collection {
 
 func getCheckResults(team teamData, check checks.Check, limit int) ([]resultEntry, error) {
 	results := []resultEntry{}
-	coll := getCollection(mewConf.GetIdentifier(team.Name) + "results")
+	coll := getCollection(team.Identifier + "results")
 
 	// Create option and index (allow faster & larger sorts)
 	findOptions := options.Find()
@@ -173,7 +172,7 @@ func getAllTeamPCRItems() ([]checks.PcrData, error) {
 	allPcrItems := []checks.PcrData{}
 	for _, team := range mewConf.Team {
 		pcrItems := []checks.PcrData{}
-		coll := getCollection(mewConf.GetIdentifier(team.Name) + "pcr")
+		coll := getCollection(team.Identifier + "pcr")
 
 		findOptions := options.Find()
 		findOptions.SetSort(bson.D{{"time", -1}})
@@ -206,7 +205,7 @@ func getAllTeamPCRItems() ([]checks.PcrData, error) {
 
 func getPCRItems(team teamData, check checks.Check) ([]checks.PcrData, error) {
 	pcrItems := []checks.PcrData{}
-	coll := getCollection(mewConf.GetIdentifier(team.Name) + "pcr")
+	coll := getCollection(team.Identifier + "pcr")
 
 	// Create option and index (allow faster & larger sorts)
 	findOptions := options.Find()
@@ -241,9 +240,9 @@ func getPCRItems(team teamData, check checks.Check) ([]checks.PcrData, error) {
 	return pcrItems, nil
 }
 
-func getTeamRecords(team teamData, limit int) ([]teamRecord, error) {
+func getTeamRecords(team string, limit int) ([]teamRecord, error) {
 	records := []teamRecord{}
-	coll := getCollection(mewConf.GetIdentifier(team.Name) + "records")
+	coll := getCollection(team + "records")
 
 	// Create option and index (allow faster & larger sorts)
 	findOptions := options.Find()
@@ -304,7 +303,7 @@ func initStatus() error {
 
 func initRoundNumber(m *config) {
 	res := resultEntry{}
-	coll := getCollection(m.GetIdentifier(m.Team[0].Name) + "results")
+	coll := getCollection(mewConf.Team[0].Identifier + "results")
 	findOptions := options.FindOne()
 	findOptions.SetSort(bson.D{{"time", -1}})
 	mod := mongo.IndexModel{
@@ -314,13 +313,13 @@ func initRoundNumber(m *config) {
 	}
 	_, err := coll.Indexes().CreateOne(context.TODO(), mod)
 	if err != nil {
-		fmt.Println("initRoundNumber:", err)
+		debugPrint("initRoundNumber:", err)
 		roundNumber = 0
 		return
 	}
 	err = coll.FindOne(context.TODO(), bson.D{}, findOptions).Decode(&res)
 	if err != nil {
-		fmt.Println("initRoundNumber:", err)
+		debugPrint("initRoundNumber:", err)
 		roundNumber = 0
 		return
 	}
@@ -331,14 +330,14 @@ func initCreds() {
 	allCreds := []checks.PcrData{}
 	for _, team := range mewConf.Team {
 		creds := []checks.PcrData{}
-		coll := getCollection(mewConf.GetIdentifier(team.Name) + "pcr")
+		coll := getCollection(team.Identifier + "pcr")
 		opts := options.Find()
 		cursor, err := coll.Find(context.TODO(), bson.D{}, opts)
 		if err != nil {
-			fmt.Println("[CREDS]", err.Error())
+			debugPrint("[CREDS]", err.Error())
 		}
 		if err = cursor.All(context.TODO(), &creds); err != nil {
-			fmt.Println("[CREDS]", err.Error())
+			debugPrint("[CREDS]", err.Error())
 		}
 		allCreds = append(allCreds, creds...)
 	}
@@ -352,7 +351,7 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 	}
 
 	// get pcr collection
-	coll := getCollection(mewConf.GetIdentifier(team.Name) + "pcr")
+	coll := getCollection(team.Identifier + "pcr")
 	findOptions := options.FindOne()
 	findOptions.SetSort(bson.D{{"time", 1}})
 
@@ -377,7 +376,7 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 	// if not found, create new struct
 	if err != nil {
 		pcrItem = checks.PcrData{
-			Team:  team.Name,
+			Team:  team.Identifier,
 			Check: check.FetchName(),
 			Creds: make(map[string]string),
 		}
@@ -404,7 +403,7 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 		if p == "" {
 			continue
 		}
-		splitItem := strings.Split(p, ":")
+		splitItem := strings.Split(p, ",")
 		if len(splitItem) != 2 {
 			return errors.New("parsePCR: username was an invalid format: " + p)
 		}
@@ -457,7 +456,7 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 func groupTeamRecords(m *config) ([]teamRecord, error) {
 	latestRecords := []teamRecord{}
 	for _, team := range m.Team {
-		coll := getCollection(m.GetIdentifier(team.Name) + "records")
+		coll := getCollection(team.Identifier + "records")
 		findOptions := options.FindOne()
 		findOptions.SetSort(bson.D{{"time", -1}})
 		mod := mongo.IndexModel{
@@ -495,7 +494,7 @@ func getStatus() ([]teamRecord, error) {
 	}
 
 	sort.SliceStable(records, func(i, j int) bool {
-		return records[i].Team.Name < records[j].Team.Name
+		return records[i].Team < records[j].Team
 	})
 
 	for i := range records {
@@ -506,7 +505,7 @@ func getStatus() ([]teamRecord, error) {
 }
 
 func insertResult(newResult resultEntry) error {
-	coll := getCollection(mewConf.GetIdentifier(newResult.Team.Name) + "results")
+	coll := getCollection(newResult.Team + "results")
 	_, err := coll.InsertOne(context.TODO(), newResult)
 	if err != nil {
 		return err
@@ -528,36 +527,61 @@ func replaceStatusRecord(newTeamRecord teamRecord) error {
 }
 
 func pushTeamRecords(mux *sync.Mutex) {
-	fmt.Println("pushing records")
+	debugPrint("pushing records")
 	for i, rec := range recordStaging {
 		if mewConf.Kind != "blue" {
-			identifier := mewConf.GetIdentifier(rec.Team.Name)
+			identifier := rec.Team
 			mux.Lock()
 			if boxMap, ok := redPersists[identifier]; ok {
 				rec.RedDetract -= len(boxMap)
-				for i := range rec.Checks {
-					rec.Checks[i].Persists = boxMap
+				for j := range rec.Checks {
+					rec.Checks[j].Persists = boxMap
 				}
 			}
-			for _, boxMaps := range redPersists {
-				fmt.Println("boxMaps is", boxMaps)
-				for _, hackerTeams := range boxMaps {
-					fmt.Println("hackerteams", hackerTeams)
+			for hackedTeam, boxMaps := range redPersists {
+				for box, hackerTeams := range boxMaps {
+					debugPrint("hackerteams", hackerTeams)
 					for _, hackerTeam := range hackerTeams {
-						fmt.Println("checking if", identifier, "is", hackerTeam)
+						debugPrint("checking if", identifier, "is", hackerTeam)
 						if hackerTeam == identifier {
 							rec.RedContrib++
+
+							/* BONUS POINTS: if all box services are dead, double points! */
+							// for all checks
+							doublePoints := true
+							servicePointsGained := 0
+							hackedTeamRec := recordStaging[hackedTeam]
+							for _, check := range hackedTeamRec.Checks {
+								if check.Box != box {
+									continue
+								}
+								//  this is the box that has been pwned
+								if check.Status {
+									servicePointsGained++
+									doublePoints = false
+								}
+							}
+							if doublePoints {
+								rec.RedContrib++
+							}
+							// If pwned, gain no points uwu
+							debugPrint("pwnzord, subtracting", servicePointsGained, "from", hackedTeam)
+							hackedTeamRec.ServicePoints -= servicePointsGained
+							recordStaging[hackedTeam] = hackedTeamRec
+							debugPrint("doublepoints is", doublePoints, " for", hackerTeam)
 						}
 					}
 				}
 			}
-
+			recordStaging[i] = rec
 			mux.Unlock()
 		}
-		coll := getCollection(mewConf.GetIdentifier(rec.Team.Name) + "records")
+	}
+	for i, rec := range recordStaging {
+		coll := getCollection(rec.Team + "records")
 		_, err := coll.InsertOne(context.TODO(), rec)
 		if err != nil {
-			fmt.Println("[CRITICAL] error:", err)
+			errorPrint("[CRITICAL] error:", err)
 		}
 		replaceStatusRecord(rec)
 		for _, c := range rec.Checks {

@@ -1,15 +1,13 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"math/rand"
 	"sync"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/DSU-DefSec/mew/checks"
+	"github.com/pkg/errors"
 )
 
 func Score(m *config) {
@@ -23,8 +21,8 @@ func Score(m *config) {
 	// checkList = append(checkList, m.Web...)
 	mux := &sync.Mutex{}
 	for {
-		fmt.Println("===================================")
-		fmt.Println("[SCORE] round", roundNumber)
+		debugPrint("===================================")
+		debugPrint("[SCORE] round", roundNumber)
 		allTeamsWg := &sync.WaitGroup{}
 		for _, t := range m.Team {
 			allTeamsWg.Add(1)
@@ -34,14 +32,14 @@ func Score(m *config) {
 
 				newRecord := teamRecord{
 					Time:  time.Now().In(loc),
-					Team:  team,
+					Team:  team.Identifier,
 					Round: roundNumber,
 				}
 
 				for _, b := range m.Box {
 					for _, check := range b.CheckList {
 						wg.Add(1)
-						go checks.RunCheck(team.Name, team.Prefix, b.Suffix, b.Name, check, wg, resChan)
+						go checks.RunCheck(team.Display, team.Prefix, b.Suffix, b.Name, check, wg, resChan)
 					}
 				}
 				done := make(chan struct{})
@@ -56,7 +54,7 @@ func Score(m *config) {
 					case res := <-resChan:
 						resEntry := resultEntry{
 							Time:  time.Now(),
-							Team:  team,
+							Team:  team.Identifier,
 							Round: roundNumber,
 							Result: checks.Result{
 								Name:   res.Name,
@@ -69,7 +67,7 @@ func Score(m *config) {
 						}
 						newRecord.Checks = append(newRecord.Checks, resEntry)
 					case <-done:
-						fmt.Println("[SCORE] checks for team", team.Name, "are done")
+						debugPrint("[SCORE] checks for team", team.Display, "are done")
 						doneSwitch = true
 					}
 					if doneSwitch {
@@ -85,9 +83,9 @@ func Score(m *config) {
 		roundNumber++
 		jitter := time.Duration(0)
 		if mewConf.Jitter != 0 {
-			jitter = time.Duration(rand.Intn(mewConf.Jitter + 1))
+			jitter = time.Duration(time.Duration(rand.Intn(mewConf.Jitter+1)) * time.Second)
 		}
-		fmt.Printf("[SCORE] sleeping for %d with jitter %d\n", mewConf.Delay, jitter)
-		time.Sleep((time.Duration(mewConf.Delay) + jitter) * time.Second)
+		debugPrint("[SCORE] sleeping for", mewConf.Delay, "with jitter", jitter)
+		time.Sleep((time.Duration(mewConf.Delay) * time.Second) + jitter)
 	}
 }
