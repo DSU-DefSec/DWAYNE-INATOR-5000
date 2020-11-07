@@ -9,7 +9,6 @@ type Smb struct {
 	checkBase
 	Port   int
 	Domain string
-	// ??
 }
 
 func (c Smb) Run(teamName, boxIp string, res chan Result) {

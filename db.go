@@ -398,11 +398,13 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 		allUsernames = append(allUsernames, cred.Usernames...)
 	}
 
+	empty := true
 	for _, p := range splitPcr {
 		p = strings.TrimSpace(p)
 		if p == "" {
 			continue
 		}
+
 		splitItem := strings.Split(p, ",")
 		if len(splitItem) != 2 {
 			return errors.New("parsePCR: username was an invalid format: " + p)
@@ -411,6 +413,8 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 		if splitItem[1] == "" {
 			continue
 		}
+
+		empty = false
 
 		if splitItem[0] == "all" {
 			for _, user := range allUsernames {
@@ -432,9 +436,11 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 
 			usernames = append(usernames, splitItem[0])
 			passwords = append(passwords, splitItem[1])
-
 		}
+	}
 
+	if empty {
+		return errors.New("parsePCR: empty submission")
 	}
 
 	// add creds to pcrItem
