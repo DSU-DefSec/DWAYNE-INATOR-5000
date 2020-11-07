@@ -4,13 +4,11 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
-	"time"
 	"regexp"
 )
 
 type Web struct {
 	checkBase
-	Timeout int
 	Port    int
 	Url     []urlData
 }
@@ -27,19 +25,16 @@ type urlData struct {
 }
 
 func (c Web) Run(teamName, boxIp string, res chan Result) {
-	timeout := c.Timeout
-	if timeout == 0 {
-		timeout = 10
-	}
-
-	client := http.Client{
-		Timeout: time.Duration(timeout) * time.Second,
-	}
-
 	for i, u := range c.Url {
 		// if usernameParam == nil
 		// post with username/pw as creds
 		// else
+        tr := &http.Transport{
+            MaxIdleConns:       1,
+            IdleConnTimeout:    GlobalTimeout,
+            DisableKeepAlives: true,
+        }
+        client := &http.Client{Transport: tr}
 		resp, err := client.Get(u.Scheme + "://" + boxIp + ":" + strconv.Itoa(c.Port) + u.Path)
 		if err != nil {
 			res <- Result{

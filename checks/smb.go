@@ -44,7 +44,7 @@ func (c Smb) Run(teamName, boxIp string, res chan Result) {
 		} else {
 			res <- Result{
 				Error:  "smb login failed",
-				Debug:  "creds " + username + ":" + password,
+				Debug:  "creds " + username + ":" + password + " for domain " + c.Domain,
 			}
 			return
 		}
