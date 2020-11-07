@@ -11,6 +11,7 @@ require (
 	github.com/jlaffaye/ftp v0.0.0-20200812143550-39e3779af0db
 	github.com/miekg/dns v1.1.35
 	github.com/pkg/errors v0.9.1
+	github.com/stacktitan/smb v0.0.0-20190531122847-da9a425dceb8
 	go.mongodb.org/mongo-driver v1.4.1
 	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9
 	gonum.org/v1/plot v0.8.0

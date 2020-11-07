@@ -88,8 +88,6 @@ func main() {
 		authRoutes.GET("/export/:team", exportTeamData)
 		authRoutes.GET("/pcr", viewPCR)
 		authRoutes.POST("/pcr", submitPCR)
-		authRoutes.GET("/flags", viewFlags)
-		authRoutes.POST("/flags", submitFlags)
 		authRoutes.GET("/injects", viewInjects)
 		authRoutes.POST("/injects", submitInject)
 		authRoutes.GET("/team/:team", viewTeam)

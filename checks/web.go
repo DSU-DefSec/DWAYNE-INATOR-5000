@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"regexp"
 )
 
 type Web struct {
@@ -22,6 +23,7 @@ type urlData struct {
 	PasswordParam string
 	Status        int
 	Diff          int
+	Regex		string
 }
 
 func (c Web) Run(teamName, boxIp string, res chan Result) {
@@ -41,7 +43,6 @@ func (c Web) Run(teamName, boxIp string, res chan Result) {
 		resp, err := client.Get(u.Scheme + "://" + boxIp + ":" + strconv.Itoa(c.Port) + u.Path)
 		if err != nil {
 			res <- Result{
-				Status: false,
 				Error:  "web request errored out",
 				Debug:  err.Error() + " for url " + strconv.Itoa(i),
 			}
@@ -50,7 +51,6 @@ func (c Web) Run(teamName, boxIp string, res chan Result) {
 
 		if u.Status != 0 && resp.StatusCode != u.Status {
 			res <- Result{
-				Status: false,
 				Error:  "status returned by webserver was incorrect",
 				Debug:  "status was " + strconv.Itoa(resp.StatusCode) + " wanted " + strconv.Itoa(u.Status) + " for url " + strconv.Itoa(i),
 			}
@@ -58,16 +58,41 @@ func (c Web) Run(teamName, boxIp string, res chan Result) {
 		}
 
 		defer resp.Body.Close()
-		_, err = ioutil.ReadAll(resp.Body)
+		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			res <- Result{
-				Status: false,
 				Error:  "error reading page content",
 				Debug:  "error was '" + err.Error() + "' for url " + strconv.Itoa(i),
 			}
 			return
 		}
-		// fmt.Println("body", body)
+
+		if u.Regex != "" {
+			re, err := regexp.Compile(u.Regex)
+			if err != nil {
+				res <- Result{
+					Error:  "error compiling regex to match for web page",
+					Debug:  err.Error(),
+				}
+				return
+			}
+			reFind := re.Find(body)
+			if reFind == nil {
+				res <- Result{
+					Error:  "didn't find regex on page :(",
+					Debug:  "couldn't find regex \"" + u.Regex + "\" for " + u.Path,
+				}
+				return
+			} else {
+				res <- Result{
+					Status: true,
+					Error:  "page matched regex!",
+					Debug:  "matched regex \"" + u.Regex + "\" for " + u.Path,
+				}
+				return
+			}
+
+		}
 	}
 
 	res <- Result{

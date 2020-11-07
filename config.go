@@ -259,9 +259,6 @@ func checkConfig(conf *config) error {
 				if ck.Port == 0 {
 					ck.Port = 21
 				}
-				if ck.Timeout == 0 {
-					ck.Timeout = 5
-				}
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ldap:
 				ck := c.(checks.Ldap)

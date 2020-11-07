@@ -66,6 +66,12 @@ func processTeamRecord(rec teamRecord, mux *sync.Mutex) {
 		rec.RedDetract = old.RedDetract
 		rec.RedContrib = old.RedContrib
 		for i, c := range old.Checks {
+			/*
+			if i+1 >= len(rec.Checks) {
+				i
+			}
+			fix crash when previous check size is larger
+			*/
 			rec.Checks[i].SlaCounter = c.SlaCounter
 			rec.Checks[i].SlaViolations = c.SlaViolations
 			rec.Checks[i].Persists = c.Persists
