@@ -75,7 +75,7 @@ func (c checkBase) FetchAnonymous() bool {
 	return c.Anonymous
 }
 
-func getCreds(credLists []string, teamName, checkName string) (string, string, error) {
+func getCreds(credLists []string, teamIdentifier, checkName string) (string, string, error) {
 	allUsernames := []string{}
 	rand.Seed(time.Now().UnixNano())
 	if len(credLists) > 0 {
@@ -87,7 +87,7 @@ func getCreds(credLists []string, teamName, checkName string) (string, string, e
 	}
 	if len(allUsernames) > 0 {
 		username := allUsernames[rand.Intn(len(allUsernames))]
-		credItem := FindCreds(teamName, checkName)
+		credItem := FindCreds(teamIdentifier, checkName)
 		if credItem.Team == "" {
 			return username, DefaultCreds[username], nil
 		}

@@ -9,13 +9,12 @@ import (
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
-	//"github.com/google/uuid"
+	"github.com/google/uuid"
 )
 
 // getUUID returns a randomly generated UUID from Google's UUID library.
 func getUUID() string {
-	return "asdklasl;dksa;ldkas;ldk"
-	// return uuid.New().String()
+	return uuid.New().String()
 }
 
 // initCookies use gin-contrib/sessions{/cookie} to initalize a cookie store.

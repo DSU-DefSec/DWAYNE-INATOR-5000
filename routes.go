@@ -290,7 +290,7 @@ func persistHandler(c *gin.Context) {
 			c.JSON(400, gin.H{"error": "Invalid source IP"})
 			return
 		}
-		sourceIp = "127.0.0.7"
+
 		debugPrint("Source ip is ", sourceIp)
 		var redTeam, sourceTeam, sourceBox string
 
