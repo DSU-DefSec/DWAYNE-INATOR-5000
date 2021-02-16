@@ -60,30 +60,6 @@
     {{ end }}
 </table>
 
-{{ if ne .m.Kind "blue" }}
-<br>
-<br>
-<h2>Red</h2>
-<br>
-<table>
-    <th>Rank</th>
-    <th>Team</th>
-    <th>Color</th>
-    <th>Points</th>
-    <!-- <th>Points Lost</th> -->
-    {{ range $index, $record := .redRecords }}
-        <tr>
-            <td>{{ $index | increment }}</td>
-            <td>{{ .Team }}</td>
-            <td><span style="background-color: {{ ($m.GetTeam .Team).Color }}; color: {{ ($m.GetTeam .Team).Color }}">hi:)</span></td>
-            <td><b>{{ .RedContrib }}</b></td>
-            <!-- <td><b>{{ .RedDetract }}</b></td>-->
-        </tr>
-    {{ end }}
-</table>
-<br>
-{{ end }}
-
 {{ if .records }}
 <br>
 <p style="text-align: center">

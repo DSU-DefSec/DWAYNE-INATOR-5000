@@ -1,19 +1,28 @@
 package checks
 
 import (
+	"regexp"
 	"strconv"
-	"time"
+	"strings"
+    "math/rand"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/ssh"
 )
 
 type Ssh struct {
 	checkBase
-	Port        int
 	PubKey      string
 	BadAttempts int
-	Commands    []string
-	Outputs     []string
+	Command []commandData
+}
+
+type commandData struct {
+	UseRegex    bool
+	Contains    bool
+	Command string
+	Output string
+
 }
 
 func (c Ssh) Run(teamName, boxIp string, res chan Result) {
@@ -21,14 +30,7 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	// var hostKey ssh.PublicKey
 	// pubkey
 	// else
-	username, password, err := getCreds(c.CredLists, teamName, c.Name)
-	if err != nil {
-		res <- Result{
-			Status: false,
-			Error:  "no credlists supplied to check",
-		}
-		return
-	}
+	username, password := getCreds(c.CredLists, teamName, c.Name)
 
 	// Create client config
 	config := &ssh.ClientConfig{
@@ -37,15 +39,29 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 			ssh.Password(password),
 		},
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-		// Hardcoded timeout of 8 seconds
-		Timeout: time.Duration(8 * time.Second),
+		Timeout:         GlobalTimeout,
+	}
+
+	for i := 0; i < c.BadAttempts; i++ {
+		badConf := &ssh.ClientConfig{
+			User: username,
+			Auth: []ssh.AuthMethod{
+				ssh.Password(uuid.New().String()),
+			},
+			HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+			Timeout:         GlobalTimeout,
+		}
+
+		badConn, err := ssh.Dial("tcp", boxIp+":"+strconv.Itoa(c.Port), badConf)
+		if err == nil {
+			badConn.Close()
+		}
 	}
 
 	// Connect to ssh server
 	conn, err := ssh.Dial("tcp", boxIp+":"+strconv.Itoa(c.Port), config)
 	if err != nil {
 		res <- Result{
-			Status: false,
 			Error:  "error logging in to ssh server for creds " + username + ":" + password,
 			Debug:  "error: " + err.Error(),
 		}
@@ -57,9 +73,8 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	session, err := conn.NewSession()
 	if err != nil {
 		res <- Result{
-			Status: false,
 			Error:  "unable to create ssh session",
-			Debug:  "error: " + err.Error(),
+			Debug:  err.Error(),
 		}
 		return
 	}
@@ -75,9 +90,8 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	// Request pseudo terminal
 	if err := session.RequestPty("xterm", 40, 80, modes); err != nil {
 		res <- Result{
-			Status: false,
 			Error:  "couldn't allocate pts",
-			Debug:  "error: " + err.Error(),
+			Debug:  err.Error(),
 		}
 		return
 	}
@@ -85,14 +99,52 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	// Start remote shell
 	if err := session.Shell(); err != nil {
 		res <- Result{
-			Status: false,
 			Error:  "failed to start shell",
 			Debug:  "error: " + err.Error(),
 		}
 		return
 	}
 
-	// execute commands
+	// If any commands specified, run them
+	if len(c.Command) > 0 {
+		r := c.Command[rand.Intn(len(c.Command))]
+        output, err := session.CombinedOutput(r.Command)
+        if err != nil {
+            res <- Result{
+                Error:  "command execution failed",
+                Debug:  err.Error(),
+            }
+            return
+        }
+        if r.Output != "" {
+            if r.Contains {
+                if !strings.Contains(string(output), r.Output) {
+                    res <- Result{
+                        Error:  "command output didn't contain string",
+                        Debug:  "command output of '" + r.Command + "' didn't contain string '" + r.Output,
+                    }
+                    return
+                }
+            } else if r.UseRegex {
+                re := regexp.MustCompile(r.Output)
+                if !re.Match(output) {
+                    res <- Result{
+                        Error:  "command output didn't match regex",
+                        Debug:  "command output'" + r.Command + "' didn't match regex '" + r.Output,
+                    }
+                    return
+                } else {
+                    if strings.TrimSpace(string(output)) != r.Output {
+                        res <- Result{
+                            Error:  "command output didn't match string",
+                            Debug:  "command output of '" + r.Command + "' didn't match string '" + r.Output,
+                        }
+                        return
+                    }
+                }
+            }
+        }
+	}
 	res <- Result{
 		Status: true,
 		Debug:  "creds used were " + username + ":" + password,

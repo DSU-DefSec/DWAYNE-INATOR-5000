@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -67,22 +66,3 @@ func calcElapsedTime(newEntry, lastEntry *scoreEntry) error {
 }
 
 */
-func (m *config) GetIdentifier(teamName string) string {
-	var index int
-	for i, team := range m.Team {
-		if team.Display == teamName {
-			index = i + 1
-			break
-		}
-	}
-	return "team" + strconv.Itoa(index)
-}
-
-func (m *config) GetTeamDisplay(identifier string) string {
-	for _, team := range m.Team {
-		if team.Identifier == identifier {
-			return team.Display
-		}
-	}
-	return "???"
-}

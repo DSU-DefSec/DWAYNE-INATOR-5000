@@ -4,12 +4,13 @@
 <h2>Password Change Requests</h2>
 
 {{ $m := .m }}
+{{ $user := .user }}
 
 <br>
 {{ template "error.html" .error }}
 {{ template "message.html" .message }}
-<form style="width: 100%;" method="POST">
-    {{ if .admin }}
+<form: method="POST">
+    {{ if .user.IsAdmin }}
     <label>Team:
         <select name="team">
             {{ range $team := .m.Team }}
@@ -21,11 +22,11 @@
     <label>Check:
         <select name="check">
             {{ range $box := .m.Box }}
-            {{ range $check := .CheckList }}
-            {{ if not .Anonymous }}
-            <option value="{{ $check.Name }}">{{ $check.Name }}</option>
-            {{ end }}
-            {{ end }}
+                {{ range $check := .CheckList }}
+                    {{ if not .Anonymous }}
+                    <option value="{{ .Name }}">{{ .Name }}</option>
+                    {{ end }}
+                {{ end }}
             {{ end }}
         </select>
     </label>
@@ -36,11 +37,10 @@
 
 
 
-{{ $admin := .admin }}
 {{ $loc := .loc }}
 
 
-{{ if $admin }}
+{{ if .user.IsAdmin }}
 <br>
 <br>
 <h2>Username Lookup</h2>
@@ -63,28 +63,28 @@
 
 <br>
 <table>
-    {{ if .admin }}
+    {{ if .user.IsAdmin }}
     <th>Team</th>
     {{ end }}
     <th>Time</th>
     <th>Service</th>
-    {{ if or $m.Verbose .admin }}
+    {{ if or .m.Verbose .user.IsAdmin }}
     <th>Creds</th>
     {{ end }}
     {{ range $index, $pcr := .pcrs }}
     <tr>
-        {{ if $admin }}
+        {{ if $user.IsAdmin }}
         <td class="teamname">
-            {{ $pcr.Team }}
+            {{ .Team }}
         </td>
         {{ end }}
         <td>
-            {{ ($pcr.Time.In $loc).Format "03:04:05 PM" }}
+            {{ (.Time.In $loc).Format "03:04:05 PM" }}
         </td>
         <td>
-            {{ $pcr.Check }}
+            {{ .Check }}
         </td>
-        {{ if or $m.Verbose $admin }}
+        {{ if or $m.Verbose $user.IsAdmin }}
         <td>
             {{ range $user, $pass := $pcr.Creds }}
                 {{ $user }},{{ $pass }}

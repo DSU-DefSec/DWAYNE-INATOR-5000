@@ -23,8 +23,7 @@ var (
 	mongoCtx      context.Context
 	timeConn      time.Time
 	roundNumber   int
-	recordStaging = make(map[string]teamRecord)          // currently being built team records
-	redPersists   = make(map[string]map[string][]string) // for each team's box, which teams have claimed persistence on it
+	recordStaging = make(map[string]teamRecord) // currently being built team records
 )
 
 /*
@@ -42,6 +41,8 @@ mew
 		password change requests
 			one record per service
 				if row not found, use default creds
+	team<index>-red
+		red team penalties
 */
 
 type resultEntry struct {
@@ -71,12 +72,8 @@ type teamRecord struct {
 	Total         int           `json:"total,omitempty"`
 }
 
-type adminData struct {
-	Name, Pw string
-}
-
 type teamData struct {
-	Identifier, Display, Prefix, Color, Red, Pw string
+	Identifier, Prefix, Pw string
 }
 
 type injectSubmission struct {
@@ -535,55 +532,6 @@ func replaceStatusRecord(newTeamRecord teamRecord) error {
 func pushTeamRecords(mux *sync.Mutex) {
 	debugPrint("pushing records")
 	for i, rec := range recordStaging {
-		if mewConf.Kind != "blue" {
-			identifier := rec.Team
-			mux.Lock()
-			if boxMap, ok := redPersists[identifier]; ok {
-				rec.RedDetract -= len(boxMap)
-				for j := range rec.Checks {
-					rec.Checks[j].Persists = boxMap
-				}
-			}
-			for hackedTeam, boxMaps := range redPersists {
-				for box, hackerTeams := range boxMaps {
-					debugPrint("hackerteams", hackerTeams)
-					for _, hackerTeam := range hackerTeams {
-						debugPrint("checking if", identifier, "is", hackerTeam)
-						if hackerTeam == identifier {
-							rec.RedContrib++
-
-							/* BONUS POINTS: if all box services are dead, double points! */
-							// for all checks
-							doublePoints := true
-							servicePointsGained := 0
-							hackedTeamRec := recordStaging[hackedTeam]
-							for _, check := range hackedTeamRec.Checks {
-								if check.Box != box {
-									continue
-								}
-								//  this is the box that has been pwned
-								if check.Status {
-									servicePointsGained++
-									doublePoints = false
-								}
-							}
-							if doublePoints {
-								rec.RedContrib++
-							}
-							// If pwned, gain no points uwu
-							debugPrint("pwnzord, subtracting", servicePointsGained, "from", hackedTeam)
-							hackedTeamRec.ServicePoints -= servicePointsGained
-							recordStaging[hackedTeam] = hackedTeamRec
-							debugPrint("doublepoints is", doublePoints, " for", hackerTeam)
-						}
-					}
-				}
-			}
-			recordStaging[i] = rec
-			mux.Unlock()
-		}
-	}
-	for i, rec := range recordStaging {
 		coll := getCollection(rec.Team + "records")
 		_, err := coll.InsertOne(context.TODO(), rec)
 		if err != nil {
@@ -597,12 +545,4 @@ func pushTeamRecords(mux *sync.Mutex) {
 		recordStaging[i] = rec
 		mux.Unlock()
 	}
-	mux.Lock()
-	for i, rec := range recordStaging {
-		for j := range rec.Checks {
-			recordStaging[i].Checks[j].Persists = make(map[string][]string)
-		}
-	}
-	redPersists = make(map[string]map[string][]string)
-	mux.Unlock()
 }

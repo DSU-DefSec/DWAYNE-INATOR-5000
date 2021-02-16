@@ -19,20 +19,16 @@
         <th colspan="{{ len .CheckList }}"> {{ .Name }}</th>
         {{ end }}
     </tr>
-    {{ template "boxlist.html" . }}
+    {{ template "boxlist.html" .m }}
     <tr>
         {{ if .record }}
-        {{ range $check := .record.Checks }}
-        {{ template "boolheader.html" .Status }}
-            <a href="/team/{{ $check.Team }}/{{ $check.Name }}">
-            {{ if ne $m.Kind "blue" }}
-                {{ template "boolhacked.html" . }}
-            {{ else }}
-                {{ template "bool.html" . }}
+            {{ range $check := .record.Checks }}
+            <td>
+                <a href="/team/{{ $check.Team }}/{{ $check.Name }}">
+                {{ template "bool.html" .Status }}
+                </a>
+            </td>
             {{ end }}
-            </a>
-        </td>
-        {{ end }}
         {{ end }}
     </tr>
 </table>
@@ -55,34 +51,30 @@
     <th>Round</th>
     {{ end }}
     <th>Time</th>
-    {{ template "boxlist.html" . }}
+    {{ template "boxlist.html" .m }}
 
     {{ if .history }}
-    {{ range $index, $record := .history }}
-    <tr>
-        {{ if not $m.Tightlipped }}
-        <td>{{ $record.Round }}</td>
-        {{ end }}
-        <td>
-            {{ if eq $index 0 }}
-                <b>Current</b>
-            {{ else }}
-                {{ ($record.Time.In $loc).Format "03:04:05 PM" }}
+        {{ range $index, $record := .history }}
+        <tr>
+            {{ if not $m.Tightlipped }}
+            <td>{{ .Round }}</td>
             {{ end }}
-        </td>
-    {{ range $check := $record.Checks }}
-        {{ template "boolheader.html" $check.Status }}
-            <a href="/team/{{ $check.Team }}/{{ $check.Name }}">
-                {{ if ne $m.Kind "blue" }}
-                    {{ template "boolhacked.html" . }}
+            <td>
+                {{ if eq $index 0 }}
+                    <b>Current</b>
                 {{ else }}
-                    {{ template "bool.html" . }}
+                    {{ (.Time.In $loc).Format "03:04:05 PM" }}
                 {{ end }}
-            </a>
-        </td>
-    {{ end }}
-    </tr>
-    {{ end }}
+            </td>
+        {{ range $check := $record.Checks }}
+            <td>
+                <a href="/team/{{ $check.Team }}/{{ $check.Name }}">
+                {{ template "bool.html" .Status }}
+                </a>
+            </td>
+        {{ end }}
+        </tr>
+        {{ end }}
     {{ end }}
 </table>
 
@@ -103,13 +95,17 @@
         {{ end }}
     </tr>
 
-    {{ template "boxlist.html" . }}
+    {{ template "boxlist.html" .m }}
 
     <tr>
     {{ range $box := $m.Box }}
-    {{ range $check := .CheckList }}
-    <td>{{ .Port }}</td>
-    {{ end }}
+        {{ range $check := .CheckList }}
+            {{ if eq .Port 0 }}
+            <td>N/A</td>
+            {{ else }}
+            <td>{{ .Port }}</td>
+            {{ end }}
+        {{ end }}
     {{ end }}
     </tr>
 

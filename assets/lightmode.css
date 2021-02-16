@@ -47,6 +47,10 @@ table {
     text-align: center;
 }
 
+table img {
+    width: 1.8em;
+}
+
 table a {
     display: block;
     text-decoration: none;

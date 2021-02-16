@@ -51,7 +51,6 @@ func graphScores(records []teamRecord) {
 	}
 }
 
-// randomPoints returns some random x, y points.
 func getTeamPoints(team string) plotter.XYs {
 	records, err := getTeamRecords(team, 0)
 	pts := make(plotter.XYs, len(records))

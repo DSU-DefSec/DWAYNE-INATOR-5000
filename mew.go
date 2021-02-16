@@ -72,12 +72,14 @@ func main() {
 		routes.GET("/", viewStatus)
 		routes.GET("/scores", viewScores)
 		routes.GET("/login", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "login.html", pageData(c, "login", nil))
+            if getUserOptional(c).IsValid() {
+                c.Redirect(http.StatusSeeOther, "/")
+            }
+			c.HTML(http.StatusOK, "login.html", pageData(c, "Login", nil))
 		})
 		routes.GET("/forbidden", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "forbidden.html", pageData(c, "forbidden", nil))
+			c.HTML(http.StatusOK, "forbidden.html", pageData(c, "Forbidden", nil))
 		})
-		routes.GET("/persist/:id", persistHandler)
 		routes.POST("/login", login)
 	}
 
@@ -88,6 +90,8 @@ func main() {
 		authRoutes.GET("/export/:team", exportTeamData)
 		authRoutes.GET("/pcr", viewPCR)
 		authRoutes.POST("/pcr", submitPCR)
+		authRoutes.GET("/red", viewRed)
+		authRoutes.POST("/red", submitRed)
 		authRoutes.GET("/injects", viewInjects)
 		authRoutes.POST("/injects", submitInject)
 		authRoutes.GET("/team/:team", viewTeam)

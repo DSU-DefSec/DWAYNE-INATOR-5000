@@ -5,7 +5,11 @@
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <title>{{ .event }} {{ .title }}</title>
     <link rel="stylesheet" href="/assets/normalize.css">
-    <link rel="stylesheet" href="/assets/main.css">
+    {{ if .m.DarkMode }} 
+    <link rel="stylesheet" href="/assets/darkmode.css">
+    {{ else }}
+    <link rel="stylesheet" href="/assets/lightmode.css">
+    {{ end }}
     <link rel="icon" type="image/ico" href="/assets/favicon.ico"/>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -16,22 +20,22 @@
         <div class="nav">
             <h1>mew</h1>
             <div>
-                {{ if .user }}
-                {{ if not .admin }}
-                <a href="/team/{{ .user }}">team</a>
-                {{ end }}
-                {{ if .red }}
-                <a href="/pcr">pcr</a>
-                {{ else }}
-                <a href="/pcr">pcr</a>
-                <!-- <a href="/injects">injects</a> -->
-                {{ end }}
+                {{ if .user.IsValid }}
+                    {{ if and (not .user.IsAdmin) (not .user.IsRed) }}
+                    <a href="/team/{{ .user.Identifier }}">team</a>
+                    {{ end }}
+                    {{ if .user.IsRed }}
+                    <a href="/red">red</a>
+                    {{ else }}
+                    <a href="/pcr">pcr</a>
+                    <!-- <a href="/injects">injects</a> -->
+                    {{ end }}
                 {{ end }}
                 <a href="/">status</a>
-                {{ if or .m.Verbose .admin }}
+                {{ if or .m.Verbose (or .user.IsAdmin .user.IsRed) }}
                 <a href="/scores">scores</a>
                 {{ end }}
-                {{ if .user }}
+                {{ if .user.IsValid }}
                 <a href="/logout">logout</a>
                 {{ else }}
                 <a href="/login">login</a>

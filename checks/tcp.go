@@ -1,15 +1,14 @@
 package checks
 
 import (
-	"strconv"
-    // why are there no good rdp libraries?
+    "strconv"
 )
 
-type Rdp struct {
+type Tcp struct {
 	checkBase
 }
 
-func (c Rdp) Run(teamName, boxIp string, res chan Result) {
+func (c Tcp) Run(teamName, boxIp string, res chan Result) {
 	err := tcpCheck(boxIp + ":" + strconv.Itoa(c.Port))
 	if err != nil {
 		res <- Result{
@@ -20,6 +19,6 @@ func (c Rdp) Run(teamName, boxIp string, res chan Result) {
 	}
 	res <- Result{
 		Status: true,
-		Debug:  "responded",
+		Debug:  "responded to request",
 	}
 }

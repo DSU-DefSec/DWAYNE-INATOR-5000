@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -12,7 +11,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// getUUID returns a randomly generated UUID from Google's UUID library.
+// getUUID returns a randomly generated UUID
 func getUUID() string {
 	return uuid.New().String()
 }
@@ -36,6 +35,7 @@ func authRequired(c *gin.Context) {
 
 // login is a handler that parses a form and checks for specific data
 func login(c *gin.Context) {
+
 	session := sessions.Default(c)
 	username := c.PostForm("username")
 	password := c.PostForm("password")
@@ -48,8 +48,14 @@ func login(c *gin.Context) {
 
 	err := errors.New("Invalid username or password.")
 
-	for _, record := range mewConf.Admin {
-		if username == record.Name && password == record.Pw {
+	for _, t := range mewConf.Admin {
+		if username == t.Identifier && password == t.Pw {
+			err = nil
+		}
+	}
+
+	for _, t := range mewConf.Red {
+		if username == t.Identifier && password == t.Pw {
 			err = nil
 		}
 	}
@@ -74,31 +80,57 @@ func login(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, "/")
 }
 
-func (m *config) isAdmin(userName string) bool {
-	for _, admin := range m.Admin {
-		if admin.Name == userName {
+func (t teamData) IsAdmin() bool {
+	for _, admin := range mewConf.Admin {
+		if admin.Identifier == t.Identifier {
 			return true
 		}
 	}
 	return false
 }
 
-func (m *config) isRed(userName string) bool {
-	for _, redteam := range m.RedTeam {
-		if redteam.Display == userName {
+func (t teamData) IsRed() bool {
+	for _, admin := range mewConf.Red {
+		if admin.Identifier == t.Identifier {
 			return true
 		}
 	}
 	return false
 }
 
-func getUser(c *gin.Context) string {
-	session := sessions.Default(c)
-	userName := session.Get("user")
-	if userName == nil {
-		return ""
+func getUser(c *gin.Context) teamData {
+	if team := getUserOptional(c); team.Identifier == "" {
+		errorOutAnnoying(c, errors.New("invalid team"))
+	} else {
+		return team
 	}
-	return fmt.Sprintf("%s", userName)
+	return teamData{}
+}
+
+func getUserOptional(c *gin.Context) teamData {
+	userName := sessions.Default(c).Get("user")
+	if userName != nil {
+		for _, team := range mewConf.Admin {
+			if team.Identifier == userName {
+				return team
+			}
+		}
+		for _, team := range mewConf.Team {
+			if team.Identifier == userName {
+				return team
+			}
+		}
+		for _, team := range mewConf.Red {
+			if team.Identifier == userName {
+				return team
+			}
+		}
+	}
+	return teamData{}
+}
+
+func getFromAllUsers(username string) {
+
 }
 
 func logout(c *gin.Context) {

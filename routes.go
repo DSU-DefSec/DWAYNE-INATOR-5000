@@ -1,11 +1,9 @@
 package main
 
 import (
-	"net"
 	"net/http"
 	"sort"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/DSU-DefSec/mew/checks"
@@ -18,13 +16,13 @@ func viewStatus(c *gin.Context) {
 	if err != nil {
 		errorOutGraceful(c, err)
 	}
-	team := teamData{}
-	team, _ = mewConf.GetTeam(getUser(c))
-	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"records": records, "team": team.Identifier}))
+	ip := c.ClientIP()
+	team := getUserOptional(c)
+	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"records": records, "team": team, "ip": ip}))
 }
 
 func viewTeam(c *gin.Context) {
-	team := getTeamWithAdmin(c)
+	team := validateTeam(c, c.Param("team"))
 	limit := 10
 	history, err := getTeamRecords(team.Identifier, limit)
 	if err != nil {
@@ -37,22 +35,8 @@ func viewTeam(c *gin.Context) {
 	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "record": record, "history": history, "limit": limit}))
 }
 
-func getTeamWithAdmin(c *gin.Context) teamData {
-	team, err := mewConf.validateTeamIndex(getUser(c), c.Param("team"))
-	if err != nil {
-		if err.Error() == "unauthorized team" {
-			if !mewConf.isAdmin(getUser(c)) {
-				errorOutAnnoying(c, err)
-			}
-		} else {
-			errorOutAnnoying(c, err)
-		}
-	}
-	return team
-}
-
 func viewCheck(c *gin.Context) {
-	team := getTeamWithAdmin(c)
+	team := validateTeam(c, c.Param("team"))
 	check, err := mewConf.getCheck(c.Param("check"))
 	if err != nil {
 		errorOutAnnoying(c, err)
@@ -81,9 +65,11 @@ func viewPCR(c *gin.Context) {
 
 func getPCRWeb(c *gin.Context) ([]checks.PcrData, error) {
 	var err error
-	team := teamData{}
+	team := getUser(c)
 	pcrItems := []checks.PcrData{}
-	if mewConf.isAdmin(getUser(c)) {
+	if team.IsRed() {
+		errorOutAnnoying(c, errors.New("no red teamers allowed in pcr"))
+	} else if team.IsAdmin() {
 		// debugPrint("getting all pcr items")
 		pcrItems, err = getAllTeamPCRItems()
 		// debugPrint("pcrItems is", pcrItems)
@@ -91,10 +77,6 @@ func getPCRWeb(c *gin.Context) ([]checks.PcrData, error) {
 			errorOutGraceful(c, err)
 		}
 	} else {
-		team, err = mewConf.GetTeam(getUser(c))
-		if err != nil {
-			errorOutAnnoying(c, err)
-		}
 		pcrItems, err = getPCRItems(team, checks.Web{})
 	}
 	return pcrItems, err
@@ -102,9 +84,12 @@ func getPCRWeb(c *gin.Context) ([]checks.PcrData, error) {
 
 func submitPCR(c *gin.Context) {
 	c.Request.ParseForm()
-	team := teamData{}
+	team := getUser(c)
 	var err error
-	if mewConf.isAdmin(getUser(c)) {
+	debugPrint("pcr team is", team)
+	if team.IsRed() {
+		errorOutAnnoying(c, errors.New("no red teamers allowed in pcr"))
+	} else if team.IsAdmin() {
 		userLookup := c.Request.Form.Get("username")
 		if userLookup != "" {
 			validUser := false
@@ -150,17 +135,112 @@ func submitPCR(c *gin.Context) {
 			c.HTML(http.StatusOK, "pcr_lookup.html", pageData(c, "pcr", gin.H{"pwLookup": pwLookup, "userLookup": userLookup}))
 			return
 		} else {
-			team, err = mewConf.validateTeamIndex(getUser(c), c.Request.Form.Get("team"))
-			if err != nil {
-				if err.Error() != "unauthorized team" {
-					errorOutAnnoying(c, err)
-				}
-			}
+			team = validateTeam(c, c.Request.Form.Get("team"))
+		}
+	}
+
+	submiterr := parsePCR(team, c.Request.Form.Get("check"), c.Request.Form.Get("pcr"))
+	var message string
+	if submiterr == nil {
+		message = "PCR submitted successfully!"
+	}
+
+	pcrItems, err := getPCRWeb(c)
+	if err != nil {
+		debugPrint("submitpcr:", err)
+		errorOutGraceful(c, err)
+	}
+
+	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "error": submiterr, "message": message}))
+}
+
+func viewRed(c *gin.Context) {
+	pcrItems, err := getPCRWeb(c)
+	if err != nil {
+		debugPrint("viewpcr:", err)
+		errorOutGraceful(c, err)
+	}
+	// sort pcr items based on time
+	sort.SliceStable(pcrItems, func(i, j int) bool {
+		return pcrItems[i].Time.After(pcrItems[j].Time)
+	})
+
+	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "allPcrs": checks.Creds}))
+}
+
+func getRedWeb(c *gin.Context) ([]checks.PcrData, error) {
+	var err error
+	team := getUser(c)
+	pcrItems := []checks.PcrData{}
+	if team.IsRed() {
+		errorOutAnnoying(c, errors.New("no red teamers allowed in pcr"))
+	} else if team.IsAdmin() {
+		// debugPrint("getting all pcr items")
+		pcrItems, err = getAllTeamPCRItems()
+		// debugPrint("pcrItems is", pcrItems)
+		if err != nil {
+			errorOutGraceful(c, err)
 		}
 	} else {
-		team, err = mewConf.GetTeam(getUser(c))
-		if err != nil {
-			errorOutAnnoying(c, err)
+		pcrItems, err = getPCRItems(team, checks.Web{})
+	}
+	return pcrItems, err
+}
+
+func submitRed(c *gin.Context) {
+	c.Request.ParseForm()
+	team := getUser(c)
+	var err error
+	debugPrint("pcr team is", team)
+	if team.IsRed() {
+		errorOutAnnoying(c, errors.New("no red teamers allowed in pcr"))
+	} else if team.IsAdmin() {
+		userLookup := c.Request.Form.Get("username")
+		if userLookup != "" {
+			validUser := false
+			allUsernames := []string{}
+			for _, cred := range mewConf.Creds {
+				allUsernames = append(allUsernames, cred.Usernames...)
+			}
+			for _, user := range allUsernames {
+				if user == userLookup {
+					validUser = true
+					break
+				}
+			}
+			if !validUser {
+				pcrItems, err := getPCRWeb(c)
+				if err != nil {
+					debugPrint("submitpcr:", err)
+					errorOutGraceful(c, err)
+				}
+				submiterr := errors.New("lookupPCR: invalid user: " + userLookup)
+				c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "error": submiterr}))
+				return
+			}
+			// for each team, find password for user
+			pwLookup := make(map[string]map[string]string) // team --> check --> pw
+			for _, t := range mewConf.Team {
+				pwLookup[t.Identifier] = make(map[string]string)
+				for _, b := range mewConf.Box {
+					for _, c := range b.CheckList {
+						if !c.FetchAnonymous() {
+							tmpCredList := checks.FindCreds(t.Identifier, c.FetchName())
+							debugPrint("creds is", tmpCredList.Creds)
+							if val, ok := tmpCredList.Creds[userLookup]; ok {
+								debugPrint("found non-defualt passsword for", userLookup+":", val)
+								pwLookup[t.Identifier][c.FetchName()] = val
+							} else {
+								pwLookup[t.Identifier][c.FetchName()] = checks.DefaultCreds[userLookup]
+							}
+						}
+					}
+				}
+			}
+			c.HTML(http.StatusOK, "pcr_lookup.html", pageData(c, "pcr", gin.H{"pwLookup": pwLookup, "userLookup": userLookup}))
+			return
+		} else {
+			team = validateTeam(c, c.Request.Form.Get("team"))
 		}
 	}
 
@@ -192,7 +272,7 @@ func submitInject(c *gin.Context) {
 }
 
 func viewScores(c *gin.Context) {
-	if !mewConf.Verbose && !mewConf.isAdmin(getUser(c)) {
+	if !mewConf.Verbose && !getUser(c).IsAdmin() {
 		errorOutAnnoying(c, errors.New("access to score without admin or verbose mode"))
 	}
 
@@ -209,24 +289,13 @@ func viewScores(c *gin.Context) {
 		return records[i].Total > records[j].Total
 	})
 
-	// sort redRecords based on inverse redPoints
-	redRecords := []teamRecord{}
-	for _, rec := range records {
-		redRecords = append(redRecords, rec)
-	}
+	team := getUserOptional(c)
 
-	sort.SliceStable(redRecords, func(i, j int) bool {
-		return (redRecords[i].RedContrib + redRecords[i].RedDetract) > (redRecords[j].RedContrib + redRecords[j].RedDetract)
-	})
-
-	team := teamData{}
-	team, _ = mewConf.GetTeam(getUser(c))
-
-	c.HTML(http.StatusOK, "scores.html", pageData(c, "scores", gin.H{"records": records, "redRecords": redRecords, "team": team}))
+	c.HTML(http.StatusOK, "scores.html", pageData(c, "scores", gin.H{"records": records, "team": team}))
 }
 
 func exportTeamData(c *gin.Context) {
-	team := getTeamWithAdmin(c)
+	team := validateTeam(c, c.Param("team"))
 	csvString := "time,round,service,inject,sla,"
 	for _, b := range mewConf.Box {
 		for _, c := range b.CheckList {
@@ -263,15 +332,9 @@ func exportTeamData(c *gin.Context) {
 func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {
 	newGinMap := gin.H{}
 	newGinMap["title"] = title
-	newGinMap["user"] = getUser(c)
-	team, err := mewConf.GetTeam(getUser(c))
-	if err == nil {
-		newGinMap["team"] = team
-	}
-	newGinMap["admin"] = mewConf.isAdmin(getUser(c))
-	newGinMap["red"] = mewConf.isRed(getUser(c))
-	newGinMap["event"] = mewConf.Event
+	newGinMap["user"] = getUserOptional(c)
 	newGinMap["m"] = mewConf
+	newGinMap["event"] = mewConf.Event
 	newGinMap["loc"] = loc
 	for key, value := range ginMap {
 		newGinMap[key] = value
@@ -279,67 +342,25 @@ func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {
 	return newGinMap
 }
 
-func persistHandler(c *gin.Context) {
-	// if cyberconquest
-	if mewConf.Kind != "blue" {
-		redTeamId := c.Param("id")
-		var sourceIp string
-		if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr)); err == nil {
-			sourceIp = ip
-		} else {
-			c.JSON(400, gin.H{"error": "Invalid source IP"})
-			return
-		}
-
-		debugPrint("Source ip is ", sourceIp)
-		var redTeam, sourceTeam, sourceBox string
-
-		for _, team := range mewConf.Team {
-			if team.Red == redTeamId {
-				redTeam = mewConf.GetIdentifier(team.Display)
-			}
-		}
-
-		if redTeam == "" {
-			c.JSON(400, gin.H{"error": "Invalid red team token"})
-			return
-		}
-
-		for _, team := range mewConf.Team {
-			if sourceTeam == "" {
-				for _, box := range mewConf.Box {
-					if team.Prefix+box.Suffix == sourceIp {
-						sourceTeam = mewConf.GetIdentifier(team.Display)
-						sourceBox = box.Name
-						break
-					}
-				}
-			}
-		}
-
-		if sourceBox == "" {
-			c.JSON(400, gin.H{"error": "Source IP " + sourceIp + " is not a from a valid box"})
-			return
-		}
-
-		// create map is not already created
-		if _, ok := redPersists[sourceTeam]; !ok {
-			redPersists[sourceTeam] = make(map[string][]string)
-		}
-		// if not already persisted for the given team, add team
-		if teamList, ok := redPersists[sourceTeam][sourceBox]; !ok {
-			redPersists[sourceTeam][sourceBox] = append(redPersists[sourceTeam][sourceBox], redTeam)
-		} else {
-			found := false
-			for _, team := range teamList {
-				if team == redTeam {
-					found = true
-				}
-			}
-			if !found {
-				redPersists[sourceTeam][sourceBox] = append(redPersists[sourceTeam][sourceBox], redTeam)
-			}
+// validateTeam tests to see if the team currently logged in
+// has authorization to access the team id requested. It always
+// allows if admin, and errors out if invalid user.
+func validateTeam(c *gin.Context, id string) teamData {
+	team := getUser(c)
+	if team.Identifier == id {
+		return team
+	} else if team.IsAdmin() {
+		if realTeam, err := mewConf.GetTeam(id); err == nil {
+			return realTeam
 		}
 	}
-	c.JSON(200, gin.H{"status": "ok"})
+	errorOutAnnoying(c, errors.New("team could not be validated"))
+	return teamData{}
+}
+
+func (m *config) IsValid(team teamData, id string) bool {
+	if team.Identifier == id || team.IsAdmin() {
+		return true
+	}
+	return false
 }

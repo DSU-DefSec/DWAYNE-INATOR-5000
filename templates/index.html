@@ -13,44 +13,43 @@
 <br>
 <table>
     <tr>
-        <th></th>
+        <th style="border-bottom: none"></th>
         {{ range $box := .m.Box }}
         <th colspan="{{ len .CheckList }}"> {{ .Name }}</th>
         {{ end }}
     </tr>
     <tr>
-    <th>Team</th>
-    {{ range $box := .m.Box }}
-    {{ range $check := .CheckList }}
-    <th>{{ $check.Display }}</th>
-    {{ end }}
-    {{ end }}
+    <th></th>
+    {{ template "boxlist.html" $m }}
     </tr>
     {{ range $index, $record := $records }}
     <tr>
         <td class="teamname">
-            {{ if or (eq $record.Team $team) $admin }}
-            <a href="/team/{{ $record.Team }}">
+            {{ if $team }}
+                {{ if $m.IsValid $team .Team }}
+                <a href="/team/{{ .Team }}">
+                {{ end }}
             {{ end }}
-            {{ $record.Team }}
-            {{ if or (eq $record.Team $team) $admin }}
-            </a>
+            {{ .Team }}
+            {{ if $team }}
+                {{ if $m.IsValid $team .Team }}
+                    </a>
+                {{ end }}
             {{ end }}
         </td>
-
-        {{ range $check := $record.Checks }}
-        {{ template "boolheader.html" .Status }}
-            {{ if or (eq $record.Team $team) $admin }}
+        {{ range $check := .Checks }}
+        <td>
+        {{ if $team }}
+            {{ if $m.IsValid $team $record.Team }}
             <a href="/team/{{ $record.Team }}/{{ $check.Name }}">
             {{ end }}
-            {{ if ne $m.Kind "blue" }}
-                {{ template "boolhacked.html" . }}
-            {{ else }}
-                {{ template "bool.html" . }}
-            {{ end }}
-            {{ if or (eq $record.Team $team) $admin }}
+        {{ end }}
+        {{ template "bool.html" $check.Status }}
+        {{ if $team }}
+            {{ if $m.IsValid $team $record.Team }}
             </a>
             {{ end }}
+        {{ end }}
         </td>
         {{ end }}
     </tr>
@@ -62,6 +61,14 @@
 <p style="text-align: center">
 Checks ran at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
 </p>
+{{ end }}
+
+{{ if .ip }}
+    {{ if not (or (eq .ip "::1") (eq .ip "127.0.0.1")) }}
+    <p style="text-align: center; font-size: 0.8em">
+    👋 Hello {{ .ip }}!
+    </p>
+    {{ end }}
 {{ end }}
 
 {{ template "feet.html" }}

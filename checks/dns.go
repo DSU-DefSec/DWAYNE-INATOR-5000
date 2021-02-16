@@ -11,7 +11,6 @@ import (
 
 type Dns struct {
 	checkBase
-	Port   int
 	Record []DnsRecord
 }
 
@@ -31,7 +30,13 @@ func (c Dns) Run(teamName, boxIp string, res chan Result) {
 	var msg dns.Msg
 
 	// switch of kind (A, MX, etc)
-	msg.SetQuestion(fqdn, dns.TypeA)
+    // TODO: add more values
+    switch record.Kind {
+    case "A":
+        msg.SetQuestion(fqdn, dns.TypeA)
+    case "MX":
+        msg.SetQuestion(fqdn, dns.TypeMX)
+    }
 
 	// Make it obey timeout via deadline
 	deadctx, cancel := context.WithDeadline(context.TODO(), time.Now().Add(GlobalTimeout))

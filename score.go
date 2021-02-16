@@ -67,7 +67,7 @@ func Score(m *config) {
 						}
 						newRecord.Checks = append(newRecord.Checks, resEntry)
 					case <-done:
-						debugPrint("[SCORE] checks for team", team.Display, "are done")
+						debugPrint("[SCORE] checks for team", team.Identifier, "are done")
 						doneSwitch = true
 					}
 					if doneSwitch {

@@ -9,24 +9,15 @@ import (
 
 type Ldap struct {
 	checkBase
-	Port   int
 	Domain string
-	TLS    bool
+	Encrypted    bool
 }
 
 func (c Ldap) Run(teamName, boxIp string, res chan Result) {
 	// Set timeout
 	ldap.DefaultTimeout = GlobalTimeout
 
-	username, password, err := getCreds(c.CredLists, teamName, c.Name)
-	if err != nil {
-		res <- Result{
-			Status: false,
-			Error:  "no credlists supplied to check",
-		}
-		return
-	}
-
+	username, password := getCreds(c.CredLists, teamName, c.Name)
 	// Normal, default ldap check
 	lconn, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", boxIp, c.Port))
 	if err != nil {
@@ -42,7 +33,7 @@ func (c Ldap) Run(teamName, boxIp string, res chan Result) {
 	lconn.SetTimeout(GlobalTimeout)
 
 	// Add TLS if needed
-	if c.TLS {
+	if c.Encrypted {
 		err = lconn.StartTLS(&tls.Config{InsecureSkipVerify: true})
 		if err != nil {
 			res <- Result{

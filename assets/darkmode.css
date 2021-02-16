@@ -1,0 +1,147 @@
+/* mew custom styles
+–––––––––––––––––––––––––––––––––––––––––– */
+
+/* body, container, globals
+–––––––––––––––––––––––––––––––––––––––––– */
+
+body {
+    padding: 1rem;
+    background-color: #212121;
+    font-family: Helvetica, sans-serif;
+    color: white;
+}
+
+.container {
+    margin: 0 auto;
+    width: 80%;
+    max-width: 1000px;
+    min-width: 200px;
+    display: table;
+}
+
+a {
+    color: #04AAE2;
+    text-decoration: none;
+}
+
+
+/* headers and nav
+–––––––––––––––––––––––––––––––––––––––––– */
+
+h1, h2, h3, h4, h5, h6 {
+    font-size: 1rem;
+    line-height: 0;
+}
+
+h2 {
+    text-align: center;
+}
+
+.nav {
+    display: flex;
+    justify-content: space-between;
+}
+
+hr {
+    border-top: 2px solid white;
+    border-bottom-width: 0px;
+}
+
+/* table styles
+–––––––––––––––––––––––––––––––––––––––––– */
+
+table {
+    margin: 0 auto;
+    text-align: center;
+}
+
+table a {
+    display: block;
+    text-decoration: none;
+    text-align: center;
+}
+
+th {
+    font-weight: bold;
+}
+
+td, th {
+    font-weight: normal;
+    padding: 0.7rem;
+}
+
+.status {
+    text-align: center;
+}
+
+th {
+    border-bottom: 2px solid white;
+}
+
+.checks tr td:first-child {
+    font-weight: normal;
+}
+
+.checks th {
+    font-weight: bold;
+}
+
+.teamname a {
+    text-align: left;
+    text-decoration: underline;
+}
+
+
+th:nth-child(n+2){
+    border-left: 2px solid white;
+}
+
+tr td:nth-child(n+2){
+    border-left: 2px solid white;
+}
+
+tr td:first-child {
+    font-weight: bold;
+}
+
+tr td {
+    border-bottom: 2px solid white;
+}
+
+tr:last-child td {
+    border-bottom-width: 0;
+}
+
+tr:nth-child(n+2) a {
+    cursor: pointer;
+}
+
+fieldset {
+    text-align: center;
+    width: 30%;
+    margin: 0 auto;
+    padding: 0 2rem;
+}
+
+td img {
+    width: 1.8em;
+}
+
+
+/* form styles
+–––––––––––––––––––––––––––––––––––––––––– */
+
+input {
+    margin: 0.3rem auto;
+}
+
+input, select, textarea {
+    color: black;
+}
+
+textarea {
+    width: 100%;
+    padding: 1rem;
+    min-height: 300px;
+    margin-bottom: 0.7rem;
+}
