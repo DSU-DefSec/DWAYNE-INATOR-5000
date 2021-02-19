@@ -1,10 +1,10 @@
 package checks
 
 import (
+	"math/rand"
 	"regexp"
 	"strconv"
 	"strings"
-    "math/rand"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/ssh"
@@ -14,15 +14,14 @@ type Ssh struct {
 	checkBase
 	PubKey      string
 	BadAttempts int
-	Command []commandData
+	Command     []commandData
 }
 
 type commandData struct {
-	UseRegex    bool
-	Contains    bool
-	Command string
-	Output string
-
+	UseRegex bool
+	Contains bool
+	Command  string
+	Output   string
 }
 
 func (c Ssh) Run(teamName, boxIp string, res chan Result) {
@@ -62,8 +61,8 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	conn, err := ssh.Dial("tcp", boxIp+":"+strconv.Itoa(c.Port), config)
 	if err != nil {
 		res <- Result{
-			Error:  "error logging in to ssh server for creds " + username + ":" + password,
-			Debug:  "error: " + err.Error(),
+			Error: "error logging in to ssh server for creds " + username + ":" + password,
+			Debug: "error: " + err.Error(),
 		}
 		return
 	}
@@ -73,8 +72,8 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	session, err := conn.NewSession()
 	if err != nil {
 		res <- Result{
-			Error:  "unable to create ssh session",
-			Debug:  err.Error(),
+			Error: "unable to create ssh session",
+			Debug: err.Error(),
 		}
 		return
 	}
@@ -90,8 +89,8 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	// Request pseudo terminal
 	if err := session.RequestPty("xterm", 40, 80, modes); err != nil {
 		res <- Result{
-			Error:  "couldn't allocate pts",
-			Debug:  err.Error(),
+			Error: "couldn't allocate pts",
+			Debug: err.Error(),
 		}
 		return
 	}
@@ -99,8 +98,8 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	// Start remote shell
 	if err := session.Shell(); err != nil {
 		res <- Result{
-			Error:  "failed to start shell",
-			Debug:  "error: " + err.Error(),
+			Error: "failed to start shell",
+			Debug: "error: " + err.Error(),
 		}
 		return
 	}
@@ -108,42 +107,42 @@ func (c Ssh) Run(teamName, boxIp string, res chan Result) {
 	// If any commands specified, run them
 	if len(c.Command) > 0 {
 		r := c.Command[rand.Intn(len(c.Command))]
-        output, err := session.CombinedOutput(r.Command)
-        if err != nil {
-            res <- Result{
-                Error:  "command execution failed",
-                Debug:  err.Error(),
-            }
-            return
-        }
-        if r.Output != "" {
-            if r.Contains {
-                if !strings.Contains(string(output), r.Output) {
-                    res <- Result{
-                        Error:  "command output didn't contain string",
-                        Debug:  "command output of '" + r.Command + "' didn't contain string '" + r.Output,
-                    }
-                    return
-                }
-            } else if r.UseRegex {
-                re := regexp.MustCompile(r.Output)
-                if !re.Match(output) {
-                    res <- Result{
-                        Error:  "command output didn't match regex",
-                        Debug:  "command output'" + r.Command + "' didn't match regex '" + r.Output,
-                    }
-                    return
-                } else {
-                    if strings.TrimSpace(string(output)) != r.Output {
-                        res <- Result{
-                            Error:  "command output didn't match string",
-                            Debug:  "command output of '" + r.Command + "' didn't match string '" + r.Output,
-                        }
-                        return
-                    }
-                }
-            }
-        }
+		output, err := session.CombinedOutput(r.Command)
+		if err != nil {
+			res <- Result{
+				Error: "command execution failed",
+				Debug: err.Error(),
+			}
+			return
+		}
+		if r.Output != "" {
+			if r.Contains {
+				if !strings.Contains(string(output), r.Output) {
+					res <- Result{
+						Error: "command output didn't contain string",
+						Debug: "command output of '" + r.Command + "' didn't contain string '" + r.Output,
+					}
+					return
+				}
+			} else if r.UseRegex {
+				re := regexp.MustCompile(r.Output)
+				if !re.Match(output) {
+					res <- Result{
+						Error: "command output didn't match regex",
+						Debug: "command output'" + r.Command + "' didn't match regex '" + r.Output,
+					}
+					return
+				} else {
+					if strings.TrimSpace(string(output)) != r.Output {
+						res <- Result{
+							Error: "command output didn't match string",
+							Debug: "command output of '" + r.Command + "' didn't match string '" + r.Output,
+						}
+						return
+					}
+				}
+			}
+		}
 	}
 	res <- Result{
 		Status: true,

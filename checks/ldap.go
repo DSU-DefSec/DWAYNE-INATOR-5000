@@ -9,8 +9,8 @@ import (
 
 type Ldap struct {
 	checkBase
-	Domain string
-	Encrypted    bool
+	Domain    string
+	Encrypted bool
 }
 
 func (c Ldap) Run(teamName, boxIp string, res chan Result) {

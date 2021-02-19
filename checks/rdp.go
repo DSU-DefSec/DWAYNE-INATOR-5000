@@ -2,7 +2,7 @@ package checks
 
 import (
 	"strconv"
-    // why are there no good rdp libraries?
+	// why are there no good rdp libraries?
 )
 
 type Rdp struct {

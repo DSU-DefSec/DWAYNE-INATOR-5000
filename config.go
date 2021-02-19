@@ -36,7 +36,7 @@ type config struct {
 
 type Box struct {
 	Name      string
-	Suffix    string
+	Ip        string
 	CheckList []checks.Check
 	Dns       []checks.Dns
 	Ftp       []checks.Ftp
@@ -174,7 +174,7 @@ func checkConfig(conf *config) error {
 
 	// sort boxes
 	sort.SliceStable(conf.Box, func(i, j int) bool {
-		return conf.Box[i].Suffix < conf.Box[j].Suffix
+		return conf.Box[i].Ip < conf.Box[j].Ip
 	})
 
 	// credential list checking
@@ -201,14 +201,14 @@ func checkConfig(conf *config) error {
 
 	// look for duplicate team prefix
 	sort.SliceStable(conf.Team, func(i, j int) bool {
-		return conf.Team[i].Prefix < conf.Team[i].Prefix
+		return conf.Team[i].Ip < conf.Team[i].Ip
 	})
 
 	for i := 0; i < len(conf.Team)-1; i++ {
-		if conf.Team[i].Prefix == "" {
+		if conf.Team[i].Ip == "" {
 			return errors.New("non-set prefix for team")
 		}
-		if conf.Team[i].Prefix == conf.Team[i+1].Prefix {
+		if conf.Team[i].Ip == conf.Team[i+1].Ip {
 			return errors.New("duplicate team prefix found")
 		}
 	}
@@ -220,7 +220,7 @@ func checkConfig(conf *config) error {
 
 	// look for missing team properties
 	for _, team := range conf.Team {
-		if team.Identifier == "" || team.Pw == "" || team.Prefix == "" {
+		if team.Identifier == "" || team.Pw == "" || team.Ip == "" {
 			return errors.New("team  missing required property, one of name, password, or prefix")
 		}
 	}
@@ -233,7 +233,7 @@ func checkConfig(conf *config) error {
 			switch c.(type) {
 			case checks.Dns:
 				ck := c.(checks.Dns)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				ck.Anonymous = true // call me when you need authed DNS
 				if ck.Display == "" {
 					ck.Display = "dns"
@@ -250,7 +250,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ftp:
 				ck := c.(checks.Ftp)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "ftp"
 				}
@@ -261,14 +261,14 @@ func checkConfig(conf *config) error {
 					ck.Port = 21
 				}
 				for _, f := range ck.File {
-                    if f.Regex != "" && f.Hash != "" {
-                        return errors.New("can't have both regex and hash for ftp file check")
-                    }
+					if f.Regex != "" && f.Hash != "" {
+						return errors.New("can't have both regex and hash for ftp file check")
+					}
 				}
 				conf.Box[i].CheckList[j] = ck
 			case checks.Imap:
 				ck := c.(checks.Imap)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "imap"
 				}
@@ -281,7 +281,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ldap:
 				ck := c.(checks.Ldap)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "ldap"
 				}
@@ -297,10 +297,10 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ping:
 				ck := c.(checks.Ping)
-				ck.Suffix = b.Suffix
-                if ck.Count == 0 {
-                    ck.Count = 1
-                }
+				ck.Ip = b.Ip
+				if ck.Count == 0 {
+					ck.Count = 1
+				}
 				if ck.Display == "" {
 					ck.Display = "ping"
 				}
@@ -310,7 +310,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Rdp:
 				ck := c.(checks.Rdp)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "rdp"
 				}
@@ -323,7 +323,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Smb:
 				ck := c.(checks.Smb)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "smb"
 				}
@@ -336,7 +336,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Smtp:
 				ck := c.(checks.Smtp)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "smtp"
 				}
@@ -349,7 +349,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Sql:
 				ck := c.(checks.Sql)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "sql"
 				}
@@ -366,14 +366,14 @@ func checkConfig(conf *config) error {
 					if q.UseRegex {
 						regexp.MustCompile(q.Output)
 					}
-                    if q.UseRegex && q.Contains {
-                        return errors.New("cannot use both regex and contains")
-                    }
+					if q.UseRegex && q.Contains {
+						return errors.New("cannot use both regex and contains")
+					}
 				}
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ssh:
 				ck := c.(checks.Ssh)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "ssh"
 				}
@@ -383,16 +383,16 @@ func checkConfig(conf *config) error {
 				if ck.Port == 0 {
 					ck.Port = 22
 				}
-                if ck.PubKey != "" && ck.BadAttempts != 0 {
+				if ck.PubKey != "" && ck.BadAttempts != 0 {
 					return errors.New("can not have bad attempts with pubkey for ssh")
-                }
+				}
 				for _, r := range ck.Command {
 					if r.UseRegex {
 						regexp.MustCompile(r.Output)
 					}
-                    if r.UseRegex && r.Contains {
-                        return errors.New("cannot use both regex and contains")
-                    }
+					if r.UseRegex && r.Contains {
+						return errors.New("cannot use both regex and contains")
+					}
 				}
 				if ck.Anonymous {
 					return errors.New("anonymous ssh not supported")
@@ -400,7 +400,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Tcp:
 				ck := c.(checks.Tcp)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "tcp"
 				}
@@ -413,7 +413,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Vnc:
 				ck := c.(checks.Vnc)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "vnc"
 				}
@@ -426,7 +426,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Web:
 				ck := c.(checks.Web)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "web"
 				}
@@ -442,18 +442,18 @@ func checkConfig(conf *config) error {
 				if len(ck.CredLists) == 0 {
 					ck.Anonymous = true
 				}
-                if ck.Scheme == "" {
-                    ck.Scheme = "http"
-                }
+				if ck.Scheme == "" {
+					ck.Scheme = "http"
+				}
 				for _, u := range ck.Url {
-                    if u.Diff != 0 && u.CompareFile == "" {
-                        return errors.New("need compare file for diff in web")
-                    }
+					if u.Diff != 0 && u.CompareFile == "" {
+						return errors.New("need compare file for diff in web")
+					}
 				}
 				conf.Box[i].CheckList[j] = ck
 			case checks.WinRM:
 				ck := c.(checks.WinRM)
-				ck.Suffix = b.Suffix
+				ck.Ip = b.Ip
 				if ck.Display == "" {
 					ck.Display = "winrm"
 				}
@@ -461,11 +461,11 @@ func checkConfig(conf *config) error {
 					ck.Name = b.Name + "-" + ck.Display
 				}
 				if ck.Port == 0 {
-                    if ck.Encrypted {
-                        ck.Port = 443
-                    } else {
-                        ck.Port = 80
-                    }
+					if ck.Encrypted {
+						ck.Port = 443
+					} else {
+						ck.Port = 80
+					}
 				}
 				if ck.Anonymous {
 					return errors.New("anonymous winrm not supported")
@@ -474,9 +474,9 @@ func checkConfig(conf *config) error {
 					if r.UseRegex {
 						regexp.MustCompile(r.Output)
 					}
-                    if r.UseRegex && r.Contains {
-                        return errors.New("cannot use both regex and contains")
-                    }
+					if r.UseRegex && r.Contains {
+						return errors.New("cannot use both regex and contains")
+					}
 				}
 				conf.Box[i].CheckList[j] = ck
 			}
@@ -490,11 +490,9 @@ func checkConfig(conf *config) error {
 				return errors.New("duplicate check name '" + b.CheckList[j].FetchName() + "' and '" + b.CheckList[j+1].FetchName() + "' for box " + b.Name)
 			}
 		}
-        // sort checks
-        conf.Box[i].CheckList = sortChecks(b.CheckList)
+		// sort checks
+		conf.Box[i].CheckList = sortChecks(b.CheckList)
 	}
-
-
 
 	return nil
 }
@@ -503,4 +501,8 @@ func getCheckName(check checks.Check) string {
 	name := strings.Split(reflect.TypeOf(check).String(), ".")[1]
 	fmt.Println("name is ", name)
 	return name
+}
+
+func (m *config) GetFullIp(boxIp, teamIp string) string {
+	return strings.Replace(boxIp, "x", teamIp, 1)
 }

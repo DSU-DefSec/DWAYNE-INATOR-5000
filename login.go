@@ -35,7 +35,6 @@ func authRequired(c *gin.Context) {
 
 // login is a handler that parses a form and checks for specific data
 func login(c *gin.Context) {
-
 	session := sessions.Default(c)
 	username := c.PostForm("username")
 	password := c.PostForm("password")
@@ -130,7 +129,6 @@ func getUserOptional(c *gin.Context) teamData {
 }
 
 func getFromAllUsers(username string) {
-
 }
 
 func logout(c *gin.Context) {

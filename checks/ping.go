@@ -2,7 +2,7 @@ package checks
 
 import (
 	"fmt"
-    "time"
+	"time"
 
 	"github.com/go-ping/ping"
 )
@@ -27,7 +27,7 @@ func (c Ping) Run(teamName, boxIp string, res chan Result) {
 
 	// Send ping
 	pinger.Count = 1
-	pinger.Timeout = 5 * time.Second;
+	pinger.Timeout = 5 * time.Second
 	err = pinger.Run()
 	if err != nil {
 		res <- Result{
@@ -47,7 +47,7 @@ func (c Ping) Run(teamName, boxIp string, res chan Result) {
 			}
 			return
 		}
-    // Check for failure
+		// Check for failure
 	} else if stats.PacketsRecv != c.Count {
 		res <- Result{
 			Error: "not all pings suceeded",

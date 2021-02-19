@@ -12,7 +12,7 @@ import (
 
 type Ftp struct {
 	checkBase
-	File        []FtpFile
+	File []FtpFile
 }
 
 type FtpFile struct {
@@ -25,8 +25,8 @@ func (c Ftp) Run(teamName, boxIp string, res chan Result) {
 	conn, err := ftp.Dial(boxIp+":"+strconv.Itoa(c.Port), ftp.DialWithTimeout(time.Duration(GlobalTimeout)*time.Second))
 	if err != nil {
 		res <- Result{
-			Error:  "ftp connection failed",
-			Debug:  err.Error(),
+			Error: "ftp connection failed",
+			Debug: err.Error(),
 		}
 		return
 	}
@@ -41,8 +41,8 @@ func (c Ftp) Run(teamName, boxIp string, res chan Result) {
 	err = conn.Login(username, password)
 	if err != nil {
 		res <- Result{
-			Error:  "ftp login failed",
-			Debug:  "creds used were " + username + ":" + password + " with error " + err.Error(),
+			Error: "ftp login failed",
+			Debug: "creds used were " + username + ":" + password + " with error " + err.Error(),
 		}
 		return
 	}
@@ -85,8 +85,8 @@ func (c Ftp) Run(teamName, boxIp string, res chan Result) {
 				}
 				return
 			}
-		} else if file.Hash != ""{
-            fileHash, err := StringHash(string(buf))
+		} else if file.Hash != "" {
+			fileHash, err := StringHash(string(buf))
 			if err != nil {
 				res <- Result{
 					Error: "error calculating file hash",
@@ -99,11 +99,11 @@ func (c Ftp) Run(teamName, boxIp string, res chan Result) {
 					Debug: "file hash " + fileHash + " did not match specified hash " + file.Hash,
 				}
 				return
-            }
+			}
 		}
 	}
-    res <- Result{
-        Status: true,
-        Debug:  "creds used were " + username + ":" + password,
-    }
+	res <- Result{
+		Status: true,
+		Debug:  "creds used were " + username + ":" + password,
+	}
 }

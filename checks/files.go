@@ -27,7 +27,7 @@ func FileHash(fileName string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-    return StringHash(fileContent)
+	return StringHash(fileContent)
 }
 
 func StringHash(fileContent string) (string, error) {

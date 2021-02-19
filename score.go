@@ -39,7 +39,7 @@ func Score(m *config) {
 				for _, b := range m.Box {
 					for _, check := range b.CheckList {
 						wg.Add(1)
-						go checks.RunCheck(team.Identifier, team.Prefix, b.Suffix, b.Name, check, wg, resChan)
+						go checks.RunCheck(team.Identifier, team.Ip, b.Ip, b.Name, check, wg, resChan)
 					}
 				}
 				done := make(chan struct{})
@@ -61,7 +61,7 @@ func Score(m *config) {
 								Status: res.Status,
 								Error:  res.Error,
 								Debug:  res.Debug,
-								Suffix: res.Suffix,
+								Ip:     res.Ip,
 								Box:    res.Box,
 							},
 						}

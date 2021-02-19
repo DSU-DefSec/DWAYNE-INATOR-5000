@@ -73,7 +73,7 @@ type teamRecord struct {
 }
 
 type teamData struct {
-	Identifier, Prefix, Pw string
+	Identifier, Ip, Pw string
 }
 
 type injectSubmission struct {

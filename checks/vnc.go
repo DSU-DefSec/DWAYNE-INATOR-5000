@@ -1,11 +1,11 @@
 package checks
 
 import (
-	"fmt"
-    "net"
 	"context"
+	"fmt"
+	"net"
 
-    "github.com/mitchellh/go-vnc"
+	"github.com/mitchellh/go-vnc"
 )
 
 type Vnc struct {
@@ -13,7 +13,6 @@ type Vnc struct {
 }
 
 func (c Vnc) Run(teamName, boxIp string, res chan Result) {
-
 	// Configure the vnc client
 	username, password := getCreds(c.CredLists, teamName, c.Name)
 	config := vnc.ClientConfig{
@@ -30,7 +29,7 @@ func (c Vnc) Run(teamName, boxIp string, res chan Result) {
 			Error: "connection to vnc server failed",
 			Debug: err.Error() + " for creds " + username + ":" + password,
 		}
-        return
+		return
 	}
 	defer conn.Close()
 
@@ -40,12 +39,12 @@ func (c Vnc) Run(teamName, boxIp string, res chan Result) {
 			Error: "failed to log in to VNC server",
 			Debug: err.Error() + " for creds " + username + ":" + password,
 		}
-        return
+		return
 	}
 	defer vncClient.Close()
 
 	res <- Result{
 		Status: true,
-		Debug: "creds " + username + ":" + password,
+		Debug:  "creds " + username + ":" + password,
 	}
 }

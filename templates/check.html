@@ -21,7 +21,7 @@
 <p>
     {{ if not .m.Tightlipped }}
     <p style="text-align: center">
-    External IP: <i>{{ .team.Prefix }}{{ .check.Suffix }}
+    External IP: <i>{{ .m.GetFullIp .check.Ip .team.Ip }}
     </i></p>
     {{ end }}
     SLA Counter: {{ (index .results 0).SlaCounter }}

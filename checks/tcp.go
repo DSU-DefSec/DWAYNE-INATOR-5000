@@ -1,7 +1,7 @@
 package checks
 
 import (
-    "strconv"
+	"strconv"
 )
 
 type Tcp struct {

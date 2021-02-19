@@ -27,7 +27,6 @@ func (a unencryptedAuth) Start(server *smtp.ServerInfo) (string, []byte, error) 
 }
 
 func (c Smtp) Run(teamName, boxIp string, res chan Result) {
-
 	// Create a dialer
 	dialer := net.Dialer{
 		Timeout: GlobalTimeout,

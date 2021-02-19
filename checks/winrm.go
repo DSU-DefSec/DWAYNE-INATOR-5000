@@ -2,9 +2,9 @@ package checks
 
 import (
 	"bytes"
-	"strings"
+	"math/rand"
 	"regexp"
-    "math/rand"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/masterzen/winrm"
@@ -12,16 +12,16 @@ import (
 
 type WinRM struct {
 	checkBase
-	Encrypted bool
+	Encrypted   bool
 	BadAttempts int
-	Command []winCommandData
+	Command     []winCommandData
 }
 
 type winCommandData struct {
-	UseRegex    bool
-	Contains    bool
-	Command    string
-	Output    string
+	UseRegex bool
+	Contains bool
+	Command  string
+	Output   string
 }
 
 func (c WinRM) Run(teamName, boxIp string, res chan Result) {
@@ -39,76 +39,76 @@ func (c WinRM) Run(teamName, boxIp string, res chan Result) {
 	client, err := winrm.NewClientWithParameters(endpoint, username, password, &params)
 	if err != nil {
 		res <- Result{
-			Error:  "error creating winrm client",
-			Debug:  err.Error(),
+			Error: "error creating winrm client",
+			Debug: err.Error(),
 		}
 	}
 
 	// If any commands specified, run them
 	if len(c.Command) > 0 {
 		r := c.Command[rand.Intn(len(c.Command))]
-        powershellCmd := winrm.Powershell(r.Command)
-        bufOut := new(bytes.Buffer)
-        bufErr := new(bytes.Buffer)
-        _, err = client.Run(powershellCmd, bufOut, bufErr)
-        output := bufOut.Bytes()
-        errString := bufErr.String()
-        if err != nil {
-            res <- Result{
-                Error:  "failed with creds " + username + ":" + password,
-                Debug:  err.Error(),
-            }
-            return
-        } else if errString != "" {
-            res <- Result{
-                Error:  "command produced an error message",
-                Debug:  "error: " + errString,
-            }
-            return
-        }
-        if r.Output != "" {
-            if r.Contains {
-                if r.UseRegex {
-                    re := regexp.MustCompile(r.Output)
-                    found := re.Find(output)
-                    if len(found) == 0 {
-                        res <- Result{
-                            Error:  "command output didn't contain regex",
-                            Debug:  "command output of '" + r.Command + "' didn't contain regex '" + r.Output,
-                        }
-                        return
-                    }
-                } else {
-                    if !strings.Contains(string(output), r.Output) {
-                        res <- Result{
-                            Error:  "command output didn't contain string",
-                            Debug:  "command output of '" + r.Command + "' didn't contain string '" + r.Output,
-                        }
-                        return
-                    }
-                }
-            } else {
-                if r.UseRegex {
-                    re := regexp.MustCompile(r.Output)
-                    if !re.Match(output) {
-                        res <- Result{
-                            Error:  "command output didn't match regex",
-                            Debug:  "command output'" + r.Command + "' didn't match regex '" + r.Output,
-                        }
-                        return
-                    }
-                } else {
-                    if strings.TrimSpace(string(output)) != r.Output {
-                        res <- Result{
-                            Error:  "command output didn't match string",
-                            Debug:  "command output of '" + r.Command + "' didn't match string '" + r.Output,
-                        }
-                        return
-                    }
-                }
-            }
-        }
-    }
+		powershellCmd := winrm.Powershell(r.Command)
+		bufOut := new(bytes.Buffer)
+		bufErr := new(bytes.Buffer)
+		_, err = client.Run(powershellCmd, bufOut, bufErr)
+		output := bufOut.Bytes()
+		errString := bufErr.String()
+		if err != nil {
+			res <- Result{
+				Error: "failed with creds " + username + ":" + password,
+				Debug: err.Error(),
+			}
+			return
+		} else if errString != "" {
+			res <- Result{
+				Error: "command produced an error message",
+				Debug: "error: " + errString,
+			}
+			return
+		}
+		if r.Output != "" {
+			if r.Contains {
+				if r.UseRegex {
+					re := regexp.MustCompile(r.Output)
+					found := re.Find(output)
+					if len(found) == 0 {
+						res <- Result{
+							Error: "command output didn't contain regex",
+							Debug: "command output of '" + r.Command + "' didn't contain regex '" + r.Output,
+						}
+						return
+					}
+				} else {
+					if !strings.Contains(string(output), r.Output) {
+						res <- Result{
+							Error: "command output didn't contain string",
+							Debug: "command output of '" + r.Command + "' didn't contain string '" + r.Output,
+						}
+						return
+					}
+				}
+			} else {
+				if r.UseRegex {
+					re := regexp.MustCompile(r.Output)
+					if !re.Match(output) {
+						res <- Result{
+							Error: "command output didn't match regex",
+							Debug: "command output'" + r.Command + "' didn't match regex '" + r.Output,
+						}
+						return
+					}
+				} else {
+					if strings.TrimSpace(string(output)) != r.Output {
+						res <- Result{
+							Error: "command output didn't match string",
+							Debug: "command output of '" + r.Command + "' didn't match string '" + r.Output,
+						}
+						return
+					}
+				}
+			}
+		}
+	}
 	res <- Result{
 		Status: true,
 		Debug:  "creds used were " + username + ":" + password,

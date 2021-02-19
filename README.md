@@ -43,11 +43,11 @@ pw = "HACKTHEPLANET"
 
 # Each team added here will show up on the scoreboard
 [[team]]
-prefix = "10.20.1."
+ip = "1"
 pw = "Team1Pw!"
 
 [[team]]
-prefix = "10.20.2."
+ip = "2"
 pw = "AppleSauce"
 
 # Credlists allow you to have different users for different services
@@ -77,7 +77,7 @@ defaultpw = "Password3#"
 # Box configurations
 [[box]]
 name = "village"
-suffix = "3"
+ip = "10.20.x.1"
 
     # If you omit a value, it is set to the default
     # For example, if I removed the line port = 4000,

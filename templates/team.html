@@ -91,7 +91,7 @@
     </tr>
     <tr>
         {{ range $box := .m.Box }}
-        <td style="text-align: center" colspan="{{ len .CheckList }}">{{ $team.Prefix }}{{ .Suffix }}</td>
+        <td style="text-align: center" colspan="{{ len .CheckList }}">{{ $m.GetFullIp .Ip $team.Ip }}</td>
         {{ end }}
     </tr>
 

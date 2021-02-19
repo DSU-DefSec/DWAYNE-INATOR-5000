@@ -102,9 +102,9 @@ func processTeamRecord(rec teamRecord, mux *sync.Mutex) {
 
 func sortResults(resList []resultEntry) []resultEntry {
 	sort.SliceStable(resList, func(i, j int) bool {
-		if resList[i].Suffix < resList[j].Suffix {
+		if resList[i].Ip < resList[j].Ip {
 			return true
-		} else if resList[i].Suffix > resList[j].Suffix {
+		} else if resList[i].Ip > resList[j].Ip {
 			return false
 		}
 		return resList[i].Name < resList[j].Name
@@ -114,9 +114,9 @@ func sortResults(resList []resultEntry) []resultEntry {
 
 func sortChecks(checkList []checks.Check) []checks.Check {
 	sort.SliceStable(checkList, func(i, j int) bool {
-		if checkList[i].FetchSuffix() < checkList[j].FetchSuffix() {
+		if checkList[i].FetchIp() < checkList[j].FetchIp() {
 			return true
-		} else if checkList[i].FetchSuffix() > checkList[j].FetchSuffix() {
+		} else if checkList[i].FetchIp() > checkList[j].FetchIp() {
 			return false
 		}
 		return checkList[i].FetchName() < checkList[j].FetchName()

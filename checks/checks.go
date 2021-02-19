@@ -3,7 +3,7 @@ package checks
 import (
 	"math/rand"
 	"net"
-	"strconv"
+	"strings"
 	"sync"
 	"time"
 )
@@ -21,7 +21,7 @@ type Check interface {
 	Run(string, string, chan Result)
 	FetchName() string
 	FetchDisplay() string
-	FetchSuffix() string
+	FetchIp() string
 	FetchAnonymous() bool
 }
 
@@ -29,7 +29,7 @@ type Result struct {
 	Name   string `json:"name,omitempty"`
 	Box    string `json:"box,omitempty"`
 	Status bool   `json:"status,omitempty"`
-	Suffix int    `json:"suffix,omitempty"`
+	Ip     string `json:"ip,omitempty"`
 	Error  string `json:"error,omitempty"`
 	Debug  string `json:"debug,omitempty"`
 }
@@ -37,9 +37,9 @@ type Result struct {
 type checkBase struct {
 	Name      string // Name is the box name plus the service (ex. lunar-dns)
 	Display   string // Display is the name of the service (ex. dns)
-	Suffix    string
+	Ip        string
 	CredLists []string
-    Port int
+	Port      int
 	Anonymous bool
 }
 
@@ -64,8 +64,8 @@ func (c checkBase) FetchDisplay() string {
 	return c.Display
 }
 
-func (c checkBase) FetchSuffix() string {
-	return c.Suffix
+func (c checkBase) FetchIp() string {
+	return c.Ip
 }
 
 func (c checkBase) FetchAnonymous() bool {
@@ -106,17 +106,18 @@ func FindCreds(teamName, checkName string) PcrData {
 	return PcrData{}
 }
 
-func RunCheck(teamName, teamPrefix, boxSuffix, boxName string, check Check, wg *sync.WaitGroup, resChan chan Result) {
+func RunCheck(teamName, teamIp, boxIp, boxName string, check Check, wg *sync.WaitGroup, resChan chan Result) {
 	res := make(chan Result)
 	result := Result{}
-	go check.Run(teamName, teamPrefix+boxSuffix, res)
+	fullIp := strings.Replace(boxIp, "x", teamIp, 1)
+	go check.Run(teamName, fullIp, res)
 	select {
 	case result = <-res:
 	case <-time.After(GlobalTimeout):
 		result.Error = "timed out"
 	}
 	result.Name = check.FetchName()
-	result.Suffix, _ = strconv.Atoi(boxSuffix)
+	result.Ip = fullIp
 	result.Box = boxName
 	resChan <- result
 	wg.Done()

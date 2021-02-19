@@ -72,9 +72,9 @@ func main() {
 		routes.GET("/", viewStatus)
 		routes.GET("/scores", viewScores)
 		routes.GET("/login", func(c *gin.Context) {
-            if getUserOptional(c).IsValid() {
-                c.Redirect(http.StatusSeeOther, "/")
-            }
+			if getUserOptional(c).IsValid() {
+				c.Redirect(http.StatusSeeOther, "/")
+			}
 			c.HTML(http.StatusOK, "login.html", pageData(c, "Login", nil))
 		})
 		routes.GET("/forbidden", func(c *gin.Context) {
