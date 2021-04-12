@@ -4,7 +4,7 @@ import (
 	"errors"
 	"regexp"
 
-	"github.com/DSU-DefSec/mew/checks"
+	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 )
 
 func validateString(input string) bool {

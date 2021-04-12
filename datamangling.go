@@ -2,10 +2,14 @@ package main
 
 import (
 	"errors"
+	"math/rand"
+	"os"
 	"sort"
+	"strings"
 	"sync"
+	"time"
 
-	"github.com/DSU-DefSec/mew/checks"
+	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 )
 
 func getCsv() (string, error) {
@@ -28,6 +32,60 @@ func getCsv() (string, error) {
 		}
 	*/
 	return csvString, nil
+}
+
+func callCiasAlex(team string) {
+	// CIAS_Alex is busy at the moment...
+	time.Sleep(time.Duration(rand.Intn(100)) * time.Second)
+
+	// Get PCR inject files
+	submissions, err := getSubmissions(team, 0)
+	if err != nil {
+		errorPrint(err)
+	}
+	for _, submission := range submissions {
+		// Don't process invalid submissions
+		if submission.Invalid {
+			continue
+		}
+
+		// Mark as invalid
+		submission.Invalid = true
+		submission.Updated = time.Now()
+		err = updateSubmission(submission)
+		if err != nil {
+			errorPrint(err)
+			continue
+		}
+
+		// Parse filename
+		splitFileName := strings.Split(submission.FileName, "_")
+		if len(splitFileName) != 4 {
+			errorPrint("invalid filename split for pcr:", splitFileName)
+			continue
+		}
+		check, err := dwConf.getCheck(splitFileName[1])
+		if err != nil {
+			errorPrint("invalid filename check for pcr:", splitFileName[1])
+			continue
+		}
+
+		// Read files and send off to PCR
+		fileContent, err := os.ReadFile("submissions/" + submission.DiskFile)
+		if err != nil {
+			errorPrint(err)
+			continue
+		}
+		teamObj, err := dwConf.GetTeam(team)
+		if err != nil {
+			errorPrint(err)
+			continue
+		}
+		err = parsePCR(teamObj, check.FetchName(), string(fileContent))
+		if err != nil {
+			errorPrint(err)
+		}
+	}
 }
 
 func getTeamRecord(team string) (teamRecord, error) {
@@ -63,8 +121,7 @@ func processTeamRecord(rec teamRecord, mux *sync.Mutex) {
 
 		rec.ServicePoints = old.ServicePoints
 		rec.InjectPoints = old.InjectPoints
-		rec.RedDetract = old.RedDetract
-		rec.RedContrib = old.RedContrib
+		rec.RedTeamPoints = old.RedTeamPoints
 		for i, c := range old.Checks {
 			/*
 				if i+1 >= len(rec.Checks) {
@@ -83,7 +140,7 @@ func processTeamRecord(rec teamRecord, mux *sync.Mutex) {
 			rec.ServicePoints++
 			rec.Checks[i].SlaCounter = 0
 		} else {
-			if rec.Checks[i].SlaCounter >= mewConf.SlaThreshold {
+			if rec.Checks[i].SlaCounter >= dwConf.SlaThreshold {
 				debugPrint(rec.Checks[i].Name, "triggered SLA violation!")
 				rec.Checks[i].SlaCounter = 0
 				rec.Checks[i].SlaViolations++
@@ -94,7 +151,7 @@ func processTeamRecord(rec teamRecord, mux *sync.Mutex) {
 		slaViolations += rec.Checks[i].SlaViolations
 	}
 	rec.SlaViolations = slaViolations
-	rec.Total = rec.ServicePoints - (rec.SlaViolations * mewConf.SlaPoints) + rec.InjectPoints
+	rec.Total = rec.ServicePoints - (rec.SlaViolations * dwConf.SlaPoints) + rec.InjectPoints
 	mux.Lock()
 	recordStaging[rec.Team] = rec
 	mux.Unlock()

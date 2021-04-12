@@ -26,6 +26,15 @@ func errorOutAnnoying(c *gin.Context, err error) {
 	c.Abort()
 }
 
+func parseTime(timeStr string) time.Time {
+	timeStr += " " + locString
+	parsedTime, err := time.Parse("01/02/06 3:04 MST", timeStr)
+	if err != nil {
+		errorPrint("time parsing failed,", timeStr, "did not parse correctly:", err.Error())
+	}
+	return parsedTime
+}
+
 func formatTime(dur time.Duration) string {
 	durSeconds := dur.Microseconds() / 1000000
 	seconds := durSeconds % 60

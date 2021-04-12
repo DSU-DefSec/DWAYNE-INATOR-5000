@@ -1,17 +1,76 @@
-mew scoring engine
-==================
+DWAYNE-INATOR-5000 scoring engine
+=================================
 
-Multi-Endpoint light-Weight scoring engine (mew). Simple, no JavaScript.
+A truly euphoric competition scoring engine experience: the DWAYNE-INATOR-5000.
+
+![DWAYNE-INATOR-5000 Logo](screenshots/dwayneinator.png)
 
 Usage
 -----
 
-0. Install `mongodb` and download `mew` release.
-1. Write configuration in `./mew.conf`.
-2. `./mew`.
+0. Install `mongodb` (`sudo apt install mongodb`)
+1. Download this repository (`git clone https://github.com/DSU-DefSec/DWAYNE-INATOR-5000`).
+1. Compile the code (`cd DWAYNE-INATOR-5000; go build`)
+2. Write your configuration in `./dwayne.conf`.
+3. Run the engine: `./DWAYNE-INATOR-5000`
 
 Configuration
 -------------
+
+Minimal example:
+
+```toml
+event = "Rad Comp" 
+
+[[admin]]
+identifier = "admin"
+pw = "ohyeah"
+
+[[team]]
+ip = "1"
+pw = "Team1Pw!"
+
+[[team]]
+ip = "2"
+pw = "AppleSauce"
+
+[[creds]]
+name = "users"
+usernames = ["john", "hiss", "richard", "sheriff", "captain", "guards", "otto", "rabbits", "skippy", "tagalong", "kluck", "toby"]
+defaultpw = "Password1!"
+
+[[box]]
+name = "village"
+ip = "10.20.x.1"
+
+    [[box.dns]]
+        [[box.dns.record]]
+        kind = "A" 
+        domain = "townsquare.sherwood.lan"
+        answer = ["192.168.1.4",] 
+
+        [[box.dns.record]]
+        kind = "MX"
+        domain = "sherwood.lan"
+        answer = ["192.168.1.5", "10.20.1.5"]
+
+    [[box.ftp]]
+    anonymous = true 
+        [[box.ftp.file]]
+        name = "memo.txt"
+        hash = "9d8453505bdc6f269678e16b3e56c2a2948a41f2c792617cc9611ed363c95b63"
+    
+    [[box.ssh]]
+
+
+[[box]]
+name="castle"
+suffix = "4"
+
+    [[box.ssh]]
+```
+
+Maximal example, with comments:
 
 ```toml
 event = "Awesome Comp" # event title
@@ -19,16 +78,16 @@ event = "Awesome Comp" # event title
 verbose = true # show more info to competitors
 tightlipped = false # hide most informational output
 
-delay = 20   # delay (seconds) between checks (>0) (default 60)
-             # note: the "real" max delay will be timeout+delay+jitter
-jitter = 3   # jitter (seconds) between rounds (0<jitter<delay)
+delay = 20 # delay (seconds) between checks (>0) (default 60)
+           # note: the "real" max delay will be timeout+delay+jitter
+jitter = 3  # jitter (seconds) between rounds (0<jitter<delay)
 timeout = 5  # check timeout (must be smaller than delay-jitter)
 
 slathreshold = 6 # how many checks before incurring SLA violation
 slapoints = 13   # how many points is an SLA penalty (default sla_threshold * 2)
 
 darkmode = true    # an alternative dark mode stylesheet
-dfalseisable_pcr = false # disables password change requests. makes all services anonymous
+no_passwords = true # disables password change requests. makes all services anonymous
 
 # Admins have access to all records and information
 [[admin]]
@@ -249,8 +308,6 @@ Screenshots
 -----------
 
 ![Main Status Page](screenshots/status.png)
-
-![Main Status Page Dark Mode](screenshots/darkmode.png)
 
 Notes
 -----------

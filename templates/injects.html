@@ -4,32 +4,63 @@
 <h2>Injects</h2>
 
 {{ $loc := .loc }}
+{{ $time := .time }}
+
+{{ if .error }}
+{{.error}}
+{{ end }}
 
 <br>
-<br>
-<table>
-    <th>Due</th>
+<table style="width: 100%">
+    <th>Posted</th>
     <th>Inject Title</th>
+    <th>Due</th>
+    <th>Closes</th>
     <th>Status</th>
-    <th><b>View</b></th>
 
-    where injects is injects for team, or for admin, a summary of each status (ex. all, some, none)
     {{ range $index, $inject := .injects }}
-    <tr {{ if .Status }}style="background-color: pink"{{ end }}>
-        <td>
-            {{ $inject.Due }}
+    <tr 
+       {{ if .Due.IsZero }}
+           style="background-color: #004d00"
+       {{ else if not ($time.After .Due)}}
+           style="background-color: #004d00"
+       {{ else }}
+           style="background-color: #4d0000"
+       {{ end }}
+    >
+        <td style="font-weight: normal">
+            {{ (.Time.In $loc).Format "03:04 PM" }}
         </td>
         <td>
-            {{ $inject.Title }}
-        </td>
-        <td>
-            {{ $inject.Status }}
-        </td>
-        <td>
-            <a href="/injects/{{ $index }}">
-                <b>Inject{{ $index }}</b>
+            <a href="/injects/{{ $index }}" style="color: powderblue">
+                {{ $inject.Title }}
             </a>
         </td>
+        <td>
+            {{ if .Due.IsZero }}
+                N/A
+            {{ else }}
+                <b>{{ (.Due.In $loc).Format "03:04 PM" }}</b>
+            {{ end }}
+        </td>
+        <td>
+            {{ if .Closes.IsZero }}
+                N/A
+            {{ else }}
+                <b>{{ (.Closes.In $loc).Format "03:04 PM" }}</b>
+            {{ end }}
+        </td>
+        <td>
+            {{ if eq .Status 0 }}
+                not submitted
+            {{ else if eq .Status 1 }}
+                submitted
+            {{ else if eq .Status 2 }}
+                graded
+            {{ end }}
+
+        </td>
+
     </tr>
     {{ end }}
 
@@ -48,17 +79,5 @@
 {{ end }}
 
 -->
-
-
-<br>
-<br>
-<br>
-<h2>Injects Tutorial</h2>
-<br>
-
-This is where you submit injects! You can submit as soon as the inject is posted. Once the due deadline passes, injects are worth up to half points. You can submit until the end of the competition.
-<br>
-<br>
-Please see the instructions linked for each inject in order to complete them.
 
 {{ template "feet.html" }}

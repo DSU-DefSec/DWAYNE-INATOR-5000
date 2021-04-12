@@ -13,7 +13,7 @@ import (
 	"time"
 
 	"github.com/BurntSushi/toml"
-	"github.com/DSU-DefSec/mew/checks"
+	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 )
 
 type config struct {
@@ -21,6 +21,7 @@ type config struct {
 	Kind         string
 	Verbose      bool
 	Tightlipped  bool
+	NoPasswords  bool
 	Delay        int
 	Jitter       int
 	Timeout      int
@@ -31,7 +32,6 @@ type config struct {
 	Team         []teamData
 	Box          []Box
 	Creds        []checks.CredData
-	DarkMode     bool
 }
 
 type Box struct {
@@ -55,7 +55,7 @@ type Box struct {
 }
 
 const (
-	configPath = "./mew.conf"
+	configPath = "./dwayne.conf"
 )
 
 func getBoxChecks(b Box) []checks.Check {
@@ -155,8 +155,8 @@ func checkConfig(conf *config) error {
 	// setting defaults
 
 	// apply default cred lists
-	if len(mewConf.Creds) > 0 {
-		checks.DefaultCredList = mewConf.Creds[0].Usernames
+	if len(dwConf.Creds) > 0 {
+		checks.DefaultCredList = dwConf.Creds[0].Usernames
 	}
 
 	// If Tightlipped is enabled, Verbose can not be enabled.
@@ -206,10 +206,10 @@ func checkConfig(conf *config) error {
 
 	for i := 0; i < len(conf.Team)-1; i++ {
 		if conf.Team[i].Ip == "" {
-			return errors.New("non-set prefix for team")
+			return errors.New("illegal config: non-set prefix for team")
 		}
 		if conf.Team[i].Ip == conf.Team[i+1].Ip {
-			return errors.New("duplicate team prefix found")
+			return errors.New("illegal config: duplicate team prefix found")
 		}
 	}
 
@@ -221,12 +221,12 @@ func checkConfig(conf *config) error {
 	// look for missing team properties
 	for _, team := range conf.Team {
 		if team.Identifier == "" || team.Pw == "" || team.Ip == "" {
-			return errors.New("team  missing required property, one of name, password, or prefix")
+			return errors.New("illegal config: team missing one or more required property: name, password, or prefix")
 		}
 	}
 
 	// check validators
-	// btw im sorry i know this is awful
+	// please overlook this transgression
 	for i, b := range conf.Box {
 		conf.Box[i].CheckList = getBoxChecks(b)
 		for j, c := range conf.Box[i].CheckList {
@@ -298,6 +298,7 @@ func checkConfig(conf *config) error {
 			case checks.Ping:
 				ck := c.(checks.Ping)
 				ck.Ip = b.Ip
+				ck.Anonymous = true
 				if ck.Count == 0 {
 					ck.Count = 1
 				}
@@ -401,6 +402,7 @@ func checkConfig(conf *config) error {
 			case checks.Tcp:
 				ck := c.(checks.Tcp)
 				ck.Ip = b.Ip
+				ck.Anonymous = true
 				if ck.Display == "" {
 					ck.Display = "tcp"
 				}

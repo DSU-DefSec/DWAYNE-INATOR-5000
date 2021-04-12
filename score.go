@@ -6,12 +6,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DSU-DefSec/mew/checks"
+	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 	"github.com/pkg/errors"
 )
 
 func Score(m *config) {
-	err := checkConfig(mewConf)
+	err := checkConfig(dwConf)
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "illegal config"))
 	}
@@ -82,10 +82,10 @@ func Score(m *config) {
 		pushTeamRecords(mux)
 		roundNumber++
 		jitter := time.Duration(0)
-		if mewConf.Jitter != 0 {
-			jitter = time.Duration(time.Duration(rand.Intn(mewConf.Jitter+1)) * time.Second)
+		if dwConf.Jitter != 0 {
+			jitter = time.Duration(time.Duration(rand.Intn(dwConf.Jitter+1)) * time.Second)
 		}
-		debugPrint("[SCORE] sleeping for", mewConf.Delay, "with jitter", jitter)
-		time.Sleep((time.Duration(mewConf.Delay) * time.Second) + jitter)
+		debugPrint("[SCORE] sleeping for", dwConf.Delay, "with jitter", jitter)
+		time.Sleep((time.Duration(dwConf.Delay) * time.Second) + jitter)
 	}
 }

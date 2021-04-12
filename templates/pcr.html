@@ -6,42 +6,12 @@
 {{ $m := .m }}
 {{ $user := .user }}
 
-<br>
 {{ template "error.html" .error }}
 {{ template "message.html" .message }}
-<form: method="POST">
-    {{ if .user.IsAdmin }}
-    <label>Team:
-        <select name="team">
-            {{ range $team := .m.Team }}
-            <option value="{{ .Identifier }}">{{ .Identifier }}</option>
-            {{ end }}
-        </select>
-    </label>
-    {{ end }}
-    <label>Check:
-        <select name="check">
-            {{ range $box := .m.Box }}
-                {{ range $check := .CheckList }}
-                    {{ if not .Anonymous }}
-                    <option value="{{ .Name }}">{{ .Name }}</option>
-                    {{ end }}
-                {{ end }}
-            {{ end }}
-        </select>
-    </label>
-    <br><br>
-    <textarea name="pcr" placeholder="username,password"></textarea>
-    <input style="display: block; margin: 0 auto;" type="submit" value="Submit PCR"/>
-</form>
-
-
 
 {{ $loc := .loc }}
 
-
 {{ if .user.IsAdmin }}
-<br>
 <br>
 <h2>Username Lookup</h2>
 
@@ -56,8 +26,6 @@
 
 {{ end }}
 
-<br>
-<br>
 <br>
 <h2>Services Last Updated</h2>
 
@@ -95,27 +63,5 @@
     </tr>
     {{ end }}
 </table>
-
-<br>
-<br>
-<h2>PCR Tutorial</h2>
-<br>
-
-This is where you can change the passwords that the engine uses to log into your services. If I wanted to change <b>joe</b> and <b>charlie</b>'s passswords for whichever service is currently selected, I would input something like:
-
-<blockquote>
-joe,Password2@<br>
-charlie,Password3#
-</blockquote>
-
-If I wanted to change all the user's passwords (for one service) at a time, I can use <b>all</b>:
-
-<blockquote>
-all,CoolPassword!
-</blockquote>
-
-Any new passwords input will overwrite previous passwords for a service. If you input an invalid username, the webpage will let you know. Input newlines and blanks do nothing.
-<br>
-<br>
 
 {{ template "feet.html" }}

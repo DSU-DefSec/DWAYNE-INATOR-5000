@@ -1,4 +1,4 @@
-/* mew custom styles
+/* dwayne-inator-5000 custom styles
 –––––––––––––––––––––––––––––––––––––––––– */
 
 /* body, container, globals
@@ -139,9 +139,28 @@ input, select, textarea {
     color: black;
 }
 
+input[type=file] {
+    color: white;
+
+}
+
 textarea {
     width: 100%;
     padding: 1rem;
     min-height: 300px;
     margin-bottom: 0.7rem;
+}
+
+#injectUpload {
+    text-align: center;
+    display: block;
+    width: 100%;
+    padding: 0.5em;
+    border-radius: 0.3em;
+}
+
+/* visibility trick
+–––––––––––––––––––––––––––––––––––––––––– */
+html {
+    display: block;
 }

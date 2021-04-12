@@ -24,7 +24,8 @@
     {{ if or (not .m.Tightlipped) .admin }}
     <th>Services</th>
     <th>SLAs</th>
-    <!-- <th>Injects</th> -->
+    <th>Injects</th>
+    <th>Red Team</th>
     {{ end }}
     <th>Total</th>
 
@@ -43,7 +44,6 @@
         {{ if or (not $m.Tightlipped) $admin }}
             <td>{{ $record.ServicePoints }}</td>
             <td>{{ $record.SlaViolations }}</td>
-            <!--
             {{ if eq $record.Team $team.Identifier }}
                 <td>
                     <a href="/injects/{{ $team.Identifier }}">
@@ -53,7 +53,7 @@
             {{ else }}
                 <td>{{ $record.InjectPoints }}</td>
             {{ end }}
-            --> 
+            <td>{{ $record.RedTeamPoints }}</td>
         {{ end }}
         <td><b>{{ $record.Total }}</b></td>
     </tr>

@@ -1,4 +1,4 @@
-module github.com/DSU-DefSec/mew
+module github.com/DSU-DefSec/DWAYNE-INATOR-5000
 
 go 1.15
 

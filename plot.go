@@ -12,7 +12,7 @@ import (
 )
 
 func graphScores(records []teamRecord) {
-	if mewConf.Tightlipped {
+	if dwConf.Tightlipped {
 		fmt.Println("graphScores: can't create image, tightlipped mode enabled")
 		return
 	}

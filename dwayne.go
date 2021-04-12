@@ -19,11 +19,12 @@ const (
 
 var (
 	verbose = false
-	mewConf = &config{}
-	injects = &[]injectData{}
+	dwConf  = &config{}
+	injects = []injectData{}
 
 	// Hardcoded CST timezone
-	loc, _ = time.LoadLocation("America/Rainy_River")
+	loc, _    = time.LoadLocation("America/Rainy_River")
+	locString = "CT"
 )
 
 func init() {
@@ -45,8 +46,8 @@ func debugPrint(a ...interface{}) {
 }
 
 func main() {
-	readConfig(mewConf)
-	err := checkConfig(mewConf)
+	readConfig(dwConf)
+	err := checkConfig(dwConf)
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "illegal config"))
 	}
@@ -65,6 +66,11 @@ func main() {
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/assets", "./assets")
 	initCookies(r)
+
+	// 404 handler
+	r.NoRoute(func(c *gin.Context) {
+		c.HTML(http.StatusNotFound, "404.html", nil)
+	})
 
 	// Routes
 	routes := r.Group("/")
@@ -93,7 +99,10 @@ func main() {
 		authRoutes.GET("/red", viewRed)
 		authRoutes.POST("/red", submitRed)
 		authRoutes.GET("/injects", viewInjects)
-		authRoutes.POST("/injects", submitInject)
+		authRoutes.GET("/injects/:inject", viewInject)
+		authRoutes.POST("/injects/:inject", submitInject)
+        authRoutes.GET("/injects/:inject/:diskfile/grade", gradeInject)
+        authRoutes.POST("/injects/:inject/:diskfile/grade", submitInjectGrade)
 		authRoutes.GET("/team/:team", viewTeam)
 		authRoutes.GET("/team/:team/:check", viewCheck)
 	}
@@ -101,7 +110,17 @@ func main() {
 	fmt.Println("Refreshing status data from records...")
 	initStatus()
 	initCreds()
+    addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Password Changes", "Submit your password changes here! Please see the team document for more details.", []string{}, empty})
+	if err := initInjects(); err != nil {
+		errorPrint("couldn't initialize injects:", err)
+	}
+	if len(injects) == 0 {
+		err := addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Password Changes", "Submit your password changes here! Please see the team document for more details.", []string{}, empty})
+		if err != nil {
+			errorPrint("error adding password change inject:", err)
+		}
+	}
 
-	go Score(mewConf)
+	go Score(dwConf)
 	r.Run(":80")
 }

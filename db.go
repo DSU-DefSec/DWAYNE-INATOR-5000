@@ -9,7 +9,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/DSU-DefSec/mew/checks"
+	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	dbName        = "mew"
+	dbName        = "dwayne"
 	dbURI         = "mongodb://localhost:27017"
 	mongoClient   *mongo.Client
 	mongoCtx      context.Context
@@ -26,8 +26,14 @@ var (
 	recordStaging = make(map[string]teamRecord) // currently being built team records
 )
 
+const (
+	empty = iota
+	submitted
+	graded
+)
+
 /*
-mew
+dwayne-inator-5000
 	status
 		status is current state of each team
 			removed/updated each tiem team<index>-records is yeeted
@@ -64,8 +70,7 @@ type teamRecord struct {
 	Team          string        `json:"team,omitempty"`
 	Round         int           `json:"round,omitempty"`
 	Checks        []resultEntry `json:"checks,omitempty"`
-	RedDetract    int           `json:"reddetract,omitempty"`
-	RedContrib    int           `json:"redcontrib,omitempty"`
+	RedTeamPoints int           `json:"redteampoints,omitempty"`
 	ServicePoints int           `json:"servicepoints,omitempty"`
 	InjectPoints  int           `json:"injectpoints,omitempty"`
 	SlaViolations int           `json:"slaviolations,omitempty"`
@@ -77,22 +82,26 @@ type teamData struct {
 }
 
 type injectSubmission struct {
-	Time   time.Time
-	Text   string
-	Files  []string
-	Status string
-	Points int
+	Time     time.Time `json:"time,omitempty"`
+	Updated  time.Time `json:"updated,omitempty"`
+	Team     string    `json:"team,omitempty"`
+	Inject   int       `json:"inject,omitempty"`
+	FileName string    `json:"filename,omitempty"`
+	DiskFile string    `json:"diskfile,omitempty"`
+	Invalid  bool      `json:"invalid,omitempty"`
+	Score   int       `json:"score,omitempty"`
+	Feedback string    `json:"feedback,omitempty"`
 }
 
 type injectData struct {
-	Time       time.Time
-	Due        string
-	Title      string
-	Body       string
-	Files      []string
-	FileUpload bool
-	TextEntry  bool
-	Status     string
+	Time   time.Time `json:"time,omitempty"`
+	Due    time.Time `json:"due,omitempty"`
+	Closes time.Time `json:"closes,omitempty"`
+	Title  string    `json:"title,omitempty"`
+	Body   string    `json:"body,omitempty"`
+	Files  []string  `json:"files,omitempty"`
+	Points int       `json:"points,omitempty"`
+	Status int       `json:"status,omitempty"`
 }
 
 func initDatabase() {
@@ -167,7 +176,7 @@ func getCheckResults(team teamData, check checks.Check, limit int) ([]resultEntr
 
 func getAllTeamPCRItems() ([]checks.PcrData, error) {
 	allPcrItems := []checks.PcrData{}
-	for _, team := range mewConf.Team {
+	for _, team := range dwConf.Team {
 		pcrItems := []checks.PcrData{}
 		coll := getCollection(team.Identifier + "pcr")
 
@@ -275,13 +284,42 @@ func getTeamRecords(team string, limit int) ([]teamRecord, error) {
 	return records, nil
 }
 
+func initInjects() error {
+	coll := getCollection("injects")
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"time", -1}})
+
+	mod := mongo.IndexModel{
+		Keys: bson.M{
+			"time": -1,
+		}, Options: nil,
+	}
+
+	_, err := coll.Indexes().CreateOne(context.TODO(), mod)
+	if err != nil {
+		return err
+	}
+
+	cursor, err := coll.Find(context.TODO(), bson.D{}, findOptions)
+	if err != nil {
+		return err
+	}
+
+	if err := cursor.All(mongoCtx, &injects); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func initStatus() error {
 	coll := getCollection("status")
 	err := coll.Drop(mongoCtx)
 	if err != nil {
 		return errors.New("error dropping collection status")
 	}
-	topBoard, err := groupTeamRecords(mewConf)
+	topBoard, err := groupTeamRecords(dwConf)
 	if err != nil {
 		return errors.New("error fetching grouped team records")
 	}
@@ -300,7 +338,7 @@ func initStatus() error {
 
 func initRoundNumber(m *config) {
 	res := resultEntry{}
-	coll := getCollection(mewConf.Team[0].Identifier + "results")
+	coll := getCollection(dwConf.Team[0].Identifier + "results")
 	findOptions := options.FindOne()
 	findOptions.SetSort(bson.D{{"time", -1}})
 	mod := mongo.IndexModel{
@@ -325,7 +363,7 @@ func initRoundNumber(m *config) {
 
 func initCreds() {
 	allCreds := []checks.PcrData{}
-	for _, team := range mewConf.Team {
+	for _, team := range dwConf.Team {
 		creds := []checks.PcrData{}
 		coll := getCollection(team.Identifier + "pcr")
 		opts := options.Find()
@@ -342,7 +380,7 @@ func initCreds() {
 }
 
 func parsePCR(team teamData, checkInput, pcrInput string) error {
-	check, err := mewConf.getCheck(checkInput)
+	check, err := dwConf.getCheck(checkInput)
 	if err != nil {
 		return err
 	}
@@ -391,7 +429,7 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 	}
 
 	allUsernames := []string{}
-	for _, cred := range mewConf.Creds {
+	for _, cred := range dwConf.Creds {
 		allUsernames = append(allUsernames, cred.Usernames...)
 	}
 
@@ -428,7 +466,7 @@ func parsePCR(team teamData, checkInput, pcrInput string) error {
 			}
 
 			if !validUser {
-				return errors.New("parsePCR: invalid user: " + splitItem[0])
+				continue
 			}
 
 			usernames = append(usernames, splitItem[0])
@@ -505,6 +543,106 @@ func getStatus() ([]teamRecord, error) {
 	}
 
 	return records, nil
+}
+
+func groupSubmissions(m *config, injectId int) ([]injectSubmission, error) {
+	allSubmissions := []injectSubmission{}
+	for _, team := range m.Team {
+		inj, err := getSubmissions(team.Identifier, injectId)
+		if err != nil {
+			errorPrint(err)
+		} else {
+			allSubmissions = append(allSubmissions, inj...)
+		}
+	}
+	return allSubmissions, nil
+}
+
+func getSubmission(team string, injectId int, diskFile string) (injectSubmission, error) {
+	submission := injectSubmission{}
+	coll := getCollection(team + "injects")
+
+	findOptions := options.FindOne()
+	findOptions.SetSort(bson.D{{"time", -1}})
+
+	mod := mongo.IndexModel{
+		Keys: bson.M{
+			"time": -1,
+		}, Options: nil,
+	}
+
+	_, err := coll.Indexes().CreateOne(context.TODO(), mod)
+	if err != nil {
+		return submission, err
+	}
+
+	err = coll.FindOne(context.TODO(), bson.D{{"inject", injectId}, {"diskfile", diskFile}}, findOptions).Decode(&submission)
+	if err != nil {
+		return submission, err
+	}
+
+	return submission, nil
+}
+
+func getSubmissions(team string, injectId int) ([]injectSubmission, error) {
+	submissions := []injectSubmission{}
+	coll := getCollection(team + "injects")
+
+	findOptions := options.Find()
+	findOptions.SetSort(bson.D{{"time", -1}})
+
+	mod := mongo.IndexModel{
+		Keys: bson.M{
+			"time": -1,
+		}, Options: nil,
+	}
+
+	_, err := coll.Indexes().CreateOne(context.TODO(), mod)
+	if err != nil {
+		return submissions, err
+	}
+
+	cursor, err := coll.Find(context.TODO(), bson.D{{"inject", injectId}}, findOptions)
+	if err != nil {
+		return submissions, err
+	}
+
+	if err := cursor.All(mongoCtx, &submissions); err != nil {
+		return submissions, err
+	}
+
+	return submissions, nil
+}
+
+func addInject(newInject injectData) error {
+	coll := getCollection("injects")
+	_, err := coll.InsertOne(context.TODO(), newInject)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func insertSubmission(newSubmission injectSubmission) error {
+	coll := getCollection(newSubmission.Team + "injects")
+	_, err := coll.InsertOne(context.TODO(), newSubmission)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func updateSubmission(submission injectSubmission) error {
+	coll := getCollection(submission.Team + "injects")
+
+	// ignoring deleteOne error
+	coll.DeleteOne(context.TODO(), bson.D{{"inject", submission.Inject}, {"diskfile", submission.DiskFile}})
+
+	_, err := coll.InsertOne(context.TODO(), submission)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func insertResult(newResult resultEntry) error {

@@ -6,8 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/DSU-DefSec/mew/checks"
+	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -37,7 +38,7 @@ func viewTeam(c *gin.Context) {
 
 func viewCheck(c *gin.Context) {
 	team := validateTeam(c, c.Param("team"))
-	check, err := mewConf.getCheck(c.Param("check"))
+	check, err := dwConf.getCheck(c.Param("check"))
 	if err != nil {
 		errorOutAnnoying(c, err)
 	}
@@ -94,7 +95,7 @@ func submitPCR(c *gin.Context) {
 		if userLookup != "" {
 			validUser := false
 			allUsernames := []string{}
-			for _, cred := range mewConf.Creds {
+			for _, cred := range dwConf.Creds {
 				allUsernames = append(allUsernames, cred.Usernames...)
 			}
 			for _, user := range allUsernames {
@@ -115,9 +116,9 @@ func submitPCR(c *gin.Context) {
 			}
 			// for each team, find password for user
 			pwLookup := make(map[string]map[string]string) // team --> check --> pw
-			for _, t := range mewConf.Team {
+			for _, t := range dwConf.Team {
 				pwLookup[t.Identifier] = make(map[string]string)
-				for _, b := range mewConf.Box {
+				for _, b := range dwConf.Box {
 					for _, c := range b.CheckList {
 						if !c.FetchAnonymous() {
 							tmpCredList := checks.FindCreds(t.Identifier, c.FetchName())
@@ -199,7 +200,7 @@ func submitRed(c *gin.Context) {
 		if userLookup != "" {
 			validUser := false
 			allUsernames := []string{}
-			for _, cred := range mewConf.Creds {
+			for _, cred := range dwConf.Creds {
 				allUsernames = append(allUsernames, cred.Usernames...)
 			}
 			for _, user := range allUsernames {
@@ -220,9 +221,9 @@ func submitRed(c *gin.Context) {
 			}
 			// for each team, find password for user
 			pwLookup := make(map[string]map[string]string) // team --> check --> pw
-			for _, t := range mewConf.Team {
+			for _, t := range dwConf.Team {
 				pwLookup[t.Identifier] = make(map[string]string)
-				for _, b := range mewConf.Box {
+				for _, b := range dwConf.Box {
 					for _, c := range b.CheckList {
 						if !c.FetchAnonymous() {
 							tmpCredList := checks.FindCreds(t.Identifier, c.FetchName())
@@ -262,17 +263,97 @@ func submitRed(c *gin.Context) {
 func viewInjects(c *gin.Context) {
 	// view all injects and their statuses
 	// global injects table
-	yeetsauce := []injectData{{time.Now(), "nevah", "inject yeeeet", "bradkjadaD", []string{"file1.txt"}, false, false, "yee"}}
-	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": yeetsauce}))
+	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": injects, "time": time.Now()}))
+}
+
+func viewInject(c *gin.Context) {
+	// view individual inject
+	injectId, err := strconv.Atoi(c.Param("inject"))
+	if err != nil || injectId > len(injects)-1 {
+		errorOutAnnoying(c, errors.New("invalid inject id"))
+        return
+	}
+
+	team := getUser(c)
+	var submissions []injectSubmission
+	if team.IsAdmin() {
+		submissions, err = groupSubmissions(dwConf, injectId)
+	} else {
+		submissions, err = getSubmissions(team.Identifier, injectId)
+	}
+	if err != nil {
+		errorOutGraceful(c, err)
+        return
+	}
+
+	c.HTML(http.StatusOK, "inject.html", pageData(c, "injects", gin.H{"injectId": injectId, "inject": injects[injectId], "submissions": submissions, "time": time.Now()}))
 }
 
 func submitInject(c *gin.Context) {
-	// create submission (team0injects)
-	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{}))
+	team := getUser(c)
+	c.Request.ParseForm()
+	action := c.Request.Form.Get("action")
+
+	injectId, err := strconv.Atoi(c.Param("inject"))
+	if err != nil || injectId > len(injects)-1 {
+		errorOutAnnoying(c, errors.New("invalid inject id"))
+	}
+
+	if !team.IsAdmin() && action == "" {
+		file, err := c.FormFile("submission")
+		if err != nil {
+			c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"error": err.Error()}))
+			return
+
+		}
+
+		newSubmission := injectSubmission{
+			Time:     time.Now(),
+			Updated:  time.Now(),
+			Team:     team.Identifier,
+			Inject:   injectId,
+			FileName: file.Filename,
+			DiskFile: uuid.New().String(),
+		}
+
+		if err := c.SaveUploadedFile(file, "submissions/"+newSubmission.DiskFile); err != nil {
+			c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"error": "unable to save file"}))
+			return
+		}
+
+		if err = insertSubmission(newSubmission); err != nil {
+			c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"error": "error inserting submission into db"}))
+			return
+		}
+	} else if action == "invalid" {
+
+		diskFile := c.Request.Form.Get("diskfile")
+		submission, err := getSubmission(team.Identifier, injectId, diskFile)
+		if err != nil || submission.Updated.IsZero() {
+			errorOutAnnoying(c, errors.New("invalid diskfile passed to inject invalidation"))
+			return
+		}
+		submission.Invalid = true
+		submission.Updated = time.Now()
+		err = updateSubmission(submission)
+		if err != nil {
+			errorPrint(err)
+		}
+
+	} else if action == "notify" {
+		go callCiasAlex(team.Identifier)
+	}
+
+	// mark invalid:
+	// mark invalid
+	// grade:
+	// check if admin
+	// check for team/inject/grade
+	viewInject(c)
 }
 
 func viewScores(c *gin.Context) {
-	if !mewConf.Verbose && !getUser(c).IsAdmin() {
+	if !dwConf.Verbose && !getUser(c).IsAdmin() {
 		errorOutAnnoying(c, errors.New("access to score without admin or verbose mode"))
 	}
 
@@ -280,7 +361,7 @@ func viewScores(c *gin.Context) {
 	if err != nil {
 		errorOutGraceful(c, err)
 	}
-	if !mewConf.Tightlipped {
+	if !dwConf.Tightlipped {
 		graphScores(records)
 	}
 
@@ -297,7 +378,7 @@ func viewScores(c *gin.Context) {
 func exportTeamData(c *gin.Context) {
 	team := validateTeam(c, c.Param("team"))
 	csvString := "time,round,service,inject,sla,"
-	for _, b := range mewConf.Box {
+	for _, b := range dwConf.Box {
 		for _, c := range b.CheckList {
 			csvString += c.FetchName() + ","
 		}
@@ -322,7 +403,7 @@ func exportTeamData(c *gin.Context) {
 				statusString += "down,"
 			}
 		}
-		csvString += "-" + strconv.Itoa(slaViolations*mewConf.SlaPoints) + ","
+		csvString += "-" + strconv.Itoa(slaViolations*dwConf.SlaPoints) + ","
 		csvString += statusString
 		csvString += strconv.Itoa(r.Total) + "\n"
 	}
@@ -333,8 +414,8 @@ func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {
 	newGinMap := gin.H{}
 	newGinMap["title"] = title
 	newGinMap["user"] = getUserOptional(c)
-	newGinMap["m"] = mewConf
-	newGinMap["event"] = mewConf.Event
+	newGinMap["m"] = dwConf
+	newGinMap["event"] = dwConf.Event
 	newGinMap["loc"] = loc
 	for key, value := range ginMap {
 		newGinMap[key] = value
@@ -350,7 +431,7 @@ func validateTeam(c *gin.Context, id string) teamData {
 	if team.Identifier == id {
 		return team
 	} else if team.IsAdmin() {
-		if realTeam, err := mewConf.GetTeam(id); err == nil {
+		if realTeam, err := dwConf.GetTeam(id); err == nil {
 			return realTeam
 		}
 	}

@@ -19,7 +19,7 @@ func getUUID() string {
 // initCookies use gin-contrib/sessions{/cookie} to initalize a cookie store.
 // It generates a random secret for the cookie store -- not ideal for continuity or invalidating previous cookies, but it's secure and it works
 func initCookies(r *gin.Engine) {
-	r.Use(sessions.Sessions("mew", cookie.NewStore([]byte(getUUID()))))
+	r.Use(sessions.Sessions("dwayne-inator-5000", cookie.NewStore([]byte(getUUID()))))
 }
 
 // authRequired provides authentication middleware for ensuring that a user is logged in.
@@ -47,19 +47,19 @@ func login(c *gin.Context) {
 
 	err := errors.New("Invalid username or password.")
 
-	for _, t := range mewConf.Admin {
+	for _, t := range dwConf.Admin {
 		if username == t.Identifier && password == t.Pw {
 			err = nil
 		}
 	}
 
-	for _, t := range mewConf.Red {
+	for _, t := range dwConf.Red {
 		if username == t.Identifier && password == t.Pw {
 			err = nil
 		}
 	}
 
-	for _, t := range mewConf.Team {
+	for _, t := range dwConf.Team {
 		if username == t.Identifier && password == t.Pw {
 			err = nil
 		}
@@ -80,7 +80,7 @@ func login(c *gin.Context) {
 }
 
 func (t teamData) IsAdmin() bool {
-	for _, admin := range mewConf.Admin {
+	for _, admin := range dwConf.Admin {
 		if admin.Identifier == t.Identifier {
 			return true
 		}
@@ -89,7 +89,7 @@ func (t teamData) IsAdmin() bool {
 }
 
 func (t teamData) IsRed() bool {
-	for _, admin := range mewConf.Red {
+	for _, admin := range dwConf.Red {
 		if admin.Identifier == t.Identifier {
 			return true
 		}
@@ -109,17 +109,17 @@ func getUser(c *gin.Context) teamData {
 func getUserOptional(c *gin.Context) teamData {
 	userName := sessions.Default(c).Get("user")
 	if userName != nil {
-		for _, team := range mewConf.Admin {
+		for _, team := range dwConf.Admin {
 			if team.Identifier == userName {
 				return team
 			}
 		}
-		for _, team := range mewConf.Team {
+		for _, team := range dwConf.Team {
 			if team.Identifier == userName {
 				return team
 			}
 		}
-		for _, team := range mewConf.Red {
+		for _, team := range dwConf.Red {
 			if team.Identifier == userName {
 				return team
 			}
