@@ -3,7 +3,7 @@ DWAYNE-INATOR-5000 scoring engine
 
 A truly euphoric competition scoring engine experience: the DWAYNE-INATOR-5000.
 
-![DWAYNE-INATOR-5000 Logo](screenshots/dwayneinator.png)
+![DWAYNE-INATOR-5000 Logo](screenshots/dwayneinator.jpg)
 
 Usage
 -----
