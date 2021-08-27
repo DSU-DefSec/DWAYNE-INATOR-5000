@@ -65,6 +65,7 @@ func main() {
 
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/assets", "./assets")
+	r.Static("/submissions", "./submissions")
 	initCookies(r)
 
 	// 404 handler
@@ -101,8 +102,8 @@ func main() {
 		authRoutes.GET("/injects", viewInjects)
 		authRoutes.GET("/injects/:inject", viewInject)
 		authRoutes.POST("/injects/:inject", submitInject)
-        authRoutes.GET("/injects/:inject/:diskfile/grade", gradeInject)
-        authRoutes.POST("/injects/:inject/:diskfile/grade", submitInjectGrade)
+		authRoutes.GET("/injects/:inject/:diskfile/:team/grade", gradeInject)
+		authRoutes.POST("/injects/:inject/:diskfile/:team/grade", submitInjectGrade)
 		authRoutes.GET("/team/:team", viewTeam)
 		authRoutes.GET("/team/:team/:check", viewCheck)
 	}
@@ -110,12 +111,13 @@ func main() {
 	fmt.Println("Refreshing status data from records...")
 	initStatus()
 	initCreds()
-    addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Password Changes", "Submit your password changes here! Please see the team document for more details.", []string{}, empty})
+	addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Password Changes", "Submit your password changes here! Please see the team document for more details.", []string{}, 0, 0})
+	addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Jake's Testing Inject", "Ohhhh YEAHHHHHHHH", []string{}, 69, 0})
 	if err := initInjects(); err != nil {
 		errorPrint("couldn't initialize injects:", err)
 	}
 	if len(injects) == 0 {
-		err := addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Password Changes", "Submit your password changes here! Please see the team document for more details.", []string{}, empty})
+		err := addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Password Changes", "Submit your password changes here! Please see the team document for more details.", []string{}, 0, 0})
 		if err != nil {
 			errorPrint("error adding password change inject:", err)
 		}

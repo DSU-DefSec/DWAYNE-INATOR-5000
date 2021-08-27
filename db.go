@@ -89,7 +89,7 @@ type injectSubmission struct {
 	FileName string    `json:"filename,omitempty"`
 	DiskFile string    `json:"diskfile,omitempty"`
 	Invalid  bool      `json:"invalid,omitempty"`
-	Score   int       `json:"score,omitempty"`
+	Score    int       `json:"score,omitempty"`
 	Feedback string    `json:"feedback,omitempty"`
 }
 

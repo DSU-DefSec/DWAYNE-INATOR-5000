@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
@@ -262,7 +263,7 @@ func submitRed(c *gin.Context) {
 
 func viewInjects(c *gin.Context) {
 	// view all injects and their statuses
-	// global injects table
+	// global inject table
 	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": injects, "time": time.Now()}))
 }
 
@@ -271,7 +272,7 @@ func viewInject(c *gin.Context) {
 	injectId, err := strconv.Atoi(c.Param("inject"))
 	if err != nil || injectId > len(injects)-1 {
 		errorOutAnnoying(c, errors.New("invalid inject id"))
-        return
+		return
 	}
 
 	team := getUser(c)
@@ -283,7 +284,7 @@ func viewInject(c *gin.Context) {
 	}
 	if err != nil {
 		errorOutGraceful(c, err)
-        return
+		return
 	}
 
 	c.HTML(http.StatusOK, "inject.html", pageData(c, "injects", gin.H{"injectId": injectId, "inject": injects[injectId], "submissions": submissions, "time": time.Now()}))
@@ -350,6 +351,51 @@ func submitInject(c *gin.Context) {
 	// check if admin
 	// check for team/inject/grade
 	viewInject(c)
+}
+
+func gradeInject(c *gin.Context) {
+	injectId, err := strconv.Atoi(c.Param("inject"))
+	diskfile := c.Param("diskfile")
+	team := c.Param("team")
+
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+
+	c.HTML(http.StatusOK, "grade.html", pageData(c, "grade", gin.H{"injectId": injectId, "team": team, "diskfile": diskfile}))
+}
+
+func submitInjectGrade(c *gin.Context) {
+	team := c.PostForm("team")
+	injectId, err := strconv.Atoi(c.PostForm("injectId"))
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+	diskfile := c.PostForm("diskfile")
+
+	submission, err := getSubmission(team, injectId, diskfile)
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+
+	submission.Score, err = strconv.Atoi(c.PostForm("grade"))
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+	submission.Feedback = c.PostForm("feedback")
+
+	err = updateSubmission(submission)
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+
+	fmt.Println("Grade: ", submission.Score, "\nFeedback: ", submission.Feedback)
+	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(injectId))
 }
 
 func viewScores(c *gin.Context) {

@@ -1,0 +1,23 @@
+{{ template "head.html" . }}
+
+<br>
+<h2>Grade Inject</h2>
+
+{{ $injectId := .injectId }}
+{{ $diskfile:= .diskfile}}
+{{ $team := .team }}
+
+<embed height="1100px" width="100%" src="/submissions/{{$diskfile}}" type="application/pdf" download="{{$team}}.pdf"/>
+
+<form id="gradeInject" method="post" enctype="multipart/form-data">
+  <label for="grade"> Grade: </label><br>
+  <input type="text" id="grade" name="grade"><br>
+  <label for="feedback"> Feedback: </label>
+  <textarea id="feedback" name="feedback" style="height:20px;"></textarea>
+  <input type="hidden" id="injectId" name="injectId" value="{{$injectId}}">
+  <input type="hidden" id="diskfile" name="diskfile" value="{{$diskfile}}">
+  <input type="hidden" id="team" name="team" value="{{$team}}">
+  <input type="submit" value="submit">
+</form>
+
+{{ template "feet.html" }}
