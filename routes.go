@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"time"
+	"fmt"
 
 	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 	"github.com/gin-gonic/gin"
@@ -271,7 +272,7 @@ func viewInject(c *gin.Context) {
 	injectId, err := strconv.Atoi(c.Param("inject"))
 	if err != nil || injectId > len(injects)-1 {
 		errorOutAnnoying(c, errors.New("invalid inject id"))
-        return
+		return
 	}
 
 	team := getUser(c)
@@ -283,7 +284,7 @@ func viewInject(c *gin.Context) {
 	}
 	if err != nil {
 		errorOutGraceful(c, err)
-        return
+		return
 	}
 
 	c.HTML(http.StatusOK, "inject.html", pageData(c, "injects", gin.H{"injectId": injectId, "inject": injects[injectId], "submissions": submissions, "time": time.Now()}))
@@ -306,7 +307,6 @@ func submitInject(c *gin.Context) {
 			return
 
 		}
-
 		newSubmission := injectSubmission{
 			Time:     time.Now(),
 			Updated:  time.Now(),
@@ -327,8 +327,13 @@ func submitInject(c *gin.Context) {
 		}
 	} else if action == "invalid" {
 
-		diskFile := c.Request.Form.Get("diskfile")
-		submission, err := getSubmission(team.Identifier, injectId, diskFile)
+		submissionId, err := strconv.Atoi(c.Request.Form.Get("submission"))
+		if err != nil {
+			errorOutAnnoying(c, errors.New("submissionId is not a number"))
+			return
+		}
+		submission, err := getSubmission(team.Identifier, injectId, submissionId)
+		fmt.Println(submission, err, submissionId)
 		if err != nil || submission.Updated.IsZero() {
 			errorOutAnnoying(c, errors.New("invalid diskfile passed to inject invalidation"))
 			return
@@ -350,6 +355,40 @@ func submitInject(c *gin.Context) {
 	// check if admin
 	// check for team/inject/grade
 	viewInject(c)
+}
+
+func gradeInject(c *gin.Context) {
+	injectId, err := strconv.Atoi(c.Param("inject"))
+	if err != nil || injectId > len(injects)-1 {
+		errorOutAnnoying(c, errors.New("invalid inject id"))
+		return
+	}
+
+	team := getUser(c)
+	var submission injectSubmission
+
+	if team.IsAdmin() {
+		submissionId, err := strconv.Atoi(c.Param("submission"))
+		if err != nil {
+			errorOutAnnoying(c, errors.New("submissionId is not a number"))
+			return
+		}
+		submission, err = getSubmission(team.Identifier, injectId, submissionId)
+		if err != nil {
+			errorOutAnnoying(c, err)
+			return
+		}
+	} else {
+		errorOutAnnoying(c, errors.New("non-admin attempted grade access"))
+		return
+	}
+
+	c.HTML(http.StatusOK, "grade.html", pageData(c, "grading", gin.H{"submission":submission}))
+
+}
+
+func submitInjectGrade(c *gin.Context) {
+
 }
 
 func viewScores(c *gin.Context) {

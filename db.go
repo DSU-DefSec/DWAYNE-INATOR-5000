@@ -87,9 +87,9 @@ type injectSubmission struct {
 	Team     string    `json:"team,omitempty"`
 	Inject   int       `json:"inject,omitempty"`
 	FileName string    `json:"filename,omitempty"`
-	DiskFile string    `json:"diskfile,omitempty"`
+	DiskFile string  `json:"diskfile,omitempty"`
 	Invalid  bool      `json:"invalid,omitempty"`
-	Score   int       `json:"score,omitempty"`
+	Score    int       `json:"score,omitempty"`
 	Feedback string    `json:"feedback,omitempty"`
 }
 
@@ -558,30 +558,16 @@ func groupSubmissions(m *config, injectId int) ([]injectSubmission, error) {
 	return allSubmissions, nil
 }
 
-func getSubmission(team string, injectId int, diskFile string) (injectSubmission, error) {
-	submission := injectSubmission{}
-	coll := getCollection(team + "injects")
+func getSubmission(team string, injectId int, submissionId int) (injectSubmission, error) {
+    submissions, err := getSubmissions(team, injectId)
+    if err != nil {
+	return injectSubmission{}, err	
+    }
+    if len(submissions) <= submissionId || submissionId < 0 {
+	return injectSubmission{}, errors.New("index greater than length of submission list")	
+    }
 
-	findOptions := options.FindOne()
-	findOptions.SetSort(bson.D{{"time", -1}})
-
-	mod := mongo.IndexModel{
-		Keys: bson.M{
-			"time": -1,
-		}, Options: nil,
-	}
-
-	_, err := coll.Indexes().CreateOne(context.TODO(), mod)
-	if err != nil {
-		return submission, err
-	}
-
-	err = coll.FindOne(context.TODO(), bson.D{{"inject", injectId}, {"diskfile", diskFile}}, findOptions).Decode(&submission)
-	if err != nil {
-		return submission, err
-	}
-
-	return submission, nil
+	return submissions[submissionId], nil
 }
 
 func getSubmissions(team string, injectId int) ([]injectSubmission, error) {

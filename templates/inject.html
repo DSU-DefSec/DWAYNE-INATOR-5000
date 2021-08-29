@@ -70,7 +70,7 @@ If you make a mistake on naming the file, in the format of the file, or with the
             {{ if not .Invalid }}
             <form method="post" disabled> 
                 <input type="hidden" name="action" value="invalid"/>
-                <input type="hidden" name="diskfile" value="{{ .DiskFile }}"/>
+                <input type="hidden" name="submission" value="{{ $index }}"/>
                 <input type="submit" value="Mark Invalid"/>
             </form>
             {{ else }}
@@ -79,7 +79,7 @@ If you make a mistake on naming the file, in the format of the file, or with the
         </td>
         {{ if $user.IsAdmin }}
         <td>
-            <a href="/injects/{{ $injectId }}/{{ $index }}/grade">grade</a>
+	    <a href="/injects/{{ $injectId }}/{{ $index }}/grade">grade</a>
         </td>
         {{ end }}
     </tr>
