@@ -263,7 +263,7 @@ func submitRed(c *gin.Context) {
 
 func viewInjects(c *gin.Context) {
 	// view all injects and their statuses
-	// global injects table
+	// global inject table
 	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": injects, "time": time.Now()}))
 }
 
@@ -388,7 +388,35 @@ func gradeInject(c *gin.Context) {
 }
 
 func submitInjectGrade(c *gin.Context) {
+	team := c.PostForm("team")
+	injectId, err := strconv.Atoi(c.PostForm("injectId"))
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+	diskfile := c.PostForm("diskfile")
 
+	submission, err := getSubmission(team, injectId, diskfile)
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+
+	submission.Score, err = strconv.Atoi(c.PostForm("grade"))
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+	submission.Feedback = c.PostForm("feedback")
+
+	err = updateSubmission(submission)
+	if err != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+
+	fmt.Println("Grade: ", submission.Score, "\nFeedback: ", submission.Feedback)
+	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(injectId))
 }
 
 func viewScores(c *gin.Context) {

@@ -65,6 +65,7 @@ func main() {
 
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/assets", "./assets")
+	r.Static("/submissions", "./submissions")
 	initCookies(r)
 
 	// 404 handler
@@ -102,7 +103,7 @@ func main() {
 		authRoutes.GET("/injects/:inject", viewInject)
 		authRoutes.POST("/injects/:inject", submitInject)
 		authRoutes.GET("/injects/:inject/:submission/grade", gradeInject)
-		//authRoutes.POST("/injects/:inject/:diskfile/grade", submitInjectGrade)
+		authRoutes.POST("/injects/:inject/:submission/:team/grade", submitInjectGrade)
 		authRoutes.GET("/team/:team", viewTeam)
 		authRoutes.GET("/team/:team/:check", viewCheck)
 	}
