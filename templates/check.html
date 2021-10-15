@@ -6,39 +6,30 @@
 {{ template "refresh.html" }}
 
 <br>
-<h2>Team {{ .team.Identifier }}</h2>
-
-<br>
-<h2>Check {{ .check.Name }}</h2>
-
-<p style="text-align: center"><i>(last {{ .limit }} results)</i></p>
-
+<h2 style="font-size:120%">{{ .team.Name }}</h2>
+<p style="text-align: center; font-size: 110%"><i>{{ .check.Name }}</i></p>
 
 {{ if .results }}
-{{ if .m.Verbose }}
-<br>
-<fieldset>
-<p>
-    {{ if not .m.Tightlipped }}
-    <p style="text-align: center">
-    External IP: <i>{{ .m.GetFullIp .check.Ip .team.Ip }}
-    </i></p>
-    {{ end }}
-    SLA Counter: {{ (index .results 0).SlaCounter }}
+    {{ if .m.Verbose }}
+    <fieldset>
+    <p>
+        External IP: <i>
+            {{ .m.GetFullIp .check.Ip .team.Ip }}
+        </i>
+        <br>
+        SLA Violations: {{ .sla.Violations }}
+        <br>
+        Current SLA Counter: {{ .sla.Counter }}
+    </p>
+    </fieldset>
     <br>
-    SLA Violations: {{ (index .results 0).SlaViolations }}
-</p>
-</fieldset>
-<br>
-{{ end }}
+    {{ end }}
 {{ end }}
 
 
 <br>
 <table class="checks">
-    {{ if not $m.Tightlipped }}
     <th>Round</th>
-    {{ end }}
     <th>Time</th>
     <th>Result</th>
     <th>Error</th>
@@ -47,11 +38,9 @@
     {{ end }}
     {{ range $result := .results }}
     <tr>
-        {{ if not $m.Tightlipped }}
         <td>
             {{ $result.Round }}
         </td>
-        {{ end }}
         <td>
             {{ ($result.Time.In $loc).Format "03:04:05 PM" }}
         </td>
@@ -60,16 +49,11 @@
         </td>
         <td>
             {{ if $result.Error }}
-                {{ if $m.Tightlipped }}
-                    An error occurred.
-                {{ else }}
-                    {{ $result.Error }}
-                {{end}}
+                {{ $result.Error }}
             {{ else }}
                 All good!
             {{ end }}
         </td>
-            {{ if $m.Verbose }}
         <td>
             {{ if $result.Debug }}
                 {{ $result.Debug }}
@@ -77,7 +61,6 @@
                 N/A
             {{ end }}
         </td>
-        {{ end }}
     </tr>
     {{ end }}
 </table>

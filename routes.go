@@ -1,293 +1,267 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"sort"
 	"strconv"
 	"time"
-	"fmt"
 
-	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
+var (
+	cachedStatus []TeamRecord
+	cachedRound int
+	// In-memory cache of persists for this round. map[team.ID][box.Name][]offender.ID
+	persistHits map[uint]map[string][]uint
+)
+
 func viewStatus(c *gin.Context) {
-	records, err := getStatus()
-	if err != nil {
-		errorOutGraceful(c, err)
+	if roundNumber != cachedRound {
+		var records []TeamRecord
+		res := db.Limit(len(dwConf.Team)).Preload("Team").Preload("Results").Order("time desc, team_id asc").Find(&records)
+		if res.Error != nil {
+			errorOutGraceful(c, res.Error)
+		}
+
+		// Sort results for viewing.
+		for i, rec := range records {
+			records[i].Results = sortResults(rec.Results)
+		}
+
+		// Sort by team ID.
+		sort.SliceStable(records, func(i, j int) bool {
+			return records[i].TeamID < records[j].TeamID
+		})
+
+		cachedStatus = records
+		cachedRound = roundNumber
 	}
 	ip := c.ClientIP()
-	team := getUserOptional(c)
-	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"records": records, "team": team, "ip": ip}))
+	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"records": cachedStatus, "ip": ip, "round": roundNumber}))
 }
 
 func viewTeam(c *gin.Context) {
-	team := validateTeam(c, c.Param("team"))
-	limit := 10
-	history, err := getTeamRecords(team.Identifier, limit)
+	id, err := strconv.Atoi(c.Param("team"))
 	if err != nil {
-		errorOutGraceful(c, err)
+		errorOutAnnoying(c, errors.New("invalid team id: "+c.Param("team")))
+		return
 	}
-	record := teamRecord{}
-	if len(history) >= 1 {
-		record = history[0]
+	team := validateTeam(c, uint(id))
+
+	var records []TeamRecord
+	res := db.Limit(10).Preload("Results").Order("time desc").Find(&records, "team_id = ?", team.ID)
+	if res.Error != nil {
+		errorOutGraceful(c, res.Error)
+		return
 	}
-	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "record": record, "history": history, "limit": limit}))
+
+	// Sort all the Results...
+	for i := range records {
+		records[i].Results = sortResults(records[i].Results)
+	}
+
+	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "records": records}))
 }
 
 func viewCheck(c *gin.Context) {
-	team := validateTeam(c, c.Param("team"))
+	id, err := strconv.Atoi(c.Param("team"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid team id: "+c.Param("team")))
+		return
+	}
+	team := validateTeam(c, uint(id))
+
 	check, err := dwConf.getCheck(c.Param("check"))
 	if err != nil {
 		errorOutAnnoying(c, err)
 	}
-	limit := 100
-	results, err := getCheckResults(team, check, limit)
-	if err != nil {
-		errorOutGraceful(c, err)
+
+	var sla SLA
+	res := db.Limit(1).Find(&sla, "team_id = ? and check_name = ?", team.ID, check.FetchName())
+	if res.Error != nil {
+		errorOutGraceful(c, res.Error)
+		return
 	}
-	c.HTML(http.StatusOK, "check.html", pageData(c, "check X for X", gin.H{"team": team, "check": check, "results": results, "limit": limit}))
+
+	var results []ResultEntry
+	res = db.Order("time desc").Find(&results, "team_id = ? and name = ?", team.ID, check.FetchName())
+	if res.Error != nil {
+		errorOutGraceful(c, res.Error)
+		return
+	}
+	c.HTML(http.StatusOK, "check.html", pageData(c, team.Name+": "+check.FetchName(), gin.H{"team": team, "check": check, "sla": sla, "results": results}))
 }
 
 func viewPCR(c *gin.Context) {
-	pcrItems, err := getPCRWeb(c)
-	if err != nil {
-		debugPrint("viewpcr:", err)
-		errorOutGraceful(c, err)
-	}
-	// sort pcr items based on time
-	sort.SliceStable(pcrItems, func(i, j int) bool {
-		return pcrItems[i].Time.After(pcrItems[j].Time)
-	})
-
-	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "allPcrs": checks.Creds}))
-}
-
-func getPCRWeb(c *gin.Context) ([]checks.PcrData, error) {
-	var err error
 	team := getUser(c)
-	pcrItems := []checks.PcrData{}
-	if team.IsRed() {
-		errorOutAnnoying(c, errors.New("no red teamers allowed in pcr"))
-	} else if team.IsAdmin() {
-		// debugPrint("getting all pcr items")
-		pcrItems, err = getAllTeamPCRItems()
-		// debugPrint("pcrItems is", pcrItems)
-		if err != nil {
-			errorOutGraceful(c, err)
+
+	var submissions []InjectSubmission
+	if team.IsAdmin() {
+		// get all pcr entries
+		res := db.Order("time desc").Preload("Team").Where("inject_id = 1 and feedback = ''").Find(&submissions)
+		if res.Error != nil {
+			errorPrint(res.Error)
+			return
 		}
 	} else {
-		pcrItems, err = getPCRItems(team, checks.Web{})
-	}
-	return pcrItems, err
-}
-
-func submitPCR(c *gin.Context) {
-	c.Request.ParseForm()
-	team := getUser(c)
-	var err error
-	debugPrint("pcr team is", team)
-	if team.IsRed() {
-		errorOutAnnoying(c, errors.New("no red teamers allowed in pcr"))
-	} else if team.IsAdmin() {
-		userLookup := c.Request.Form.Get("username")
-		if userLookup != "" {
-			validUser := false
-			allUsernames := []string{}
-			for _, cred := range dwConf.Creds {
-				allUsernames = append(allUsernames, cred.Usernames...)
-			}
-			for _, user := range allUsernames {
-				if user == userLookup {
-					validUser = true
-					break
-				}
-			}
-			if !validUser {
-				pcrItems, err := getPCRWeb(c)
-				if err != nil {
-					debugPrint("submitpcr:", err)
-					errorOutGraceful(c, err)
-				}
-				submiterr := errors.New("lookupPCR: invalid user: " + userLookup)
-				c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "error": submiterr}))
-				return
-			}
-			// for each team, find password for user
-			pwLookup := make(map[string]map[string]string) // team --> check --> pw
-			for _, t := range dwConf.Team {
-				pwLookup[t.Identifier] = make(map[string]string)
-				for _, b := range dwConf.Box {
-					for _, c := range b.CheckList {
-						if !c.FetchAnonymous() {
-							tmpCredList := checks.FindCreds(t.Identifier, c.FetchName())
-							debugPrint("creds is", tmpCredList.Creds)
-							if val, ok := tmpCredList.Creds[userLookup]; ok {
-								debugPrint("found non-defualt passsword for", userLookup+":", val)
-								pwLookup[t.Identifier][c.FetchName()] = val
-							} else {
-								pwLookup[t.Identifier][c.FetchName()] = checks.DefaultCreds[userLookup]
-							}
-						}
-					}
-				}
-			}
-			c.HTML(http.StatusOK, "pcr_lookup.html", pageData(c, "pcr", gin.H{"pwLookup": pwLookup, "userLookup": userLookup}))
+		// get all pcr entries
+		res := db.Order("time desc").Preload("Team").Where("inject_id = 1 and feedback = '' and team_id = ?", team.ID).Find(&submissions)
+		if res.Error != nil {
+			errorPrint(res.Error)
 			return
-		} else {
-			team = validateTeam(c, c.Request.Form.Get("team"))
 		}
 	}
 
-	submiterr := parsePCR(team, c.Request.Form.Get("check"), c.Request.Form.Get("pcr"))
-	var message string
-	if submiterr == nil {
-		message = "PCR submitted successfully!"
+	// Load all content from on disk
+	// TODO: skip the middleman and just do this when received?
+	for i, submission := range submissions {
+		submissions[i].Content = readInject(submission)
 	}
 
-	pcrItems, err := getPCRWeb(c)
+	c.HTML(http.StatusOK, "pcr.html", pageData(c, "PCRs", gin.H{"team": team, "creds": ct.Creds, "submissions": submissions}))
+}
+
+func viewPerists(c *gin.Context) {
+
+	teamMutex.Lock()
+	// read in-mem struct "this round"
+
+
+	// previous rounds from db
+
+	teamMutex.Unlock()
+}
+
+func scorePersist(c *gin.Context) {
+	teamMutex.Lock()
+
+	// Identify box (team and check)
+	remoteIPRaw, _ := c.RemoteIP()
+	if remoteIPRaw == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "your IP is nil?! (contact organizer)"})
+		return
+	}
+	remoteIP := remoteIPRaw.String()
+
+	team, boxName, err := boxFromIP(remoteIP)
 	if err != nil {
-		debugPrint("submitpcr:", err)
-		errorOutGraceful(c, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "your IP is not a valid box"})
+		return
 	}
 
-	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "error": submiterr, "message": message}))
+	offender, err := tokenToTeam(c.Param("token"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		return
+	}
+
+	// Initialize map if not already created
+	if _, ok := persistHits[team.ID]; !ok {
+		persistHits[team.ID] = make(map[string][]uint)
+	}
+
+	// Append offender ID
+	persistHits[team.ID][boxName] = append(persistHits[team.ID][boxName], offender.ID)
+
+	teamMutex.Unlock()
 }
 
 func viewRed(c *gin.Context) {
-	pcrItems, err := getPCRWeb(c)
-	if err != nil {
-		debugPrint("viewpcr:", err)
-		errorOutGraceful(c, err)
-	}
-	// sort pcr items based on time
-	sort.SliceStable(pcrItems, func(i, j int) bool {
-		return pcrItems[i].Time.After(pcrItems[j].Time)
-	})
-
-	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "allPcrs": checks.Creds}))
-}
-
-func getRedWeb(c *gin.Context) ([]checks.PcrData, error) {
-	var err error
-	team := getUser(c)
-	pcrItems := []checks.PcrData{}
-	if team.IsRed() {
-		errorOutAnnoying(c, errors.New("no red teamers allowed in pcr"))
-	} else if team.IsAdmin() {
-		// debugPrint("getting all pcr items")
-		pcrItems, err = getAllTeamPCRItems()
-		// debugPrint("pcrItems is", pcrItems)
-		if err != nil {
-			errorOutGraceful(c, err)
-		}
-	} else {
-		pcrItems, err = getPCRItems(team, checks.Web{})
-	}
-	return pcrItems, err
+	// yeet
 }
 
 func submitRed(c *gin.Context) {
-	c.Request.ParseForm()
-	team := getUser(c)
-	var err error
-	debugPrint("pcr team is", team)
-	if team.IsRed() {
-		errorOutAnnoying(c, errors.New("no red teamers allowed in pcr"))
-	} else if team.IsAdmin() {
-		userLookup := c.Request.Form.Get("username")
-		if userLookup != "" {
-			validUser := false
-			allUsernames := []string{}
-			for _, cred := range dwConf.Creds {
-				allUsernames = append(allUsernames, cred.Usernames...)
-			}
-			for _, user := range allUsernames {
-				if user == userLookup {
-					validUser = true
-					break
-				}
-			}
-			if !validUser {
-				pcrItems, err := getPCRWeb(c)
-				if err != nil {
-					debugPrint("submitpcr:", err)
-					errorOutGraceful(c, err)
-				}
-				submiterr := errors.New("lookupPCR: invalid user: " + userLookup)
-				c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "error": submiterr}))
-				return
-			}
-			// for each team, find password for user
-			pwLookup := make(map[string]map[string]string) // team --> check --> pw
-			for _, t := range dwConf.Team {
-				pwLookup[t.Identifier] = make(map[string]string)
-				for _, b := range dwConf.Box {
-					for _, c := range b.CheckList {
-						if !c.FetchAnonymous() {
-							tmpCredList := checks.FindCreds(t.Identifier, c.FetchName())
-							debugPrint("creds is", tmpCredList.Creds)
-							if val, ok := tmpCredList.Creds[userLookup]; ok {
-								debugPrint("found non-defualt passsword for", userLookup+":", val)
-								pwLookup[t.Identifier][c.FetchName()] = val
-							} else {
-								pwLookup[t.Identifier][c.FetchName()] = checks.DefaultCreds[userLookup]
-							}
-						}
-					}
-				}
-			}
-			c.HTML(http.StatusOK, "pcr_lookup.html", pageData(c, "pcr", gin.H{"pwLookup": pwLookup, "userLookup": userLookup}))
-			return
-		} else {
-			team = validateTeam(c, c.Request.Form.Get("team"))
-		}
-	}
+	// yeet
+}
 
-	submiterr := parsePCR(team, c.Request.Form.Get("check"), c.Request.Form.Get("pcr"))
-	var message string
-	if submiterr == nil {
-		message = "PCR submitted successfully!"
-	}
+func viewResets(c *gin.Context) {
+	// yeet
+}
 
-	pcrItems, err := getPCRWeb(c)
-	if err != nil {
-		debugPrint("submitpcr:", err)
-		errorOutGraceful(c, err)
-	}
-
-	c.HTML(http.StatusOK, "pcr.html", pageData(c, "pcr", gin.H{"pcrs": pcrItems, "error": submiterr, "message": message}))
+func submitReset(c *gin.Context) {
+	// yeet
 }
 
 func viewInjects(c *gin.Context) {
-	// view all injects and their statuses
-	// global inject table
+	team := getUser(c)
+
+	// view all injects
+	var injects []Inject
+
+	// populate status for each inject
+	if !team.IsAdmin() {
+		res := db.Find(&injects)
+		if res.Error != nil {
+			errorOutGraceful(c, res.Error)
+			return
+		}
+
+		for i, inj := range injects {
+			var submissions []InjectSubmission
+			res := db.Debug().Where("team_id = ? and inject_id = ?", team.ID, inj.ID).Find(&submissions)
+			if res.Error != nil {
+				errorOutGraceful(c, res.Error)
+				return
+			}
+			if len(submissions) != 0 {
+				for _, sub := range submissions {
+					if sub.Graded {
+						injects[i].Status = GRADED
+						break
+					}
+				}
+				if injects[i].Status != GRADED {
+					injects[i].Status = SUBMITTED
+				}
+			}
+		}
+	} else {
+		res := db.Preload("Submissions").Find(&injects)
+		if res.Error != nil {
+			errorOutGraceful(c, res.Error)
+			return
+		}
+	}
+
 	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": injects, "time": time.Now()}))
 }
 
 func viewInject(c *gin.Context) {
 	// view individual inject
-	injectId, err := strconv.Atoi(c.Param("inject"))
-	if err != nil || injectId > len(injects)-1 {
+	injectID, err := strconv.Atoi(c.Param("inject"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid inject id (not a number)"))
+		return
+	}
+
+	var inject Inject
+	res := db.First(&inject, "id = ?", injectID)
+	if res.Error != nil {
 		errorOutAnnoying(c, errors.New("invalid inject id"))
 		return
 	}
 
 	team := getUser(c)
-	var submissions []injectSubmission
+	var submissions []InjectSubmission
 	if team.IsAdmin() {
-		submissions, err = groupSubmissions(dwConf, injectId)
+		res := db.Preload("Team").Find(&submissions, "inject_id = ?", inject.ID)
+		if res.Error != nil {
+			errorOutGraceful(c, err)
+			return
+		}
 	} else {
-		submissions, err = getSubmissions(team.Identifier, injectId)
-	}
-	if err != nil {
-		errorOutGraceful(c, err)
-		return
+		res := db.Order("time desc").Find(&submissions, "team_id = ? and inject_id = ?", team.ID, inject.ID)
+		if res.Error != nil {
+			errorOutGraceful(c, err)
+			return
+		}
 	}
 
-	c.HTML(http.StatusOK, "inject.html", pageData(c, "injects", gin.H{"injectId": injectId, "inject": injects[injectId], "submissions": submissions, "time": time.Now()}))
+	c.HTML(http.StatusOK, "inject.html", pageData(c, "injects", gin.H{"inject": inject, "submissions": submissions}))
 }
 
 func submitInject(c *gin.Context) {
@@ -295,44 +269,55 @@ func submitInject(c *gin.Context) {
 	c.Request.ParseForm()
 	action := c.Request.Form.Get("action")
 
-	injectId, err := strconv.Atoi(c.Param("inject"))
-	if err != nil || injectId > len(injects)-1 {
+	injectID, err := strconv.Atoi(c.Param("inject"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid inject id (not a number)"))
+		return
+	}
+
+	var inject Inject
+	res := db.Find(&inject, "id = ?", injectID)
+	if res.Error != nil {
 		errorOutAnnoying(c, errors.New("invalid inject id"))
+		return
 	}
 
 	if !team.IsAdmin() && action == "" {
 		file, err := c.FormFile("submission")
 		if err != nil {
-			c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"error": err.Error()}))
+			c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
 			return
-
 		}
-		newSubmission := injectSubmission{
+		newSubmission := InjectSubmission{
 			Time:     time.Now(),
 			Updated:  time.Now(),
-			Team:     team.Identifier,
-			Inject:   injectId,
+			TeamID:   team.ID,
+			InjectID: uint(inject.ID),
 			FileName: file.Filename,
 			DiskFile: uuid.New().String(),
 		}
 
 		if err := c.SaveUploadedFile(file, "submissions/"+newSubmission.DiskFile); err != nil {
-			c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"error": "unable to save file"}))
+			c.HTML(http.StatusOK, "injects.html", pageData(c, "Injects", gin.H{"error": "unable to save file"}))
 			return
 		}
 
-		if err = insertSubmission(newSubmission); err != nil {
-			c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"error": "error inserting submission into db"}))
+		if res := db.Save(&newSubmission); res.Error != nil {
+			c.HTML(http.StatusOK, "injects.html", pageData(c, "Injects", gin.H{"error": res.Error}))
 			return
 		}
 	} else if action == "invalid" {
-
 		submissionId, err := strconv.Atoi(c.Request.Form.Get("submission"))
 		if err != nil {
 			errorOutAnnoying(c, errors.New("submissionId is not a number"))
 			return
 		}
-		submission, err := getSubmission(team.Identifier, injectId, submissionId)
+		var submission InjectSubmission
+		res := db.Find(&submission, "id = ? and team = ? and inject_id = ?", submissionId, team.Name, inject.ID)
+		if res.Error != nil {
+			errorOutGraceful(c, err)
+			return
+		}
 		fmt.Println(submission, err, submissionId)
 		if err != nil || submission.Updated.IsZero() {
 			errorOutAnnoying(c, errors.New("invalid diskfile passed to inject invalidation"))
@@ -340,24 +325,28 @@ func submitInject(c *gin.Context) {
 		}
 		submission.Invalid = true
 		submission.Updated = time.Now()
-		err = updateSubmission(submission)
-		if err != nil {
-			errorPrint(err)
+		res = db.Save(submission)
+		if res.Error != nil {
+			errorPrint(res.Error)
 		}
 
-	} else if action == "notify" {
-		go callCiasAlex(team.Identifier)
 	}
-
 	// mark invalid:
 	// mark invalid
 	// grade:
 	// check if admin
 	// check for team/inject/grade
-	viewInject(c)
+	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
 }
 
 func gradeInject(c *gin.Context) {
+	var injects []Inject
+	res := db.Find(&injects)
+	if res.Error != nil {
+		errorPrint(res.Error)
+		return
+	}
+
 	injectId, err := strconv.Atoi(c.Param("inject"))
 	if err != nil || injectId > len(injects)-1 {
 		errorOutAnnoying(c, errors.New("invalid inject id"))
@@ -365,7 +354,7 @@ func gradeInject(c *gin.Context) {
 	}
 
 	team := getUser(c)
-	var submission injectSubmission
+	var submission InjectSubmission
 
 	if team.IsAdmin() {
 		submissionId, err := strconv.Atoi(c.Param("submission"))
@@ -373,9 +362,9 @@ func gradeInject(c *gin.Context) {
 			errorOutAnnoying(c, errors.New("submissionId is not a number"))
 			return
 		}
-		submission, err = getSubmission(team.Identifier, injectId, submissionId)
-		if err != nil {
-			errorOutAnnoying(c, err)
+		res := db.Find(&submission, "id = ?, team = ?, inject_id = ?", submissionId, team.Name, injectId)
+		if res.Error != nil {
+			errorOutGraceful(c, err)
 			return
 		}
 	} else {
@@ -383,7 +372,7 @@ func gradeInject(c *gin.Context) {
 		return
 	}
 
-	c.HTML(http.StatusOK, "grade.html", pageData(c, "grading", gin.H{"submission":submission}))
+	c.HTML(http.StatusOK, "grade.html", pageData(c, "grading", gin.H{"submission": submission}))
 
 }
 
@@ -394,10 +383,16 @@ func submitInjectGrade(c *gin.Context) {
 		errorOutGraceful(c, err)
 		return
 	}
-	diskfile := c.PostForm("diskfile")
-
-	submission, err := getSubmission(team, injectId, diskfile)
+	submissionId, err := strconv.Atoi(c.Param("submission"))
 	if err != nil {
+		errorOutAnnoying(c, errors.New("submissionId is not a number"))
+		return
+	}
+
+	var submission InjectSubmission
+
+	res := db.Find(&submission, "id = ?, team = ?, inject_id = ?", submissionId, team, injectId)
+	if res.Error != nil {
 		errorOutGraceful(c, err)
 		return
 	}
@@ -409,10 +404,9 @@ func submitInjectGrade(c *gin.Context) {
 	}
 	submission.Feedback = c.PostForm("feedback")
 
-	err = updateSubmission(submission)
-	if err != nil {
-		errorOutGraceful(c, err)
-		return
+	res = db.Save(&submission)
+	if res.Error != nil {
+		errorPrint(res.Error)
 	}
 
 	fmt.Println("Grade: ", submission.Score, "\nFeedback: ", submission.Feedback)
@@ -424,26 +418,36 @@ func viewScores(c *gin.Context) {
 		errorOutAnnoying(c, errors.New("access to score without admin or verbose mode"))
 	}
 
-	records, err := getStatus()
-	if err != nil {
-		errorOutGraceful(c, err)
-	}
-	if !dwConf.Tightlipped {
-		graphScores(records)
+	var records []TeamRecord
+	res := db.Limit(len(dwConf.Team)).Where("round = ?", roundNumber-1).Preload("Team").Order("time desc").Find(&records)
+	if res.Error != nil {
+		errorOutGraceful(c, res.Error)
+		return
 	}
 
-	// sort redRecords based on inverse redPoints
+	// Calculate totals.
+	for i, rec := range records {
+		records[i].Total = calculateScoreTotal(rec)
+	}
+
+	// Sort by total score.
 	sort.SliceStable(records, func(i, j int) bool {
 		return records[i].Total > records[j].Total
 	})
 
+	graphScores(records)
 	team := getUserOptional(c)
 
 	c.HTML(http.StatusOK, "scores.html", pageData(c, "scores", gin.H{"records": records, "team": team}))
 }
 
 func exportTeamData(c *gin.Context) {
-	team := validateTeam(c, c.Param("team"))
+	id, err := strconv.Atoi(c.Param("team"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid team id: "+c.Param("team")))
+		return
+	}
+	team := validateTeam(c, uint(id))
 	csvString := "time,round,service,inject,sla,"
 	for _, b := range dwConf.Box {
 		for _, c := range b.CheckList {
@@ -451,26 +455,28 @@ func exportTeamData(c *gin.Context) {
 		}
 	}
 	csvString += "total\n"
-	records, err := getTeamRecords(team.Identifier, 0)
-	if err != nil {
-		errorOutGraceful(c, err)
+
+	var records []TeamRecord
+	res := db.Find(&records, "team = ?", team.Name)
+	if res.Error != nil {
+		errorOutGraceful(c, res.Error)
+		return
 	}
+
 	for _, r := range records {
 		csvString += r.Time.In(loc).Format("03:04:05 PM") + ","
 		csvString += strconv.Itoa(r.Round) + ","
 		csvString += strconv.Itoa(r.ServicePoints) + ","
 		csvString += strconv.Itoa(r.InjectPoints) + ","
-		slaViolations := 0
 		statusString := ""
-		for _, c := range r.Checks {
-			slaViolations += c.SlaViolations
+		for _, c := range r.Results {
 			if c.Status {
 				statusString += "up,"
 			} else {
 				statusString += "down,"
 			}
 		}
-		csvString += "-" + strconv.Itoa(slaViolations*dwConf.SlaPoints) + ","
+		csvString += "-" + strconv.Itoa(r.SlaViolations*dwConf.SlaPoints) + ","
 		csvString += statusString
 		csvString += strconv.Itoa(r.Total) + "\n"
 	}
@@ -493,21 +499,23 @@ func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {
 // validateTeam tests to see if the team currently logged in
 // has authorization to access the team id requested. It always
 // allows if admin, and errors out if invalid user.
-func validateTeam(c *gin.Context, id string) teamData {
+func validateTeam(c *gin.Context, id uint) TeamData {
 	team := getUser(c)
-	if team.Identifier == id {
+	if team.ID == id {
 		return team
 	} else if team.IsAdmin() {
 		if realTeam, err := dwConf.GetTeam(id); err == nil {
 			return realTeam
+		} else {
+			errorPrint(err)
 		}
 	}
 	errorOutAnnoying(c, errors.New("team could not be validated"))
-	return teamData{}
+	return TeamData{}
 }
 
-func (m *config) IsValid(team teamData, id string) bool {
-	if team.Identifier == id || team.IsAdmin() {
+func (m *config) IsValid(team TeamData, id string) bool {
+	if team.Name == id || team.IsAdmin() {
 		return true
 	}
 	return false

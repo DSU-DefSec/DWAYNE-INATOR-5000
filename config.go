@@ -17,26 +17,28 @@ import (
 )
 
 type config struct {
-	Event        string
-	Kind         string
-	Verbose      bool
-	Tightlipped  bool
-	NoPasswords  bool
+	Event       string
+	Verbose     bool
+	NoPasswords bool
+	// Score persistence or not (for purple team comps)
+	Persists     bool
 	Delay        int
 	Jitter       int
 	Timeout      int
 	SlaThreshold int
+	// Points per service check.
+	ServicePoints int
 	SlaPoints    int
-	Admin        []teamData
-	Red          []teamData
-	Team         []teamData
+	Admin        []TeamData
+	Red          []TeamData
+	Team         []TeamData
 	Box          []Box
 	Creds        []checks.CredData
 }
 
 type Box struct {
 	Name      string
-	Ip        string
+	IP        string
 	CheckList []checks.Check
 	Dns       []checks.Dns
 	Ftp       []checks.Ftp
@@ -147,25 +149,24 @@ func checkConfig(conf *config) error {
 	}
 
 	for _, admin := range conf.Admin {
-		if admin.Identifier == "" || admin.Pw == "" {
-			return errors.New("admin " + admin.Identifier + " missing required property")
+		if admin.Name == "" || admin.Pw == "" {
+			return errors.New("admin " + admin.Name + " missing required property")
 		}
 	}
 
 	// setting defaults
 
 	// apply default cred lists
-	if len(dwConf.Creds) > 0 {
-		checks.DefaultCredList = dwConf.Creds[0].Usernames
-	}
-
-	// If Tightlipped is enabled, Verbose can not be enabled.
-	if conf.Tightlipped && conf.Verbose {
-		return errors.New("illegal config: cannot be both verbose and tightlipped")
+	if len(dwConf.Creds) == 0 {
+		return errors.New("illegal config: no valid credentials")
 	}
 
 	if conf.SlaThreshold == 0 {
-		conf.SlaThreshold = 6
+		conf.SlaThreshold = 60
+	}
+
+	if conf.ServicePoints == 0 {
+		conf.ServicePoints = 10
 	}
 
 	if conf.SlaPoints == 0 {
@@ -174,18 +175,13 @@ func checkConfig(conf *config) error {
 
 	// sort boxes
 	sort.SliceStable(conf.Box, func(i, j int) bool {
-		return conf.Box[i].Ip < conf.Box[j].Ip
+		return conf.Box[i].IP < conf.Box[j].IP
 	})
 
 	// credential list checking
 	usernameList := []string{}
 	for _, c := range conf.Creds {
-		// set checks.CredLists and default passwords
 		usernameList = append(usernameList, c.Usernames...)
-		checks.CredLists[c.Name] = c.Usernames
-		for _, u := range c.Usernames {
-			checks.DefaultCreds[u] = c.DefaultPw
-		}
 	}
 
 	// sort creds and look for duplicate usernames
@@ -201,26 +197,28 @@ func checkConfig(conf *config) error {
 
 	// look for duplicate team prefix
 	sort.SliceStable(conf.Team, func(i, j int) bool {
-		return conf.Team[i].Ip < conf.Team[i].Ip
+		return conf.Team[i].IP < conf.Team[i].IP
 	})
 
 	for i := 0; i < len(conf.Team)-1; i++ {
-		if conf.Team[i].Ip == "" {
+		if conf.Team[i].IP == "" {
 			return errors.New("illegal config: non-set prefix for team")
 		}
-		if conf.Team[i].Ip == conf.Team[i+1].Ip {
+		if conf.Team[i].IP == conf.Team[i+1].IP {
 			return errors.New("illegal config: duplicate team prefix found")
 		}
 	}
 
 	// assign team identifiers
 	for i := range conf.Team {
-		conf.Team[i].Identifier = "team" + strconv.Itoa(i+1)
+		if strings.TrimSpace(conf.Team[i].Name) == "" {
+			conf.Team[i].Name = "team" + strconv.Itoa(i+1)
+		}
 	}
 
 	// look for missing team properties
 	for _, team := range conf.Team {
-		if team.Identifier == "" || team.Pw == "" || team.Ip == "" {
+		if team.Name == "" || team.Pw == "" || team.IP == "" {
 			return errors.New("illegal config: team missing one or more required property: name, password, or prefix")
 		}
 	}
@@ -233,7 +231,7 @@ func checkConfig(conf *config) error {
 			switch c.(type) {
 			case checks.Dns:
 				ck := c.(checks.Dns)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				ck.Anonymous = true // call me when you need authed DNS
 				if ck.Display == "" {
 					ck.Display = "dns"
@@ -250,7 +248,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ftp:
 				ck := c.(checks.Ftp)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "ftp"
 				}
@@ -268,7 +266,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Imap:
 				ck := c.(checks.Imap)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "imap"
 				}
@@ -281,7 +279,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ldap:
 				ck := c.(checks.Ldap)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "ldap"
 				}
@@ -297,7 +295,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ping:
 				ck := c.(checks.Ping)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				ck.Anonymous = true
 				if ck.Count == 0 {
 					ck.Count = 1
@@ -311,7 +309,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Rdp:
 				ck := c.(checks.Rdp)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "rdp"
 				}
@@ -324,7 +322,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Smb:
 				ck := c.(checks.Smb)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "smb"
 				}
@@ -337,7 +335,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Smtp:
 				ck := c.(checks.Smtp)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "smtp"
 				}
@@ -350,7 +348,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Sql:
 				ck := c.(checks.Sql)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "sql"
 				}
@@ -374,7 +372,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Ssh:
 				ck := c.(checks.Ssh)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "ssh"
 				}
@@ -401,7 +399,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Tcp:
 				ck := c.(checks.Tcp)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				ck.Anonymous = true
 				if ck.Display == "" {
 					ck.Display = "tcp"
@@ -415,7 +413,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Vnc:
 				ck := c.(checks.Vnc)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "vnc"
 				}
@@ -428,7 +426,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.Web:
 				ck := c.(checks.Web)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "web"
 				}
@@ -441,7 +439,7 @@ func checkConfig(conf *config) error {
 				if len(ck.Url) == 0 {
 					return errors.New("no urls specified for web check " + ck.Name)
 				}
-				if len(ck.CredLists) == 0 {
+				if ck.CredList == "" {
 					ck.Anonymous = true
 				}
 				if ck.Scheme == "" {
@@ -455,7 +453,7 @@ func checkConfig(conf *config) error {
 				conf.Box[i].CheckList[j] = ck
 			case checks.WinRM:
 				ck := c.(checks.WinRM)
-				ck.Ip = b.Ip
+				ck.IP = b.IP
 				if ck.Display == "" {
 					ck.Display = "winrm"
 				}
@@ -496,6 +494,8 @@ func checkConfig(conf *config) error {
 		conf.Box[i].CheckList = sortChecks(b.CheckList)
 	}
 
+	checks.CredLists = dwConf.Creds
+
 	return nil
 }
 
@@ -505,6 +505,6 @@ func getCheckName(check checks.Check) string {
 	return name
 }
 
-func (m *config) GetFullIp(boxIp, teamIp string) string {
-	return strings.Replace(boxIp, "x", teamIp, 1)
+func (m *config) GetFullIP(boxIP, teamIP string) string {
+	return strings.Replace(boxIP, "x", teamIP, 1)
 }

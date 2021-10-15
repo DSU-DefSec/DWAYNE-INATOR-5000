@@ -4,11 +4,8 @@
     <!-- Metadata and resources
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <title>{{ .event }} {{ .title }}</title>
-    <style>
-        html {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="icon" type="image/ico" href="/assets/favicon.ico"/>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 </head>
@@ -16,21 +13,23 @@
 <body>
     <div class="container">
         <div class="nav">
-            <h1>DWAYNE-INATOR-5000</h1>
+            <a href="/">
+                <h1 style="font-weight: normal; font-size: 1rem; line-height: 0;"><b>{{ .event }}</b> Scoring Engine</h1>
+            </a>
             <div>
+                <a href="/info">info</a>
+                {{ if or .m.Verbose (or .user.IsAdmin .user.IsRed) }}
+                <a href="/scores">scores</a>
+                {{ end }}
                 {{ if .user.IsValid }}
                     {{ if and (not .user.IsAdmin) (not .user.IsRed) }}
-                    <a href="/team/{{ .user.Identifier }}">team</a>
+                    <a href="/team/{{ .user.ID }}">team</a>
                     {{ end }}
                     {{ if .user.IsRed }}
                     <a href="/red">red</a>
                     {{ else }}
                     <a href="/injects">injects</a>
                     {{ end }}
-                {{ end }}
-                <a href="/">status</a>
-                {{ if or .m.Verbose (or .user.IsAdmin .user.IsRed) }}
-                <a href="/scores">scores</a>
                 {{ end }}
                 {{ if .user.IsValid }}
                 <a href="/logout">logout</a>

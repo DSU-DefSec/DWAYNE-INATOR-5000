@@ -14,7 +14,7 @@ type Ping struct {
 	Percent         int
 }
 
-func (c Ping) Run(teamName, boxIp string, res chan Result) {
+func (c Ping) Run(teamID uint, boxIp string, res chan Result) {
 	// Create pinger
 	pinger, err := ping.NewPinger(boxIp)
 	if err != nil {

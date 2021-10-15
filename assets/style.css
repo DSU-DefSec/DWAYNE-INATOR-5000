@@ -28,13 +28,12 @@ a {
 /* headers and nav
 –––––––––––––––––––––––––––––––––––––––––– */
 
-h1, h2, h3, h4, h5, h6 {
-    font-size: 1rem;
-    line-height: 0;
+h2, h3 {
+    text-align: center;
 }
 
-h2 {
-    text-align: center;
+h3 {
+    font-weight: normal;
 }
 
 .nav {
@@ -42,8 +41,12 @@ h2 {
     justify-content: space-between;
 }
 
+.nav > div > a {
+    margin-left: 0.5rem;
+}
+
 hr {
-    border-top: 2px solid white;
+    border-top: 2px solid #313131;
     border-bottom-width: 0px;
 }
 
@@ -53,6 +56,8 @@ hr {
 table {
     margin: 0 auto;
     text-align: center;
+    border-spacing: 0;
+    border-collapse: 0;
 }
 
 table a {
@@ -75,29 +80,23 @@ td, th {
 }
 
 th {
-    border-bottom: 2px solid white;
+    border-bottom: 3px solid #313131;
 }
 
 .checks tr td:first-child {
     font-weight: normal;
 }
 
-.checks th {
-    font-weight: bold;
+.teamname, .teamname a {
+    text-align: right;
 }
-
-.teamname a {
-    text-align: left;
-    text-decoration: underline;
-}
-
 
 th:nth-child(n+2){
-    border-left: 2px solid white;
+    border-left: 3px solid #313131;
 }
 
 tr td:nth-child(n+2){
-    border-left: 2px solid white;
+    border-left: 3px solid #313131;
 }
 
 tr td:first-child {
@@ -105,7 +104,7 @@ tr td:first-child {
 }
 
 tr td {
-    border-bottom: 2px solid white;
+    border-bottom: 3px solid #313131;
 }
 
 tr:last-child td {
@@ -133,10 +132,8 @@ td img {
 
 input {
     margin: 0.3rem auto;
-}
-
-input, select, textarea {
-    color: black;
+    color: white;
+    background-color: #212121;
 }
 
 input[type=file] {

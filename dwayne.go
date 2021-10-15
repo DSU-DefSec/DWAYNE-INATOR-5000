@@ -1,48 +1,47 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"html/template"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+
+	"gorm.io/driver/sqlite"
+	"gorm.io/gorm"
 )
 
 const (
 	defaultDelay  = 60
 	defaultJitter = 30
+	apiEndpoint = "http://172.16.1.122"
 )
 
 var (
-	verbose = false
-	dwConf  = &config{}
-	injects = []injectData{}
+	dwConf = &config{}
+	db     = &gorm.DB{}
 
 	// Hardcoded CST timezone
 	loc, _    = time.LoadLocation("America/Rainy_River")
 	locString = "CT"
+
+	roundNumber int
+	ct          CredentialTable
+
+	teamMutex = &sync.Mutex{}
+	persistMutex = &sync.Mutex{}
 )
 
-func init() {
-	flag.BoolVar(&verbose, "v", false, "verbose/debug output")
-	flag.Parse()
-	log.SetFlags(0)
-}
-
 func errorPrint(a ...interface{}) {
-	if verbose {
-		log.Printf("[ERROR] %s", fmt.Sprintln(a...))
-	}
+	log.Printf("[ERROR] %s", fmt.Sprintln(a...))
 }
 
 func debugPrint(a ...interface{}) {
-	if verbose {
-		log.Printf("[DEBUG] %s", fmt.Sprintln(a...))
-	}
+	log.Printf("[DEBUG] %s", fmt.Sprintln(a...))
 }
 
 func main() {
@@ -51,6 +50,34 @@ func main() {
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "illegal config"))
 	}
+
+	// Open database
+	db, err = gorm.Open(sqlite.Open("dwayne.db"), &gorm.Config{})
+	if err != nil {
+		log.Fatal("Failed to connect database!")
+	}
+
+	db.AutoMigrate(&ResultEntry{}, &TeamRecord{}, &Inject{}, &InjectSubmission{}, &TeamData{}, &SLA{})
+
+	// Assign team IDs
+	for i := range dwConf.Team {
+		dwConf.Team[i].ID = uint(i + 1)
+	}
+
+	// Save into DB if not already in there.
+	var teams []TeamData
+	res := db.Find(&teams)
+	if res.Error == nil && len(teams) == 0 {
+		for _, team := range dwConf.Team {
+			if res := db.Create(&team); res.Error != nil {
+				log.Fatal("unable to save team in database")
+			}
+		}
+	}
+
+	// Initialize mutex for credential table
+	ct.Mutex = &sync.Mutex{}
+
 
 	// Initialize Gin router
 	// gin.SetMode(gin.ReleaseMode)
@@ -65,12 +92,11 @@ func main() {
 
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/assets", "./assets")
-	r.Static("/submissions", "./submissions")
 	initCookies(r)
 
 	// 404 handler
 	r.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusNotFound, "404.html", nil)
+		c.HTML(http.StatusNotFound, "404.html", pageData(c, "Login", nil))
 	})
 
 	// Routes
@@ -78,6 +104,9 @@ func main() {
 	{
 		routes.GET("/", viewStatus)
 		routes.GET("/scores", viewScores)
+		routes.GET("/info", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "info.html", pageData(c, "Information", nil))
+		})
 		routes.GET("/login", func(c *gin.Context) {
 			if getUserOptional(c).IsValid() {
 				c.Redirect(http.StatusSeeOther, "/")
@@ -88,37 +117,57 @@ func main() {
 			c.HTML(http.StatusOK, "forbidden.html", pageData(c, "Forbidden", nil))
 		})
 		routes.POST("/login", login)
+		if dwConf.Persists {
+			routes.GET("/persist/:token", scorePersist)
+		}
 	}
 
 	authRoutes := routes.Group("/")
 	authRoutes.Use(authRequired)
 	{
 		authRoutes.GET("/logout", logout)
+
+		// Team Information
 		authRoutes.GET("/export/:team", exportTeamData)
+		authRoutes.GET("/team/:team", viewTeam)
+		authRoutes.GET("/team/:team/:check", viewCheck)
+
+		// PCRs
 		authRoutes.GET("/pcr", viewPCR)
-		authRoutes.POST("/pcr", submitPCR)
+
+		// Red Team
 		authRoutes.GET("/red", viewRed)
 		authRoutes.POST("/red", submitRed)
+
+		// Injects
 		authRoutes.GET("/injects", viewInjects)
 		authRoutes.GET("/injects/:inject", viewInject)
 		authRoutes.POST("/injects/:inject", submitInject)
 		authRoutes.GET("/injects/:inject/:submission/grade", gradeInject)
 		authRoutes.POST("/injects/:inject/:submission/:team/grade", submitInjectGrade)
-		authRoutes.GET("/team/:team", viewTeam)
-		authRoutes.GET("/team/:team/:check", viewCheck)
+
+		// Resets
+		authRoutes.GET("/reset", viewResets)
+		authRoutes.POST("/reset/:id", submitReset)
 	}
 
-	fmt.Println("Refreshing status data from records...")
-	initStatus()
-	initCreds()
-	addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Password Changes", "Submit your password changes here! Please see the team document for more details.", []string{}, 0, 0})
-	if err := initInjects(); err != nil {
-		errorPrint("couldn't initialize injects:", err)
+	var injects []Inject
+	res = db.Find(&injects)
+	if res.Error != nil {
+		errorPrint(res.Error)
+		return
 	}
+
 	if len(injects) == 0 {
-		err := addInject(injectData{time.Now(), time.Time{}, time.Time{}, "Password Changes", "Submit your password changes here! Please see the team document for more details.", []string{}, 0, 0})
-		if err != nil {
-			errorPrint("error adding password change inject:", err)
+		pwChangeInject := Inject{
+			Time:  time.Now(),
+			Title: "Password Changes",
+			Body:  "Submit your password changes here!",
+		}
+		res := db.Create(&pwChangeInject)
+		if res.Error != nil {
+			errorPrint(res.Error)
+			return
 		}
 	}
 

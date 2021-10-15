@@ -7,79 +7,57 @@
 {{ template "refresh.html" }}
 
 <br>
-<h2>{{ .team.Identifier }}</h2>
+<h2>{{ .team.Name }}</h2>
 
-<br>
-<h2>Status</h2>
+{{ if .records }}
 
-<br>
-<table>
-    <tr>
-        {{ range $box := .m.Box }}
-        <th colspan="{{ len .CheckList }}"> {{ .Name }}</th>
-        {{ end }}
-    </tr>
-    {{ template "boxlist.html" .m }}
-    <tr>
-        {{ if .record }}
-            {{ range $check := .record.Checks }}
-            <td>
-                <a href="/team/{{ $check.Team }}/{{ $check.Name }}">
-                {{ template "bool.html" .Status }}
-                </a>
-            </td>
-            {{ end }}
-        {{ end }}
-    </tr>
-</table>
-
-<br>
-<br>
-<h2>History</h2>
-<p style="text-align: center"><i>(last {{ .limit }} rounds)</i></p>
-<br>
+{{ if gt (len .records) 9 }}
+<p style="text-align: center"><i>(last 10 rounds)</i></p>
+{{ end  }}
 
 <table class="checks">
     <tr>
-        <th></th>
-        <th></th>
+        <th style="border: none"></th>
+        <th style="border: none"></th>
         {{ range $box := .m.Box }}
-        <th colspan="{{ len .CheckList }}"> {{ .Name }}</th>
+        <th colspan="{{ len .CheckList }}"><i>{{ .Name }}</i></th>
         {{ end }}
     </tr>
-    {{ if not $m.Tightlipped }}
-    <th>Round</th>
-    {{ end }}
+    <th>#</th>
     <th>Time</th>
     {{ template "boxlist.html" .m }}
 
-    {{ if .history }}
-        {{ range $index, $record := .history }}
-        <tr>
-            {{ if not $m.Tightlipped }}
-            <td>{{ .Round }}</td>
+    {{ range $index, $record := .records }}
+    <tr>
+        <td>
+            {{ if eq $index 0 }}
+                <b>Current</b>
+            {{ else }}
+                {{ .Round }}
             {{ end }}
-            <td>
-                {{ if eq $index 0 }}
-                    <b>Current</b>
-                {{ else }}
-                    {{ (.Time.In $loc).Format "03:04:05 PM" }}
-                {{ end }}
-            </td>
-        {{ range $check := $record.Checks }}
-            <td>
-                <a href="/team/{{ $check.Team }}/{{ $check.Name }}">
-                {{ template "bool.html" .Status }}
-                </a>
-            </td>
-        {{ end }}
-        </tr>
-        {{ end }}
+        </td>
+        <td>
+            {{ (.Time.In $loc).Format "03:04:05 PM" }}
+        </td>
+    {{ range $check := $record.Results }}
+        <td>
+            <a href="/team/{{ $check.TeamID }}/{{ $check.Name }}">
+            {{ template "bool.html" .Status }}
+            </a>
+        </td>
+    {{ end }}
+    </tr>
     {{ end }}
 </table>
+{{ else }}
 
-{{ if not $m.Tightlipped }}
 <br>
+<p style="text-align: center">
+Your team doesn't have any completed checks yet :(
+</p>
+
+{{ end }}
+
 <br>
 <h2>External IPs and Ports</h2>
 <br>
@@ -110,7 +88,6 @@
     </tr>
 
 </table>
-{{ end }}
 
 {{ if $m.Verbose }}
 <br>

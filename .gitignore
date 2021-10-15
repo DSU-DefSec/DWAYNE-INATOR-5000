@@ -1,5 +1,7 @@
 DWAYNE-INATOR-5000
 dwayne.conf
+dwayne.db
 assets/points.png
 tags
-submission/*
+*.swp
+submissions/*

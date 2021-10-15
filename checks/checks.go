@@ -1,27 +1,59 @@
 package checks
 
 import (
-	"math/rand"
 	"net"
 	"strings"
+	"log"
+	"math/rand"
 	"sync"
 	"time"
 )
 
 var (
 	GlobalTimeout, _ = time.ParseDuration("20s")
-	DefaultCreds     = make(map[string]string)
-	Creds            = []PcrData{}
-	DefaultCredList  = []string{}
-	CredLists        = make(map[string][]string)
+	Creds map[uint]map[string]map[string]string
+	CredLists        []CredData
 )
+
+func getCreds(teamID uint, credList string, checkName string) (string, string) {
+	var usernameList CredData
+	if credList != "" {
+		found := false
+		for _, l := range CredLists {
+			if l.Name == credList {
+				usernameList = l
+				found = true
+				break
+			}
+		}
+		if !found {
+			log.Println("Invalid cred lists for check", checkName)
+			return "", ""
+		}
+	} else {
+		usernameList = CredLists[0]
+	}
+
+	usernames := usernameList.Usernames
+	rand.Seed(time.Now().UnixNano())
+	if len(usernames) > 0 {
+		username := usernames[rand.Intn(len(usernames))]
+		if pw, ok := Creds[teamID][checkName][username]; ok {
+			return username, pw
+		} else {
+			return username, usernameList.DefaultPw
+		}
+	}
+	return "", ""
+}
+
 
 // checks for each service
 type Check interface {
-	Run(string, string, chan Result)
+	Run(uint, string, chan Result)
 	FetchName() string
 	FetchDisplay() string
-	FetchIp() string
+	FetchIP() string
 	FetchAnonymous() bool
 }
 
@@ -29,7 +61,7 @@ type Result struct {
 	Name   string `json:"name,omitempty"`
 	Box    string `json:"box,omitempty"`
 	Status bool   `json:"status,omitempty"`
-	Ip     string `json:"ip,omitempty"`
+	IP     string `json:"ip,omitempty"`
 	Error  string `json:"error,omitempty"`
 	Debug  string `json:"debug,omitempty"`
 }
@@ -37,8 +69,8 @@ type Result struct {
 type checkBase struct {
 	Name      string // Name is the box name plus the service (ex. lunar-dns)
 	Display   string // Display is the name of the service (ex. dns)
-	Ip        string
-	CredLists []string
+	IP        string
+	CredList string
 	Port      int
 	Anonymous bool
 }
@@ -49,12 +81,6 @@ type CredData struct {
 	DefaultPw string
 }
 
-type PcrData struct {
-	Time  time.Time
-	Team  string
-	Check string
-	Creds map[string]string
-}
 
 func (c checkBase) FetchName() string {
 	return c.Name
@@ -64,67 +90,32 @@ func (c checkBase) FetchDisplay() string {
 	return c.Display
 }
 
-func (c checkBase) FetchIp() string {
-	return c.Ip
+func (c checkBase) FetchIP() string {
+	return c.IP
 }
 
 func (c checkBase) FetchAnonymous() bool {
 	return c.Anonymous
 }
-
-func getCreds(credLists []string, teamIdentifier, checkName string) (string, string) {
-	allUsernames := []string{}
-	rand.Seed(time.Now().UnixNano())
-	if len(credLists) > 0 {
-		for _, l := range credLists {
-			allUsernames = append(allUsernames, CredLists[l]...)
-		}
-	} else {
-		allUsernames = DefaultCredList
-	}
-	if len(allUsernames) > 0 {
-		username := allUsernames[rand.Intn(len(allUsernames))]
-		credItem := FindCreds(teamIdentifier, checkName)
-		if credItem.Team == "" {
-			return username, DefaultCreds[username]
-		}
-		if pw, ok := credItem.Creds[username]; !ok {
-			return username, DefaultCreds[username]
-		} else {
-			return username, pw
-		}
-	}
-	return "", ""
-}
-
-func FindCreds(teamName, checkName string) PcrData {
-	for i, pcr := range Creds {
-		if pcr.Team == teamName && pcr.Check == checkName {
-			return Creds[i]
-		}
-	}
-	return PcrData{}
-}
-
-func RunCheck(teamName, teamIp, boxIp, boxName string, check Check, wg *sync.WaitGroup, resChan chan Result) {
+func RunCheck(teamID uint, teamIP, boxIP, boxName string, check Check, wg *sync.WaitGroup, resChan chan Result) {
 	res := make(chan Result)
 	result := Result{}
-	fullIp := strings.Replace(boxIp, "x", teamIp, 1)
-	go check.Run(teamName, fullIp, res)
+	fullIP := strings.Replace(boxIP, "x", teamIP, 1)
+	go check.Run(teamID, fullIP, res)
 	select {
 	case result = <-res:
 	case <-time.After(GlobalTimeout):
 		result.Error = "timed out"
 	}
 	result.Name = check.FetchName()
-	result.Ip = fullIp
+	result.IP = fullIP
 	result.Box = boxName
 	resChan <- result
 	wg.Done()
 }
 
-func tcpCheck(hostIp string) error {
-	_, err := net.DialTimeout("tcp", hostIp, GlobalTimeout)
+func tcpCheck(hostIP string) error {
+	_, err := net.DialTimeout("tcp", hostIP, GlobalTimeout)
 	return err
 }
 

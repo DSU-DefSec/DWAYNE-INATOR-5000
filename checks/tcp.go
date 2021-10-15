@@ -8,7 +8,7 @@ type Tcp struct {
 	checkBase
 }
 
-func (c Tcp) Run(teamName, boxIp string, res chan Result) {
+func (c Tcp) Run(teamID uint, boxIp string, res chan Result) {
 	err := tcpCheck(boxIp + ":" + strconv.Itoa(c.Port))
 	if err != nil {
 		res <- Result{

@@ -25,7 +25,7 @@ type urlData struct {
 	CompareFile   string // TODO
 }
 
-func (c Web) Run(teamName, boxIp string, res chan Result) {
+func (c Web) Run(teamID uint, boxIp string, res chan Result) {
 	u := c.Url[rand.Intn(len(c.Url))]
 	// if usernameParam == nil
 	// post with username/pw as creds

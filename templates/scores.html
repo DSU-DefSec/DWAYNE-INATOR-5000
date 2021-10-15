@@ -6,13 +6,13 @@
 
 {{ template "refresh.html" }}
 
-{{ if or (not .m.Tightlipped) .admin }}
+
+{{ if .records }}
 <br>
 <h2>Graph</h2>
 
 <br>
 <img style="display: block; margin: 0 auto" src="assets/points.png"/>
-{{ end }}
 
 <br>
 <br>
@@ -21,32 +21,29 @@
 <table>
     <th>Rank</th>
     <th>Team</th>
-    {{ if or (not .m.Tightlipped) .admin }}
-    <th>Services</th>
-    <th>SLAs</th>
+    <th>Service</th>
+    <th>SLA</th>
     <th>Injects</th>
     <th>Red Team</th>
-    {{ end }}
     <th>Total</th>
 
     {{ range $index, $record := .records }}
     <tr>
         <td>{{ $index | increment }}</td>
-        {{ if eq $record.Team $team.Identifier }}
+        {{ if eq $record.TeamID $team.ID }}
             <td class="teamname">
-                <a href="/team/{{ $record.Team }}">
-                    {{ $record.Team }}
+                <a style="text-align: center" href="/team/{{ $team.ID }}">
+                    {{ $record.Team.Name }}
                 </a>
             </td>
         {{ else }}
-            <td>{{ $record.Team }}</td>
+            <td>{{ $record.Team.Name }}</td>
         {{ end }}
-        {{ if or (not $m.Tightlipped) $admin }}
             <td>{{ $record.ServicePoints }}</td>
             <td>{{ $record.SlaViolations }}</td>
-            {{ if eq $record.Team $team.Identifier }}
+            {{ if eq $record.TeamID $team.ID }}
                 <td>
-                    <a href="/injects/{{ $team.Identifier }}">
+                    <a style="text-align: center" href="/injects">
                         {{ $record.InjectPoints }}
                     </a>
                 </td>
@@ -54,7 +51,6 @@
                 <td>{{ $record.InjectPoints }}</td>
             {{ end }}
             <td>{{ $record.RedTeamPoints }}</td>
-        {{ end }}
         <td><b>{{ $record.Total }}</b></td>
     </tr>
     {{ end }}
@@ -63,9 +59,15 @@
 {{ if .records }}
 <br>
 <p style="text-align: center">
-    Scores calculated at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
+    📈 Scores calculated at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
 </p>
 {{ end }}
 <br>
+{{ else }}
+<br>
+<p style="text-align: center">
+No scores yet! Wait for the first scoring round to conclude.
+</p>
+{{ end }}
 
 {{ template "feet.html" }}

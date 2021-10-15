@@ -24,8 +24,8 @@ type winCommandData struct {
 	Output   string
 }
 
-func (c WinRM) Run(teamName, boxIp string, res chan Result) {
-	username, password := getCreds(c.CredLists, teamName, c.Name)
+func (c WinRM) Run(teamID uint, boxIp string, res chan Result) {
+	username, password := getCreds(teamID, c.CredList, c.Name)
 	params := *winrm.DefaultParameters
 
 	// Run bad attempts if specified

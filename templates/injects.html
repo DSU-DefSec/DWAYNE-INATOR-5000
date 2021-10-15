@@ -5,6 +5,7 @@
 
 {{ $loc := .loc }}
 {{ $time := .time }}
+{{ $user := .user }}
 
 {{ if .error }}
 {{.error}}
@@ -16,9 +17,11 @@
     <th>Inject Title</th>
     <th>Due</th>
     <th>Closes</th>
+    {{ if not $user.IsAdmin }}
     <th>Status</th>
+    {{ end }}
 
-    {{ range $index, $inject := .injects }}
+    {{ range $inject := .injects }}
     <tr 
        {{ if .Due.IsZero }}
            style="background-color: #004d00"
@@ -32,7 +35,7 @@
             {{ (.Time.In $loc).Format "03:04 PM" }}
         </td>
         <td>
-            <a href="/injects/{{ $index }}" style="color: powderblue">
+            <a href="/injects/{{ .ID }}" style="color: powderblue">
                 {{ $inject.Title }}
             </a>
         </td>
@@ -50,6 +53,7 @@
                 <b>{{ (.Closes.In $loc).Format "03:04 PM" }}</b>
             {{ end }}
         </td>
+        {{ if not $user.IsAdmin }}
         <td>
             {{ if eq .Status 0 }}
                 not submitted
@@ -60,6 +64,7 @@
             {{ end }}
 
         </td>
+        {{ end }}
 
     </tr>
     {{ end }}

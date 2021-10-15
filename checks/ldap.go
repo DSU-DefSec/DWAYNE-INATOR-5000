@@ -13,11 +13,11 @@ type Ldap struct {
 	Encrypted bool
 }
 
-func (c Ldap) Run(teamName, boxIp string, res chan Result) {
+func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
 	// Set timeout
 	ldap.DefaultTimeout = GlobalTimeout
 
-	username, password := getCreds(c.CredLists, teamName, c.Name)
+	username, password := getCreds(teamID, c.CredList, c.Name)
 	// Normal, default ldap check
 	lconn, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", boxIp, c.Port))
 	if err != nil {

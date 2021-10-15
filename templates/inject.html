@@ -1,24 +1,22 @@
 {{ template "head.html" . }}
 
 <br>
-<h2>Inject {{ .injectId }} Submissions: <i>{{ .inject.Title }}</i></h2>
+<h2>Inject {{ .inject.ID }} Submissions: <i>{{ .inject.Title }}</i></h2>
 
 {{ $loc := .loc }}
-{{ $time := .time }}
 {{ $user := .user }}
-{{ $injectId := .injectId }}
 
-{{ if eq .injectId 0 }}
+{{ if eq .inject.ID 1 }}
 <br>
-Please notify our white team once you have uploaded new password changes using the button at the bottom. As a reminder, your changes will not process unless you follow the naming convention:
-
-<br>
-<pre>TeamX_SERVICE_PWD_Y.txt</pre>
-
-Where X is your team number and Y is the iteration of password changes for this services. For example, if I was team 01, for my second password change file for village-ssh, my file would be named:
+Welcome to the password change request portal! Your changes will not process unless you follow the naming convention:
 
 <br>
-<pre>Team01_village-ssh_PWD_2.txt</pre>
+<pre>Team_SERVICE_PWD_Y.txt</pre>
+
+Where X is your team number and Y is the iteration of password changes for this services. For example, if I was <code>team1</code>, for my second password change file for village-ssh, my file would be named:
+
+<br>
+<pre>team1_village-ssh_PWD_2.txt</pre>
 
 In your password change file, use the format:
 
@@ -28,16 +26,14 @@ username1,password1!
 username2,coolpassword
 </pre>
 
-You must allow 10 to 15 minutes for password changes to take effect. You do NOT need to provide us with password changes for "root" or "administrator" accounts. Passwords can be up to 24 characters Long. Make sure to only use the following special charaters: <code>. @ # $ % & ! ? : * ^ _ - + = < > ~</code>
+You must allow 3 to 5 minutes for password changes to take effect. You do NOT need to provide us with password changes for "root" or "administrator" accounts. Passwords can be up to 24 characters Long. Make sure to only use the following special charaters: <code>. @ # $ % & ! ? : * ^ _ - + = < > ~</code>
 <br>
-<br>
-
-If you make a mistake on naming the file, in the format of the file, or with the character restrictions, your changes will silently fail :)
 <br>
 
 {{ end }}
 
 <br>
+{{ if .submissions }}
 <table style="width: 100%">
     {{ if .user.IsAdmin }}
     <th>Team</th>
@@ -46,7 +42,8 @@ If you make a mistake on naming the file, in the format of the file, or with the
     <th>Updated</th>
     <th>File Name</th>
     <th></th>
-    {{ if .user.IsAdmin }}
+    <th>Feedback</th>
+    {{ if and $user.IsAdmin (ne .inject.ID 1)}}
     <th>Grade</th>
     {{ end }}
 
@@ -54,7 +51,7 @@ If you make a mistake on naming the file, in the format of the file, or with the
     <tr {{ if .Invalid }} style="color: gray" {{ end }}>
         {{ if $user.IsAdmin }}
         <td style="font-weight: normal">
-            {{ .Team }}
+            {{ .Team.Name }}
         </td>
         {{ end }}
         <td style="font-weight: normal">
@@ -74,12 +71,23 @@ If you make a mistake on naming the file, in the format of the file, or with the
                 <input type="submit" value="Mark Invalid"/>
             </form>
             {{ else }}
-            <i>invalid</i>
+                {{ if eq .InjectID 1 }}
+                <i>processed</i>
+                {{ else }}
+                <i>invalid</i>
+                {{ end }}
             {{ end }}
         </td>
-        {{ if $user.IsAdmin }}
         <td>
-	    <a href="/injects/{{ $injectId }}/{{ $index }}/grade">grade</a>
+            {{ if and (and (eq .InjectID 1) .Invalid) (eq .Feedback "") }}
+            👍
+            {{ else }}
+            {{ .Feedback }}
+            {{ end }}
+        </td>
+        {{ if and $user.IsAdmin (ne .InjectID 1)}}
+        <td>
+        <a href="/injects/{{ .InjectId }}/{{ $index }}/grade">grade</a>
         </td>
         {{ end }}
     </tr>
@@ -87,29 +95,24 @@ If you make a mistake on naming the file, in the format of the file, or with the
 
 
 </table>
+{{ else }}
 
-<br>
+<p style="text-align: center">
+<i>No submissions yet!</i>
+</p>
+
+{{ end }}
+
 <br>
 
 {{ if not .user.IsAdmin }}
+<br>
 <form id="injectUpload" method="post" enctype="multipart/form-data">
     <input type="file" id="submission" name="submission" accept="application/pdf,text/plain">
     <input type="submit" value="Upload submission">
 </form>
 
-{{ if eq .injectId 0 }}
-<br>
-<p style="text-align: center">Notify White Team to process your password changes (will take 10-15 minutes):</p>
-
-<span style="text-align: center">
-
-<form method="post">
-    <input type="hidden" name="action" value="notify"/>
-    <input type="submit" value="Notify CIAS_Alex">
-</form>
-
-</span>
-
+{{ if eq .inject.ID 1 }}
 <br>
 <p style="text-align: center">You can check on your PCRs <a href="/pcr">here</a>.</p>
 {{ end }}

@@ -20,7 +20,7 @@ type DnsRecord struct {
 	Answer []string
 }
 
-func (c Dns) Run(teamName, boxIp string, res chan Result) {
+func (c Dns) Run(teamID uint, boxIp string, res chan Result) {
 	// Pick a record
 	record := c.Record[rand.Intn(len(c.Record))]
 	fqdn := dns.Fqdn(record.Domain)

@@ -11,57 +11,90 @@
 
 {{ $loc := .loc }}
 
-{{ if .user.IsAdmin }}
-<br>
-<h2>Username Lookup</h2>
+<h3>Credential State</h3>
 
-<br>
-<form style="text-align: center" method="POST">
-    <label>Username:
-        <input type="text" name="username" placeholder="coolUser1"></input>
-    </label>
-    <br><br>
-    <input style="display: block; margin: 0 auto;" type="submit" value="Submit Lookup"/>
-</form>
+<p style="text-align: center; margin: 1rem 5rem; font-size: 90%">
+<i>This shows the current state of our credential table. If a password for a given user on a given service is here, it will be used. Otherwise, the default password will be used.</i>
+</p>
 
+{{ if .creds }}
+<table>
+    {{ if .user.IsAdmin }}
+    <th>Team</th>
+    {{ end }}
+    <th>Service</th>
+    {{ if or .m.Verbose .user.IsAdmin }}
+    <th>Creds</th>
+    {{ end }}
+    {{ range $team, $checks := .creds }}
+        {{ range $check, $creds := $checks }}
+            {{ if or $user.IsAdmin (eq $team $user.ID) }}
+            <tr>
+                {{ if $user.IsAdmin }}
+                <td class="teamname">
+                    {{ $team }}
+                </td>
+                {{ end }}
+                <td>
+                    {{ $check }}
+                </td>
+                {{ if or $m.Verbose $user.IsAdmin }}
+                <td>
+                    {{ range $user, $pass := $creds }}
+                        {{ $user }},{{ $pass }}
+                        <br>
+                    {{ end }}
+                </td>
+                {{ end }}
+            </tr>
+            {{ end }}
+        {{ end }}
+    {{ end }}
+</table>
+{{ else }}
+<p style="text-align: center">
+No PCRs processed yet :(
+</p>
 {{ end }}
 
 <br>
-<h2>Services Last Updated</h2>
+<h3>Submissions</h3>
 
+<p style="text-align: center; margin: 1rem 5rem; font-size: 90%">
+<i>These are your inject submissions that contribute to the credential table. If you submitted an improperly formatted submission, it is not included here.</i>
+</p>
+{{ if .submissions }}
 <br>
 <table>
     {{ if .user.IsAdmin }}
     <th>Team</th>
     {{ end }}
     <th>Time</th>
-    <th>Service</th>
     {{ if or .m.Verbose .user.IsAdmin }}
-    <th>Creds</th>
+    <th>Content</th>
     {{ end }}
-    {{ range $index, $pcr := .pcrs }}
-    <tr>
-        {{ if $user.IsAdmin }}
-        <td class="teamname">
-            {{ .Team }}
-        </td>
-        {{ end }}
-        <td>
-            {{ (.Time.In $loc).Format "03:04:05 PM" }}
-        </td>
-        <td>
-            {{ .Check }}
-        </td>
-        {{ if or $m.Verbose $user.IsAdmin }}
-        <td>
-            {{ range $user, $pass := $pcr.Creds }}
-                {{ $user }},{{ $pass }}
-                <br>
+    {{ range $i := .submissions }}
+        <tr>
+            {{ if $user.IsAdmin }}
+            <td class="teamname">
+                {{ .Team.ID }}
+            </td>
             {{ end }}
-        </td>
-        {{ end }}
-    </tr>
+            <td>
+                {{ (.Time.In $loc).Format "03:04:05 PM" }}
+            </td>
+            {{ if or $m.Verbose $user.IsAdmin }}
+            <td>
+                {{ .Content }}
+            </td>
+            {{ end }}
+        </tr>
     {{ end }}
 </table>
+{{ else }}
+<p style="text-align: center">
+No PCRs processed yet :(
+</p>
+{{ end }}
 
 {{ template "feet.html" }}

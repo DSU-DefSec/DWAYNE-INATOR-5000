@@ -8,7 +8,6 @@ A truly euphoric competition scoring engine experience: the DWAYNE-INATOR-5000.
 Usage
 -----
 
-0. Install `mongodb` (`sudo apt install mongodb`)
 1. Download this repository (`git clone https://github.com/DSU-DefSec/DWAYNE-INATOR-5000`).
 1. Compile the code (`cd DWAYNE-INATOR-5000; go build`)
 2. Write your configuration in `./dwayne.conf`.
@@ -76,7 +75,6 @@ Maximal example, with comments:
 event = "Awesome Comp" # event title
 
 verbose = true # show more info to competitors
-tightlipped = false # hide most informational output
 
 delay = 20 # delay (seconds) between checks (>0) (default 60)
            # note: the "real" max delay will be timeout+delay+jitter

@@ -24,12 +24,12 @@ type commandData struct {
 	Output   string
 }
 
-func (c Ssh) Run(teamName, boxIp string, res chan Result) {
+func (c Ssh) Run(teamID uint, boxIp string, res chan Result) {
 	// if  pubkey
 	// var hostKey ssh.PublicKey
 	// pubkey
 	// else
-	username, password := getCreds(c.CredLists, teamName, c.Name)
+	username, password := getCreds(teamID, c.CredList, c.Name)
 
 	// Create client config
 	config := &ssh.ClientConfig{

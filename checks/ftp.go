@@ -21,7 +21,7 @@ type FtpFile struct {
 	Regex string
 }
 
-func (c Ftp) Run(teamName, boxIp string, res chan Result) {
+func (c Ftp) Run(teamID uint, boxIp string, res chan Result) {
 	conn, err := ftp.Dial(boxIp+":"+strconv.Itoa(c.Port), ftp.DialWithTimeout(time.Duration(GlobalTimeout)*time.Second))
 	if err != nil {
 		res <- Result{
@@ -36,7 +36,7 @@ func (c Ftp) Run(teamName, boxIp string, res chan Result) {
 		username = "anonymous"
 		password = "anonymous"
 	} else {
-		username, password = getCreds(c.CredLists, teamName, c.Name)
+		username, password = getCreds(teamID, c.CredList, c.Name)
 	}
 	err = conn.Login(username, password)
 	if err != nil {

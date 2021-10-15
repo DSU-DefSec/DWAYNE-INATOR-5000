@@ -26,7 +26,7 @@ func (a unencryptedAuth) Start(server *smtp.ServerInfo) (string, []byte, error) 
 	return a.Auth.Start(&s)
 }
 
-func (c Smtp) Run(teamName, boxIp string, res chan Result) {
+func (c Smtp) Run(teamID uint, boxIp string, res chan Result) {
 	// Create a dialer
 	dialer := net.Dialer{
 		Timeout: GlobalTimeout,
@@ -34,7 +34,7 @@ func (c Smtp) Run(teamName, boxIp string, res chan Result) {
 
 	// ***********************************************
 	// Set up custom auth for bypassing net/smtp protections
-	username, password := getCreds(c.CredLists, teamName, c.Name)
+	username, password := getCreds(teamID, c.CredList, c.Name)
 	auth := unencryptedAuth{smtp.PlainAuth("", username, password, boxIp)}
 	// ***********************************************
 

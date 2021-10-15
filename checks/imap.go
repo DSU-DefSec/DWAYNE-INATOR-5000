@@ -14,7 +14,7 @@ type Imap struct {
 	Encrypted bool
 }
 
-func (c Imap) Run(teamName, boxIp string, res chan Result) {
+func (c Imap) Run(teamID uint, boxIp string, res chan Result) {
 	// Create a dialer so we can set timeouts
 	dialer := net.Dialer{
 		Timeout: GlobalTimeout,
@@ -40,7 +40,7 @@ func (c Imap) Run(teamName, boxIp string, res chan Result) {
 	defer cl.Close()
 
 	if !c.Anonymous {
-		username, password := getCreds(c.CredLists, teamName, c.Name)
+		username, password := getCreds(teamID, c.CredList, c.Name)
 		// Set timeout for commands
 		cl.Timeout = GlobalTimeout
 

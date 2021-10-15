@@ -2,11 +2,12 @@
 
 {{ $m := .m }}
 {{ $admin := .admin }}
-{{ $team := .team }}
+{{ $team := .user }}
 {{ $records := .records }}
 
 {{ template "refresh.html" }}
 
+{{ if .records }}
 <br>
 <h2>Status</h2>
 
@@ -26,27 +27,27 @@
     <tr>
         <td class="teamname">
             {{ if $team }}
-                {{ if $m.IsValid $team .Team }}
-                <a href="/team/{{ .Team }}">
+                {{ if $m.IsValid $team .Team.Name }}
+                <a href="/team/{{ .Team.ID }}">
                 {{ end }}
             {{ end }}
-            {{ .Team }}
+            {{ .Team.Name }}
             {{ if $team }}
-                {{ if $m.IsValid $team .Team }}
+                {{ if $m.IsValid $team .Team.Name }}
                     </a>
                 {{ end }}
             {{ end }}
         </td>
-        {{ range $check := .Checks }}
+        {{ range $check := .Results }}
         <td>
         {{ if $team }}
-            {{ if $m.IsValid $team $record.Team }}
-            <a href="/team/{{ $record.Team }}/{{ $check.Name }}">
+            {{ if $m.IsValid $team $record.Team.Name }}
+            <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
             {{ end }}
         {{ end }}
         {{ template "bool.html" $check.Status }}
         {{ if $team }}
-            {{ if $m.IsValid $team $record.Team }}
+            {{ if $m.IsValid $team $record.Team.Name }}
             </a>
             {{ end }}
         {{ end }}
@@ -59,8 +60,17 @@
 {{ if .records }}
 <br>
 <p style="text-align: center">
-Checks ran at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
+Round {{ .roundNumber }}. Checks ran at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
 </p>
+{{ end }}
+
+{{ else }}
+
+<br>
+<p style="text-align: center">
+First round of checks are currently running. Good luck!
+</p>
+
 {{ end }}
 
 {{ if .ip }}
