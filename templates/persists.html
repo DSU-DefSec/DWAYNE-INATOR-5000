@@ -1,0 +1,54 @@
+{{ template "head.html" . }}
+
+{{ $m := .m }}
+{{ $loc := .loc }}
+
+{{ template "refresh.html" }}
+
+<br>
+<h2>Persists</h2>
+
+<h3>Current Round</h3>
+{{ if .current }}
+    {{ range $team, $boxes := .current }}
+        {{ range $box, $hackers := $boxes }}
+            {{ range $hacker := $hackers }}
+            <p style="text-align: center"><b>Team {{ $hacker }}</b> has persistence on <b>team {{ $team }}</b> on {{ $box }}!</p>
+            {{ end }}
+        {{ end }}
+    {{ end }}
+{{ else }}
+No persistence received yet for this round! Boxes must be too secure. 🖥🔒️
+{{ end }}
+
+
+<h3>Previous</h3>
+{{ if .previous }}
+<table>
+    <th>Round</th>
+    <th>Box</th>
+    <th>Hacking Team</th>
+    <th>Victim Team</th>
+    {{ range $i := .previous }}
+         <tr>
+            <td>
+                {{ .Round }}
+            </td>
+            <td>
+                {{ .Box }}
+            </td>
+            <td>
+                {{ .Offender.Name }}
+            </td>
+            <td>
+                {{ .Team.Name }}
+            </td>
+        </tr>
+    {{ end }}
+</table>
+{{ else }}
+No persistence received yet! Get to work 🔓
+{{ end }}
+
+
+{{ template "feet.html" }}

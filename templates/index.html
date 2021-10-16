@@ -11,7 +11,6 @@
 <br>
 <h2>Status</h2>
 
-<br>
 <table>
     <tr>
         <th style="border-bottom: none"></th>
@@ -39,18 +38,37 @@
             {{ end }}
         </td>
         {{ range $check := .Results }}
-        <td>
-        {{ if $team }}
-            {{ if $m.IsValid $team $record.Team.Name }}
-            <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
+            {{ $isPersisted := false }}
+            {{ if $record.Persists }}
+                {{ range $i := $record.Persists }}
+                    {{ if eq $check.Box .Box }}
+                        {{ $isPersisted = true }}
+                    {{ end }}
+                {{ end }}
+                {{ if $isPersisted }}
+                    {{ template "persist.html" $record.Persists }}
+                {{ else }}
+                <td>
+                {{ end }}
+            {{ else }}
+                <td>
             {{ end }}
-        {{ end }}
-        {{ template "bool.html" $check.Status }}
-        {{ if $team }}
-            {{ if $m.IsValid $team $record.Team.Name }}
-            </a>
+
+            {{ if $team }}
+                {{ if $m.IsValid $team $record.Team.Name }}
+                <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
+                {{ end }}
             {{ end }}
-        {{ end }}
+
+            {{ template "bool.html" $check.Status }}
+
+            {{ if $team }}
+                {{ if $m.IsValid $team $record.Team.Name }}
+                </a>
+                {{ end }}
+            {{ end }}
+
+          {{ else }}
         </td>
         {{ end }}
     </tr>
@@ -60,7 +78,7 @@
 {{ if .records }}
 <br>
 <p style="text-align: center">
-Round {{ .roundNumber }}. Checks ran at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
+Round {{ .round }}. Checks ran at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
 </p>
 {{ end }}
 

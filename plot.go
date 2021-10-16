@@ -19,7 +19,7 @@ func graphScores(records []TeamRecord) {
 
 	p := plot.New()
 
-	p.X.Label.Text = "Time"
+	p.X.Label.Text = "Round"
 	p.X.Label.TextStyle.Color = color.White
 	p.X.Color = color.White
 	p.X.Width = 2
@@ -68,7 +68,7 @@ func graphScores(records []TeamRecord) {
 
 func getTeamPoints(teamID uint) plotter.XYs {
 	var records []TeamRecord
-	res := db.Find(&records, "team_id = ?", teamID)
+	res := db.Where("team_id = ?", teamID).Order("time asc").Find(&records)
 	if res.Error != nil {
 		errorPrint(res.Error)
 		return nil

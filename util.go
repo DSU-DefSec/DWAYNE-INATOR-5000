@@ -122,8 +122,13 @@ func (m *config) getCheck(checkName string) (checks.Check, error) {
 }
 
 func calculateScoreTotal(rec TeamRecord) int {
-	total := rec.ServicePoints + rec.PersistPoints + rec.InjectPoints
+	total := rec.ServicePoints + rec.InjectPoints
 	total -= rec.RedTeamPoints + (rec.SlaViolations * dwConf.SlaPoints)
+	if dwConf.Persists {
+		total += rec.PointsStolen + rec.PersistPoints
+		total -= rec.PointsLost
+	}
+	total += rec.ManualAdjustment
 	return total
 }
 
@@ -155,7 +160,6 @@ func tokenToTeam(token string) (TeamData, error) {
 	}
 	return TeamData{}, errors.New("invalid token")
 }
-
 
 func (m *config) GetTeam(teamID uint) (TeamData, error) {
 	for _, team := range m.Team {

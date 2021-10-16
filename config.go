@@ -28,12 +28,12 @@ type config struct {
 	SlaThreshold int
 	// Points per service check.
 	ServicePoints int
-	SlaPoints    int
-	Admin        []TeamData
-	Red          []TeamData
-	Team         []TeamData
-	Box          []Box
-	Creds        []checks.CredData
+	SlaPoints     int
+	Admin         []TeamData
+	Red           []TeamData
+	Team          []TeamData
+	Box           []Box
+	Creds         []checks.CredData
 }
 
 type Box struct {
@@ -162,7 +162,7 @@ func checkConfig(conf *config) error {
 	}
 
 	if conf.SlaThreshold == 0 {
-		conf.SlaThreshold = 60
+		conf.SlaThreshold = 6
 	}
 
 	if conf.ServicePoints == 0 {

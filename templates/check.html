@@ -6,7 +6,7 @@
 {{ template "refresh.html" }}
 
 <br>
-<h2 style="font-size:120%">{{ .team.Name }}</h2>
+<h2>{{ .team.Name }}</h2>
 <p style="text-align: center; font-size: 110%"><i>{{ .check.Name }}</i></p>
 
 {{ if .results }}
@@ -14,7 +14,7 @@
     <fieldset>
     <p>
         External IP: <i>
-            {{ .m.GetFullIp .check.Ip .team.Ip }}
+            {{ .m.GetFullIP .check.IP .team.IP }}
         </i>
         <br>
         SLA Violations: {{ .sla.Violations }}

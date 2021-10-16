@@ -18,7 +18,7 @@ func Score(m *config) {
 	}
 
 	var record TeamRecord
-	res := db.Debug().Limit(1).Order("time desc").Find(&record)
+	res := db.Limit(1).Order("time desc").Find(&record)
 	if res.Error == nil {
 		roundNumber = record.Round + 1
 	} else {
@@ -107,6 +107,7 @@ func Score(m *config) {
 		for _, rec := range recordsStaging {
 			processNewRecord(&rec)
 		}
+		recordsStaging = []TeamRecord{}
 
 		// Calculate persist points
 		if dwConf.Persists {
@@ -153,7 +154,6 @@ func processNewRecord(rec *TeamRecord) {
 			}
 		}
 		if !res.Status {
-			debugPrint("incrementing sla counter")
 			slaRecord.Counter++
 			if slaRecord.Counter >= dwConf.SlaThreshold {
 				rec.SlaViolations++
@@ -162,16 +162,7 @@ func processNewRecord(rec *TeamRecord) {
 			}
 		} else {
 			slaRecord.Counter = 0
-			// If persists, everyone gets 1/N points
-			if dwConf.Persists {
-
-				rec.ServicePoints += dwConf.ServicePoints
-
-
-			} else {
-				rec.ServicePoints += dwConf.ServicePoints
-
-			}
+			rec.ServicePoints += dwConf.ServicePoints
 		}
 		if result = db.Save(&slaRecord); result.Error != nil {
 			errorPrint(result.Error)
@@ -182,8 +173,14 @@ func processNewRecord(rec *TeamRecord) {
 	rec.RedTeamPoints = currentRec.RedTeamPoints
 	rec.InjectPoints = currentRec.InjectPoints
 	rec.SlaViolations += currentRec.SlaViolations
-	rec.PersistPoints += currentRec.PersistPoints
 	rec.ServicePoints += currentRec.ServicePoints
+	rec.ManualAdjustment += currentRec.ManualAdjustment
+
+	if dwConf.Persists {
+		rec.PointsLost += currentRec.PointsLost
+		rec.PointsStolen += currentRec.PointsStolen
+		rec.PersistPoints += currentRec.PersistPoints
+	}
 
 	db.Create(&rec)
 
@@ -191,7 +188,7 @@ func processNewRecord(rec *TeamRecord) {
 
 func calculatePersists() {
 	var records []TeamRecord
-	res := db.Find(&records)
+	res := db.Limit(len(dwConf.Team)).Preload("Team").Preload("Results").Order("time desc").Find(&records)
 	if res.Error != nil {
 		errorPrint(res.Error)
 		return
@@ -208,13 +205,36 @@ func calculatePersists() {
 			if len(persists) > 0 {
 				// Get box points to split up.
 				victim := records[team-1]
-				debugPrint(box)
-				debugPrint(victim)
+				totalPoints := 0
+				for _, res := range victim.Results {
+					if box == res.Box {
+						if res.Status {
+							totalPoints += dwConf.ServicePoints
+						}
+					}
+				}
+				distributedPoints := oneOfN(totalPoints, len(persists)+1)
+				for _, p := range persists {
+					victim.Persists = append(victim.Persists, Persist{
+						Round:      roundNumber,
+						Box:        box,
+						TeamID:     team,
+						OffenderID: p,
+					})
+					records[p-1].PersistPoints += distributedPoints
+					records[p-1].PointsStolen += distributedPoints
+				}
+				victim.PointsLost += distributedPoints * len(persists)
+				records[team-1] = victim
 			}
 		}
 	}
-}
 
+	for _, rec := range records {
+		rec.Results = []ResultEntry{}
+		db.Save(&rec)
+	}
+}
 
 /*
 func percentChangedCreds() map[string]float {

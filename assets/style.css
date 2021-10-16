@@ -126,6 +126,13 @@ td img {
     width: 1.8em;
 }
 
+.persisted {
+    background-image: url("/assets/bones.png");
+    background-repeat: no-repeat;
+    background-size: 80%;
+    background-position: center;
+}
+
 
 /* form styles
 –––––––––––––––––––––––––––––––––––––––––– */

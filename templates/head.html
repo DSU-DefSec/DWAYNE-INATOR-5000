@@ -31,6 +31,12 @@
                     <a href="/injects">injects</a>
                     {{ end }}
                 {{ end }}
+                {{ if .m.Persists }}
+                <a href="/persist">persists</a>
+                {{ end }}
+                {{ if .user.IsAdmin }}
+                <a href="/settings">settings</a>
+                {{ end }}
                 {{ if .user.IsValid }}
                 <a href="/logout">logout</a>
                 {{ else }}

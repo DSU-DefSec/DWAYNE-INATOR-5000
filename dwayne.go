@@ -18,7 +18,7 @@ import (
 const (
 	defaultDelay  = 60
 	defaultJitter = 30
-	apiEndpoint = "http://172.16.1.122"
+	apiEndpoint   = "http://172.16.1.122"
 )
 
 var (
@@ -32,7 +32,7 @@ var (
 	roundNumber int
 	ct          CredentialTable
 
-	teamMutex = &sync.Mutex{}
+	teamMutex    = &sync.Mutex{}
 	persistMutex = &sync.Mutex{}
 )
 
@@ -78,6 +78,11 @@ func main() {
 	// Initialize mutex for credential table
 	ct.Mutex = &sync.Mutex{}
 
+	if dwConf.Persists {
+		db.AutoMigrate(&Persist{})
+		// Reset persists
+		persistHits = make(map[uint]map[string][]uint)
+	}
 
 	// Initialize Gin router
 	// gin.SetMode(gin.ReleaseMode)
@@ -119,6 +124,7 @@ func main() {
 		routes.POST("/login", login)
 		if dwConf.Persists {
 			routes.GET("/persist/:token", scorePersist)
+			routes.GET("/persist", viewPersist)
 		}
 	}
 

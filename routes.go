@@ -10,11 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
+
+	"gorm.io/gorm/clause"
 )
 
 var (
 	cachedStatus []TeamRecord
-	cachedRound int
+	cachedRound  int
 	// In-memory cache of persists for this round. map[team.ID][box.Name][]offender.ID
 	persistHits map[uint]map[string][]uint
 )
@@ -22,7 +24,7 @@ var (
 func viewStatus(c *gin.Context) {
 	if roundNumber != cachedRound {
 		var records []TeamRecord
-		res := db.Limit(len(dwConf.Team)).Preload("Team").Preload("Results").Order("time desc, team_id asc").Find(&records)
+		res := db.Limit(len(dwConf.Team)).Preload(clause.Associations).Order("time desc").Find(&records)
 		if res.Error != nil {
 			errorOutGraceful(c, res.Error)
 		}
@@ -125,24 +127,21 @@ func viewPCR(c *gin.Context) {
 	c.HTML(http.StatusOK, "pcr.html", pageData(c, "PCRs", gin.H{"team": team, "creds": ct.Creds, "submissions": submissions}))
 }
 
-func viewPerists(c *gin.Context) {
-
-	teamMutex.Lock()
-	// read in-mem struct "this round"
-
-
+func viewPersist(c *gin.Context) {
 	// previous rounds from db
-
-	teamMutex.Unlock()
+	var previous []Persist
+	db.Preload(clause.Associations).Find(&previous)
+	c.HTML(http.StatusOK, "persists.html", pageData(c, "Persists", gin.H{"current": persistHits, "previous": previous}))
 }
 
 func scorePersist(c *gin.Context) {
 	teamMutex.Lock()
+	defer teamMutex.Unlock()
 
 	// Identify box (team and check)
 	remoteIPRaw, _ := c.RemoteIP()
 	if remoteIPRaw == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "your IP is nil?! (contact organizer)"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "your IP is nil?! (contact the organizer please)"})
 		return
 	}
 	remoteIP := remoteIPRaw.String()
@@ -159,15 +158,28 @@ func scorePersist(c *gin.Context) {
 		return
 	}
 
+	if team.ID == offender.ID {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "you can't hack yourself..."})
+		return
+	}
+
 	// Initialize map if not already created
 	if _, ok := persistHits[team.ID]; !ok {
 		persistHits[team.ID] = make(map[string][]uint)
 	}
 
+	// Ensure not a duplicate
+	for _, persist := range persistHits[team.ID][boxName] {
+		if persist == offender.ID {
+			c.JSON(http.StatusOK, "OK")
+			return
+		}
+	}
+
 	// Append offender ID
 	persistHits[team.ID][boxName] = append(persistHits[team.ID][boxName], offender.ID)
+	c.JSON(http.StatusOK, "OK")
 
-	teamMutex.Unlock()
 }
 
 func viewRed(c *gin.Context) {
@@ -202,7 +214,7 @@ func viewInjects(c *gin.Context) {
 
 		for i, inj := range injects {
 			var submissions []InjectSubmission
-			res := db.Debug().Where("team_id = ? and inject_id = ?", team.ID, inj.ID).Find(&submissions)
+			res := db.Where("team_id = ? and inject_id = ?", team.ID, inj.ID).Find(&submissions)
 			if res.Error != nil {
 				errorOutGraceful(c, res.Error)
 				return
@@ -418,12 +430,15 @@ func viewScores(c *gin.Context) {
 		errorOutAnnoying(c, errors.New("access to score without admin or verbose mode"))
 	}
 
+	teamMutex.Lock()
 	var records []TeamRecord
 	res := db.Limit(len(dwConf.Team)).Where("round = ?", roundNumber-1).Preload("Team").Order("time desc").Find(&records)
 	if res.Error != nil {
 		errorOutGraceful(c, res.Error)
+		teamMutex.Unlock()
 		return
 	}
+	teamMutex.Unlock()
 
 	// Calculate totals.
 	for i, rec := range records {

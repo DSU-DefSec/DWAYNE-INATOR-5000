@@ -1,3 +1,42 @@
 {{ template "head.html" . }}
 
+<br>
+Welcome to the competition!
+
+<br>
+<br>
+You can find the OpenVPN file in the Discord. This is the recommended way to connect to the environment. You can also use <a href="http://h5.defsec.club">the IALab</a>, which will allow you to issue resets (resets cost 100 points each, and will be added at the end of the competition).
+
+<br>
+<br>
+You can see your images and their external IP addresses from the "team" view above.
+
+<br>
+<br>
+Rules:
+<ol>
+  <li>Don't delete the perisistence binaries (persistX where X is a team number). Try to avoid cheese (such as deleting curl/wget), or firewalling off the scoring engine.</li>
+  <li>Have fun :)</li>
+</ol>
+
+Password changes are CCDC-style, and thus done via Injects. Check out the injects tab for more information.
+<br>
+<br>
+
+This is a purple team competition, so you get points for attacking other teams! Hit the scoring engine with an HTTP GET request at <code>http://10.30.0.100/persist/TOKEN</code>, where TOKEN is your team token that we've given to you. You must request that URL from the machine that you've hacked.
+
+<br>
+<br>
+If that's a hassle, we've also put persistence binaries (persistX.exe and persistX where X is team number) in the executable path of all images.
+
+<br>
+<br>
+When a team gets persistence on a box, checks on that box will show up with crossbones behind them on the main status page. Check out the <a href="/persist">persist</a> page above for more information.
+<br>
+<br>
+If you need help, message #2021-cyberconquest-akira, @Officers in the Discord, or DM any of us.
+
+<br>
+<br>
+<i>Run by <a href="https://defsec.club">DSU DefSec Club</a>.</i>
 {{ template "feet.html" . }}

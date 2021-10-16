@@ -24,7 +24,15 @@
     <th>Service</th>
     <th>SLA</th>
     <th>Injects</th>
+    {{ if $m.Red }}
     <th>Red Team</th>
+    {{ end }}
+    {{ if $m.Persists }}
+    <th>Lost Points</th>
+    <th>Points Stolen</th>
+    <th>Hacker Points</th>
+    {{ end }}
+    <th>Reset Penalties</th>
     <th>Total</th>
 
     {{ range $index, $record := .records }}
@@ -39,18 +47,26 @@
         {{ else }}
             <td>{{ $record.Team.Name }}</td>
         {{ end }}
-            <td>{{ $record.ServicePoints }}</td>
-            <td>{{ $record.SlaViolations }}</td>
-            {{ if eq $record.TeamID $team.ID }}
-                <td>
-                    <a style="text-align: center" href="/injects">
-                        {{ $record.InjectPoints }}
-                    </a>
-                </td>
-            {{ else }}
-                <td>{{ $record.InjectPoints }}</td>
-            {{ end }}
-            <td>{{ $record.RedTeamPoints }}</td>
+        <td>{{ $record.ServicePoints }}</td>
+        <td>{{ $record.SlaViolations }}</td>
+        {{ if eq $record.TeamID $team.ID }}
+            <td>
+                <a style="text-align: center" href="/injects">
+                    {{ $record.InjectPoints }}
+                </a>
+            </td>
+        {{ else }}
+            <td>{{ $record.InjectPoints }}</td>
+        {{ end }}
+        {{ if $m.Red }}
+        <td>{{ $record.RedTeamPoints }}</td>
+        {{ end }}
+        {{ if $m.Persists }}
+        <td>{{ $record.PointsLost }}</td>
+        <td>{{ $record.PointsStolen }}</td>
+        <td>{{ $record.PersistPoints }}</td>
+        {{ end  }}
+        <td>{{ $record.ManualAdjustment }}</td>
         <td><b>{{ $record.Total }}</b></td>
     </tr>
     {{ end }}
@@ -66,7 +82,7 @@
 {{ else }}
 <br>
 <p style="text-align: center">
-No scores yet! Wait for the first scoring round to conclude.
+⌛ No scores yet! Wait for the first scoring round to conclude.
 </p>
 {{ end }}
 

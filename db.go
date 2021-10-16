@@ -28,34 +28,37 @@ type ResultEntry struct {
 }
 
 type TeamRecord struct {
-	ID            uint
-	Time          time.Time
-	TeamID        uint
-	Team          TeamData
-	Round         int
-	Results       []ResultEntry
-	// Others persisting on us.
-	Persists      []Persist
-	// Us persisting on others.
-	Hacks      []Persist
-	RedTeamPoints int
-	PersistPoints int
-	ServicePoints int
-	InjectPoints  int
-	SlaViolations int
+	ID               uint
+	Time             time.Time
+	TeamID           uint
+	Team             TeamData
+	Round            int
+	Results          []ResultEntry
+	RedTeamPoints    int
+	ServicePoints    int
+	InjectPoints     int
+	SlaViolations    int
+	ManualAdjustment int
 	// Field must be calculated before displaying.
 	// We don't want to hardcode weights.
-	Total int `json:"total"`
+	Total int
+
+	// Others persisting on us.
+	Persists      []Persist
+	PointsLost    int
+	PointsStolen  int
+	PersistPoints int
 }
 
 type Persist struct {
-	Round int
-	Box string
-	TeamID uint
-	Team TeamData
+	ID           uint
+	Round        int
+	Box          string
+	TeamID       uint
+	Team         TeamData
 	TeamRecordID uint
-	OffenderID uint
-	Offender TeamData
+	OffenderID   uint
+	Offender     TeamData
 }
 
 type SLA struct {
@@ -68,7 +71,7 @@ type SLA struct {
 type TeamData struct {
 	ID           uint
 	Name, IP, Pw string
-	Token string
+	Token        string
 }
 
 type InjectSubmission struct {
