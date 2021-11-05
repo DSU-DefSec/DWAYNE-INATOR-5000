@@ -53,8 +53,7 @@ func (c Ftp) Run(teamID uint, boxIp string, res chan Result) {
 		r, err := conn.Retr(file.Name)
 		if err != nil {
 			res <- Result{
-				Status: true,
-				Error:  "ftp login suceeded",
+				Error:  "failed to retrieve file " + file.Name,
 				Debug:  "creds used were " + username + ":" + password,
 			}
 			return
