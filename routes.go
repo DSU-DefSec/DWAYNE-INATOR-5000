@@ -242,6 +242,59 @@ func viewInjects(c *gin.Context) {
 	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": injects, "time": time.Now()}))
 }
 
+func injectFeed(c *gin.Context) {
+	team := getUser(c)
+	injectID, err := strconv.Atoi(c.Param("inject"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid InjectID"))
+		return
+	}
+	submissionId, err := strconv.Atoi(c.Param("submission"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("submissionId is not a number"))
+		return
+	}
+	var submission InjectSubmission
+	res := db.Find(&submission, "id = ? and team_id = ? and inject_id = ?", submissionId, team.ID, injectID)
+	if res.Error != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+	fmt.Println(submission, err, submissionId)
+	if err != nil || submission.Updated.IsZero() {
+		errorOutAnnoying(c, errors.New("invalid team or inject id"))
+		return
+	}
+	submission.Invalid = true
+	submission.Updated = time.Now()
+	res = db.Save(submission)
+	if res.Error != nil {
+		errorPrint(res.Error)
+	}
+	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(submission.InjectID)))
+}
+
+func createInject(c *gin.Context) {
+	apiKey := c.GetHeader("X-Api-Key")
+	if apiKey != dwConf.InjectAPIKey {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid key"})
+		return
+	}
+	var newInject Inject
+	err := c.BindJSON(&newInject)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	res := db.Create(&newInject)
+	if res.Error != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"status": "OK"})
+}
+
+
 func viewInject(c *gin.Context) {
 	// view individual inject
 	injectID, err := strconv.Atoi(c.Param("inject"))
@@ -279,7 +332,6 @@ func viewInject(c *gin.Context) {
 func submitInject(c *gin.Context) {
 	team := getUser(c)
 	c.Request.ParseForm()
-	action := c.Request.Form.Get("action")
 
 	injectID, err := strconv.Atoi(c.Param("inject"))
 	if err != nil {
@@ -294,11 +346,19 @@ func submitInject(c *gin.Context) {
 		return
 	}
 
-	if !team.IsAdmin() && action == "" {
+	if !team.IsAdmin() {
 		file, err := c.FormFile("submission")
 		if err != nil {
 			c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
 			return
+		}
+		if len(file.Filename) < 4 || file.Filename[len(file.Filename)-4:] != ".pdf" {
+			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must have a .PDF extension.", "inject": inject}))
+				return
+		}
+		if len(file.Header["Content-Type"]) != 1 || file.Header["Content-Type"][0] != "application/pdf" {
+			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must be a PDF.", "inject": inject}))
+				return
 		}
 		newSubmission := InjectSubmission{
 			Time:     time.Now(),
@@ -310,45 +370,53 @@ func submitInject(c *gin.Context) {
 		}
 
 		if err := c.SaveUploadedFile(file, "submissions/"+newSubmission.DiskFile); err != nil {
-			c.HTML(http.StatusOK, "injects.html", pageData(c, "Injects", gin.H{"error": "unable to save file"}))
+			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "unable to save file", "inject": inject}))
 			return
 		}
 
 		if res := db.Save(&newSubmission); res.Error != nil {
-			c.HTML(http.StatusOK, "injects.html", pageData(c, "Injects", gin.H{"error": res.Error}))
+			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": res.Error, "inject": inject}))
 			return
 		}
-	} else if action == "invalid" {
-		submissionId, err := strconv.Atoi(c.Request.Form.Get("submission"))
-		if err != nil {
-			errorOutAnnoying(c, errors.New("submissionId is not a number"))
-			return
-		}
-		var submission InjectSubmission
-		res := db.Find(&submission, "id = ? and team = ? and inject_id = ?", submissionId, team.Name, inject.ID)
-		if res.Error != nil {
-			errorOutGraceful(c, err)
-			return
-		}
-		fmt.Println(submission, err, submissionId)
-		if err != nil || submission.Updated.IsZero() {
-			errorOutAnnoying(c, errors.New("invalid diskfile passed to inject invalidation"))
-			return
-		}
-		submission.Invalid = true
-		submission.Updated = time.Now()
-		res = db.Save(submission)
-		if res.Error != nil {
-			errorPrint(res.Error)
-		}
+	} else {
+		c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Sorry boss, admins can't submit injects.", "inject": inject}))
 
 	}
-	// mark invalid:
-	// mark invalid
-	// grade:
-	// check if admin
-	// check for team/inject/grade
+
 	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
+}
+
+
+func invalidateInject(c *gin.Context) {
+	team := getUser(c)
+	injectID, err := strconv.Atoi(c.Param("inject"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid InjectID"))
+		return
+	}
+	submissionId, err := strconv.Atoi(c.Param("submission"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("submissionId is not a number"))
+		return
+	}
+	var submission InjectSubmission
+	res := db.Find(&submission, "id = ? and team_id = ? and inject_id = ?", submissionId, team.ID, injectID)
+	if res.Error != nil {
+		errorOutGraceful(c, err)
+		return
+	}
+	fmt.Println(submission, err, submissionId)
+	if err != nil || submission.Updated.IsZero() {
+		errorOutAnnoying(c, errors.New("invalid team or inject id"))
+		return
+	}
+	submission.Invalid = true
+	submission.Updated = time.Now()
+	res = db.Save(submission)
+	if res.Error != nil {
+		errorPrint(res.Error)
+	}
+	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(submission.InjectID)))
 }
 
 func gradeInject(c *gin.Context) {

@@ -13,6 +13,10 @@ You can see your images and their external IP addresses from the "team" view abo
 
 <br>
 <br>
+Some default users are iwata, saski, koyama, and ishida. Default password for everything is </code>Password1!</code>. Your pfSense is in scope! But the credentials are not default, so you can choose whether or not to bring it "in scope".
+
+<br>
+<br>
 Rules:
 <ol>
   <li>Don't delete the perisistence binaries (persistX where X is a team number). Try to avoid cheese (such as deleting curl/wget), or firewalling off the scoring engine.</li>
@@ -27,11 +31,12 @@ This is a purple team competition, so you get points for attacking other teams! 
 
 <br>
 <br>
-If that's a hassle, we've also put persistence binaries (persistX.exe and persistX where X is team number) in the executable path of all images.
+When a team gets persistence on a box, checks on that box will show up with crossbones behind them on the main status page. Check out the <a href="/persist">persist</a> page above for more information.
 
 <br>
 <br>
-When a team gets persistence on a box, checks on that box will show up with crossbones behind them on the main status page. Check out the <a href="/persist">persist</a> page above for more information.
+Everyone who has persistence on a box steals points from the team who owns it. For example, if a box generates 20 points (two checks), and they're both up, your persistence on the box will net you 10 points (plus another 10 hack points), while the owner only gets 10 for the entire box. If no checks are green, nobody gets any points. The point is to incentivize keeping services up and kicking out other people's persistence.
+
 <br>
 <br>
 If you need help, message #2021-cyberconquest-akira, @Officers in the Discord, or DM any of us.

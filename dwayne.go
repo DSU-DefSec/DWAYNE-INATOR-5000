@@ -57,7 +57,11 @@ func main() {
 		log.Fatal("Failed to connect database!")
 	}
 
-	db.AutoMigrate(&ResultEntry{}, &TeamRecord{}, &Inject{}, &InjectSubmission{}, &TeamData{}, &SLA{})
+	db.AutoMigrate(&ResultEntry{}, &TeamRecord{}, &Inject{}, &InjectSubmission{}, &TeamData{}, &SLA{}, &Persist{})
+
+	if dwConf.Persists {
+		persistHits = make(map[uint]map[string][]uint)
+	}
 
 	// Assign team IDs
 	for i := range dwConf.Team {
@@ -78,11 +82,6 @@ func main() {
 	// Initialize mutex for credential table
 	ct.Mutex = &sync.Mutex{}
 
-	if dwConf.Persists {
-		db.AutoMigrate(&Persist{})
-		// Reset persists
-		persistHits = make(map[uint]map[string][]uint)
-	}
 
 	// Initialize Gin router
 	// gin.SetMode(gin.ReleaseMode)
@@ -126,6 +125,10 @@ func main() {
 			routes.GET("/persist/:token", scorePersist)
 			routes.GET("/persist", viewPersist)
 		}
+
+		// Has API key check. If more API routes are added in the future,
+		// add own endpoint group with auth middleware
+		routes.POST("/injects", createInject)
 	}
 
 	authRoutes := routes.Group("/")
@@ -147,10 +150,12 @@ func main() {
 
 		// Injects
 		authRoutes.GET("/injects", viewInjects)
+		authRoutes.GET("/injectfeed", injectFeed)
 		authRoutes.GET("/injects/:inject", viewInject)
 		authRoutes.POST("/injects/:inject", submitInject)
+		authRoutes.POST("/injects/:inject/:submission/invalid", invalidateInject)
 		authRoutes.GET("/injects/:inject/:submission/grade", gradeInject)
-		authRoutes.POST("/injects/:inject/:submission/:team/grade", submitInjectGrade)
+		authRoutes.POST("/injects/:inject/:submission/grade", submitInjectGrade)
 
 		// Resets
 		authRoutes.GET("/reset", viewResets)

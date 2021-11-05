@@ -6,6 +6,13 @@
 {{ $loc := .loc }}
 {{ $user := .user }}
 
+{{ if .error }}
+	{{ template "error.html" .error }}
+	<p style="text-align: center">
+		<a href="/injects/{{ .inject.ID }}">Try again :)</a>
+	</p>
+{{ else }}
+
 {{ if eq .inject.ID 1 }}
 <br>
 Welcome to the password change request portal! Your changes will not process unless you follow the naming convention:
@@ -65,9 +72,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
         </td>
         <td>
             {{ if not .Invalid }}
-            <form method="post" disabled>
-                <input type="hidden" name="action" value="invalid"/>
-                <input type="hidden" name="submission" value="{{ $index }}"/>
+            <form method="post" action="/injects/{{ .InjectID }}/{{ .ID }}/invalid">
                 <input type="submit" value="Mark Invalid"/>
             </form>
             {{ else }}
@@ -118,7 +123,12 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
 {{ end }}
 
 {{ else }}
-<p style="text-align: center">Admin view for PCRs <a href="/pcr">here</a>.</p>
+	{{ if eq .inject.ID 1 }}
+	<p style="text-align: center">Admin view for PCRs <a href="/pcr">here</a>.</p>
+	{{ else }}
+	<p style="text-align: center">Inject feed for admins <a href="/injectfeed">here</a></p>
+	{{ end }}
 {{ end }}
 
+{{ end }}
 {{ template "feet.html" }}

@@ -34,6 +34,8 @@ type config struct {
 	Team          []TeamData
 	Box           []Box
 	Creds         []checks.CredData
+	// Inject API key
+	InjectAPIKey string
 }
 
 type Box struct {
@@ -130,6 +132,11 @@ func checkConfig(conf *config) error {
 
 	if conf.Jitter == 0 {
 		conf.Jitter = 30
+	}
+
+	if conf.InjectAPIKey == "" {
+		log.Println("WARNING: No Inject API Key specified, setting to random UUID")
+		conf.InjectAPIKey = getUUID()
 	}
 
 	if conf.Jitter >= conf.Delay {
