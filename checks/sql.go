@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"regexp"
 	"strings"
+
+	_ "github.com/go-sql-driver/mysql"
 )
 
 type Sql struct {
@@ -30,7 +32,7 @@ func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
 	// Run query
 	q := c.Query[rand.Intn(len(c.Query))]
 
-	db, err := sql.Open(c.Kind, fmt.Sprintf("%s:%s@tcp(%s:%s)/%s", username, password, boxIp, c.Port, q.Database))
+	db, err := sql.Open(c.Kind, fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", username, password, boxIp, c.Port, q.Database))
 	if err != nil {
 		res <- Result{
 			Error: "creating db handle failed",
@@ -44,7 +46,7 @@ func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
 	err = db.PingContext(context.TODO())
 	if err != nil {
 		res <- Result{
-			Error: "db did not respond to ping",
+			Error: "db connection or login failed",
 			Debug: err.Error(),
 		}
 		return

@@ -9,6 +9,7 @@ require (
 	github.com/gin-gonic/gin v1.7.4
 	github.com/go-ldap/ldap/v3 v3.4.1
 	github.com/go-ping/ping v0.0.0-20210911151512-381826476871
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/google/uuid v1.3.0
 	github.com/hirochachacha/go-smb2 v1.0.10
 	github.com/jlaffaye/ftp v0.0.0-20210307004419-5d4190119067

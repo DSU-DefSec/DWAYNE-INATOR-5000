@@ -5,7 +5,6 @@ import (
 	"math/rand"
 	"regexp"
 	"strconv"
-	"time"
 
 	"github.com/jlaffaye/ftp"
 )
@@ -22,7 +21,7 @@ type FtpFile struct {
 }
 
 func (c Ftp) Run(teamID uint, boxIp string, res chan Result) {
-	conn, err := ftp.Dial(boxIp+":"+strconv.Itoa(c.Port), ftp.DialWithTimeout(time.Duration(GlobalTimeout)*time.Second))
+	conn, err := ftp.Dial(boxIp+":"+strconv.Itoa(c.Port), ftp.DialWithTimeout(GlobalTimeout))
 	if err != nil {
 		res <- Result{
 			Error: "ftp connection failed",

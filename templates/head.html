@@ -18,6 +18,7 @@
             </a>
             <div>
                 <a href="/info">info</a>
+                <a href="/">status</a>
                 {{ if or .m.Verbose (or .user.IsAdmin .user.IsRed) }}
                 <a href="/scores">scores</a>
                 {{ end }}

@@ -157,6 +157,8 @@ func checkConfig(conf *config) error {
 			return errors.New("illegal config: invalid value for timeout: " + err.Error())
 		}
 		checks.GlobalTimeout = dur
+	} else {
+		checks.GlobalTimeout = time.Second * 30
 	}
 
 	for _, admin := range conf.Admin {

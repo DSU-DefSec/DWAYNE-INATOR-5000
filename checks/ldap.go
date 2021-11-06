@@ -56,6 +56,6 @@ func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
 
 	res <- Result{
 		Status: true,
-		Debug:  "login successful",
+		Debug:  "login successful for username " + username + " password " + password,
 	}
 }
