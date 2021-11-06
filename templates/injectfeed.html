@@ -1,0 +1,82 @@
+{{ template "head.html" . }}
+
+<br>
+<h2>Inject Feed</h2>
+
+{{ $loc := .loc }}
+{{ $user := .user }}
+
+{{ if .error }}
+	{{ template "error.html" .error }}
+	<p style="text-align: center">
+		<a href="/injects/{{ .inject.ID }}">Try again :)</a>
+	</p>
+{{ else }}
+
+<br>
+{{ if .submissions }}
+<table style="width: 100%">
+    {{ if .user.IsAdmin }}
+    <th>Inject</th>
+    <th>Team</th>
+    {{ end }}
+    <th>Time</th>
+    <th>Updated</th>
+    <th>File Name</th>
+    <th></th>
+    <th>Feedback</th>
+    {{ if and $user.IsAdmin (ne .inject.ID 1)}}
+    <th>Grade</th>
+    {{ end }}
+
+    {{ range $submission := .submissions }}
+    <tr {{ if .Invalid }} style="color: gray" {{ end }}>
+        <td style="font-weight: normal">
+            <a href="/injects/{{ .InjectID }}">{{ .InjectID }}</a>
+        </td>
+        <td>
+            <a href="/team/{{ .TeamID }}">{{ .TeamID }}</a>
+        </td>
+        <td style="font-weight: normal">
+            {{ (.Time.In $loc).Format "03:04 PM" }}
+        </td>
+        <td>
+            {{ (.Updated.In $loc).Format "03:04 PM" }}
+        </td>
+        <td>
+            {{ .FileName }}
+        </td>
+        <td>
+            {{ if not .Invalid }}
+            <form method="post" action="/injects/{{ .InjectID }}/{{ .ID }}/invalid">
+                <input type="submit" value="Mark Invalid"/>
+            </form>
+            {{ else }}
+                <i>invalid</i>
+            {{ end }}
+        </td>
+        <td>
+            {{ .Feedback }}
+        </td>
+        {{ if and $user.IsAdmin (ne .InjectID 1)}}
+        <td>
+        <a href="/injects/{{ .InjectID }}/{{ .ID }}/grade">grade</a>
+        </td>
+        {{ end }}
+    </tr>
+    {{ end }}
+
+
+</table>
+{{ else }}
+
+<p style="text-align: center">
+All submissions are taken care of. 😌
+</p>
+
+{{ end }}
+
+<br>
+
+{{ end }}
+{{ template "feet.html" }}

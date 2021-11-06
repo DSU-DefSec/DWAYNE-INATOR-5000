@@ -171,10 +171,12 @@ func processNewRecord(rec *TeamRecord) {
 	}
 	// Add carry-over points
 	rec.RedTeamPoints = currentRec.RedTeamPoints
-	rec.InjectPoints = currentRec.InjectPoints
 	rec.SlaViolations += currentRec.SlaViolations
 	rec.ServicePoints += currentRec.ServicePoints
 	rec.ManualAdjustment += currentRec.ManualAdjustment
+
+	// Calculate inject points
+	rec.InjectPoints = calculateInjects(currentRec)
 
 	if dwConf.Persists {
 		rec.PointsLost += currentRec.PointsLost
@@ -184,6 +186,31 @@ func processNewRecord(rec *TeamRecord) {
 
 	db.Create(&rec)
 
+}
+
+func calculateInjects(rec TeamRecord) int {
+	var injects []Inject
+
+	result := db.Find(&injects)
+	if result.Error != nil {
+		errorPrint(result.Error)
+		return 0
+	}
+
+	totalInjectPoints := 0
+
+	// For each inject, get best submission, multiply by points, and add them up
+	var bestSubmission InjectSubmission
+	for _, inj := range injects {
+		res := db.Limit(1).Where("team_id = ?", rec.TeamID).Order("score desc").Find(&bestSubmission)
+		if res.Error != nil {
+			errorPrint(res.Error)
+			return 0
+		}
+		totalInjectPoints += int((bestSubmission.Score * inj.Points) / 100)
+	}
+
+	return totalInjectPoints
 }
 
 func calculatePersists() {

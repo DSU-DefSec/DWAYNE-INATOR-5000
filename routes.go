@@ -104,14 +104,14 @@ func viewPCR(c *gin.Context) {
 	var submissions []InjectSubmission
 	if team.IsAdmin() {
 		// get all pcr entries
-		res := db.Order("time desc").Preload("Team").Where("inject_id = 1 and feedback = ''").Find(&submissions)
+		res := db.Order("time desc").Preload("Team").Where("inject_id = 1 and graded = true and feedback = ''").Find(&submissions)
 		if res.Error != nil {
 			errorPrint(res.Error)
 			return
 		}
 	} else {
 		// get all pcr entries
-		res := db.Order("time desc").Preload("Team").Where("inject_id = 1 and feedback = '' and team_id = ?", team.ID).Find(&submissions)
+		res := db.Order("time desc").Preload("Team").Where("inject_id = 1 and feedback = '' and graded = true and team_id = ?", team.ID).Find(&submissions)
 		if res.Error != nil {
 			errorPrint(res.Error)
 			return
@@ -214,7 +214,7 @@ func viewInjects(c *gin.Context) {
 
 		for i, inj := range injects {
 			var submissions []InjectSubmission
-			res := db.Where("team_id = ? and inject_id = ?", team.ID, inj.ID).Find(&submissions)
+			res := db.Order("time desc").Where("team_id = ? and inject_id = ?", team.ID, inj.ID).Find(&submissions)
 			if res.Error != nil {
 				errorOutGraceful(c, res.Error)
 				return
@@ -243,35 +243,18 @@ func viewInjects(c *gin.Context) {
 }
 
 func injectFeed(c *gin.Context) {
+	var submissions []InjectSubmission
 	team := getUser(c)
-	injectID, err := strconv.Atoi(c.Param("inject"))
-	if err != nil {
-		errorOutAnnoying(c, errors.New("invalid InjectID"))
+	if !team.IsAdmin() {
+		errorOutAnnoying(c, errors.New("non-admin feed access"))
 		return
 	}
-	submissionId, err := strconv.Atoi(c.Param("submission"))
-	if err != nil {
-		errorOutAnnoying(c, errors.New("submissionId is not a number"))
-		return
-	}
-	var submission InjectSubmission
-	res := db.Find(&submission, "id = ? and team_id = ? and inject_id = ?", submissionId, team.ID, injectID)
+	res := db.Find(&submissions, "invalid = false and feedback = '' and score = 0")
 	if res.Error != nil {
-		errorOutGraceful(c, err)
+		errorOutGraceful(c, res.Error)
 		return
 	}
-	fmt.Println(submission, err, submissionId)
-	if err != nil || submission.Updated.IsZero() {
-		errorOutAnnoying(c, errors.New("invalid team or inject id"))
-		return
-	}
-	submission.Invalid = true
-	submission.Updated = time.Now()
-	res = db.Save(submission)
-	if res.Error != nil {
-		errorPrint(res.Error)
-	}
-	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(submission.InjectID)))
+	c.HTML(http.StatusOK, "injectfeed.html", pageData(c, "inject feed", gin.H{"submissions": submissions}))
 }
 
 func createInject(c *gin.Context) {
@@ -286,6 +269,9 @@ func createInject(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+
+	newInject.Time = time.Now()
+
 	res := db.Create(&newInject)
 	if res.Error != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": res.Error})
@@ -351,14 +337,17 @@ func submitInject(c *gin.Context) {
 			c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
 			return
 		}
-		if len(file.Filename) < 4 || file.Filename[len(file.Filename)-4:] != ".pdf" {
-			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must have a .PDF extension.", "inject": inject}))
-			return
+		if injectID != 1 {
+			if len(file.Filename) < 4 || file.Filename[len(file.Filename)-4:] != ".pdf" {
+				c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must have a .PDF extension.", "inject": inject}))
+				return
+			}
+			if len(file.Header["Content-Type"]) != 1 || file.Header["Content-Type"][0] != "application/pdf" {
+				c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must be a PDF.", "inject": inject}))
+				return
+			}
 		}
-		if len(file.Header["Content-Type"]) != 1 || file.Header["Content-Type"][0] != "application/pdf" {
-			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must be a PDF.", "inject": inject}))
-			return
-		}
+
 		newSubmission := InjectSubmission{
 			Time:     time.Now(),
 			Updated:  time.Now(),
@@ -379,7 +368,6 @@ func submitInject(c *gin.Context) {
 		}
 	} else {
 		c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Sorry boss, admins can't submit injects.", "inject": inject}))
-
 	}
 
 	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
@@ -398,7 +386,7 @@ func invalidateInject(c *gin.Context) {
 		return
 	}
 	var submission InjectSubmission
-	res := db.Find(&submission, "id = ? and team_id = ? and inject_id = ?", submissionId, team.ID, injectID)
+	res := db.Find(&submission, "id = ? and inject_id = ?", submissionId, injectID)
 	if res.Error != nil {
 		errorOutGraceful(c, err)
 		return
@@ -406,6 +394,10 @@ func invalidateInject(c *gin.Context) {
 	fmt.Println(submission, err, submissionId)
 	if err != nil || submission.Updated.IsZero() {
 		errorOutAnnoying(c, errors.New("invalid team or inject id"))
+		return
+	}
+	if !team.IsAdmin() && team.ID != submission.TeamID {
+		errorOutAnnoying(c, errors.New("non-admin and non-team invalidation access"))
 		return
 	}
 	submission.Invalid = true
@@ -426,7 +418,7 @@ func gradeInject(c *gin.Context) {
 	}
 
 	injectId, err := strconv.Atoi(c.Param("inject"))
-	if err != nil || injectId > len(injects)-1 {
+	if err != nil {
 		errorOutAnnoying(c, errors.New("invalid inject id"))
 		return
 	}
@@ -440,7 +432,7 @@ func gradeInject(c *gin.Context) {
 			errorOutAnnoying(c, errors.New("submissionId is not a number"))
 			return
 		}
-		res := db.Find(&submission, "id = ?, team = ?, inject_id = ?", submissionId, team.Name, injectId)
+		res := db.First(&submission, "id = ? and inject_id = ?", submissionId, injectId)
 		if res.Error != nil {
 			errorOutGraceful(c, err)
 			return
@@ -451,16 +443,9 @@ func gradeInject(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "grade.html", pageData(c, "grading", gin.H{"submission": submission}))
-
 }
 
 func submitInjectGrade(c *gin.Context) {
-	team := c.PostForm("team")
-	injectId, err := strconv.Atoi(c.PostForm("injectId"))
-	if err != nil {
-		errorOutGraceful(c, err)
-		return
-	}
 	submissionId, err := strconv.Atoi(c.Param("submission"))
 	if err != nil {
 		errorOutAnnoying(c, errors.New("submissionId is not a number"))
@@ -469,26 +454,27 @@ func submitInjectGrade(c *gin.Context) {
 
 	var submission InjectSubmission
 
-	res := db.Find(&submission, "id = ?, team = ?, inject_id = ?", submissionId, team, injectId)
+	res := db.Find(&submission, "id = ?", submissionId)
 	if res.Error != nil {
 		errorOutGraceful(c, err)
 		return
 	}
 
-	submission.Score, err = strconv.Atoi(c.PostForm("grade"))
+	submission.Score, err = strconv.Atoi(c.PostForm("score"))
 	if err != nil {
 		errorOutGraceful(c, err)
 		return
 	}
-	submission.Feedback = c.PostForm("feedback")
 
+	submission.Graded = true
+	submission.Feedback = c.PostForm("feedback")
 	res = db.Save(&submission)
 	if res.Error != nil {
 		errorPrint(res.Error)
 	}
 
-	fmt.Println("Grade: ", submission.Score, "\nFeedback: ", submission.Feedback)
-	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(injectId))
+	fmt.Println("Score: ", submission.Score, "\nFeedback: ", submission.Feedback)
+	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(submission.InjectID)))
 }
 
 func viewScores(c *gin.Context) {

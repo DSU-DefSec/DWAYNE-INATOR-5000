@@ -37,6 +37,12 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
 <br>
 <br>
 
+{{ else }}
+
+{{ .inject.Body }}
+
+<br>
+
 {{ end }}
 
 <br>
@@ -54,7 +60,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
     <th>Grade</th>
     {{ end }}
 
-    {{ range $index, $submission := .submissions }}
+    {{ range $submission := .submissions }}
     <tr {{ if .Invalid }} style="color: gray" {{ end }}>
         {{ if $user.IsAdmin }}
         <td style="font-weight: normal">
@@ -76,7 +82,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
                 <input type="submit" value="Mark Invalid"/>
             </form>
             {{ else }}
-                {{ if eq .InjectID 1 }}
+                {{ if and (eq .InjectID 1) .Graded }}
                 <i>processed</i>
                 {{ else }}
                 <i>invalid</i>
@@ -84,7 +90,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
             {{ end }}
         </td>
         <td>
-            {{ if and (and (eq .InjectID 1) .Invalid) (eq .Feedback "") }}
+            {{ if and (and (eq .InjectID 1) .Invalid) (and (eq .Feedback "") .Graded) }}
             👍
             {{ else }}
             {{ .Feedback }}
@@ -92,7 +98,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
         </td>
         {{ if and $user.IsAdmin (ne .InjectID 1)}}
         <td>
-        <a href="/injects/{{ .InjectId }}/{{ $index }}/grade">grade</a>
+        <a href="/injects/{{ .InjectID }}/{{ .ID }}/grade">grade</a>
         </td>
         {{ end }}
     </tr>
@@ -126,7 +132,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
 	{{ if eq .inject.ID 1 }}
 	<p style="text-align: center">Admin view for PCRs <a href="/pcr">here</a>.</p>
 	{{ else }}
-	<p style="text-align: center">Inject feed for admins <a href="/injectfeed">here</a></p>
+	<p style="text-align: center">Inject feed for admins <a href="/injectfeed">here</a>.</p>
 	{{ end }}
 {{ end }}
 

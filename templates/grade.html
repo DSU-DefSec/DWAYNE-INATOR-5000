@@ -1,18 +1,19 @@
 {{ template "head.html" . }}
 
+
 <br>
 <h2>Grade Inject</h2>
 
-<embed height="1100px" width="100%" src="/submissions/{{ .DisFile }}" type="application/pdf" download="{{ .Team.ID }}.pdf"/>
+<embed height="900px" width="100%" src="/submissions/{{ .submission.DiskFile }}" type="application/pdf" download="{{ .submission.Team.ID }}.pdf"/>
 
+<br>
+<br>
 <form id="gradeInject" method="post" enctype="multipart/form-data">
-  <label for="grade"> Grade: </label><br>
-  <input type="text" id="grade" name="grade"><br>
+  <label for="grade"> Grade (percentage, 0 to 100): </label><br>
+  <input type="text" id="score" name="score" {{ if .submission.Score }} value="{{ .submission.Score }}" {{ end }}><br>
   <label for="feedback"> Feedback: </label>
-  <textarea id="feedback" name="feedback" style="height:20px;"></textarea>
-  <input type="hidden" id="injectId" name="injectId" value="{{ .InjectID }}">
-  <input type="hidden" id="diskfile" name="diskfile" value="{{ .DiskFile }}">
-  <input type="hidden" id="team" name="team" value="{{ .Team.ID }}">
+  <textarea id="feedback" name="feedback" {{ if .submission.Feedback }} placeholder="{{ .submission.Feedback }}" {{ end }}></textarea>
+  <input type="hidden" id="submissionID" name="submissionID" value="{{ .submission.ID }}">
   <input type="submit" value="submit">
 </form>
 
