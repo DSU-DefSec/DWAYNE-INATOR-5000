@@ -53,8 +53,8 @@ func (c Ftp) Run(teamID uint, boxIp string, res chan Result) {
 		r, err := conn.Retr(file.Name)
 		if err != nil {
 			res <- Result{
-				Error:  "failed to retrieve file " + file.Name,
-				Debug:  "creds used were " + username + ":" + password,
+				Error: "failed to retrieve file " + file.Name,
+				Debug: "creds used were " + username + ":" + password,
 			}
 			return
 		}
@@ -101,6 +101,7 @@ func (c Ftp) Run(teamID uint, boxIp string, res chan Result) {
 			}
 		}
 	}
+
 	res <- Result{
 		Status: true,
 		Debug:  "creds used were " + username + ":" + password,

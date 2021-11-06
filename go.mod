@@ -10,13 +10,13 @@ require (
 	github.com/go-ldap/ldap/v3 v3.4.1
 	github.com/go-ping/ping v0.0.0-20210911151512-381826476871
 	github.com/google/uuid v1.3.0
+	github.com/hirochachacha/go-smb2 v1.0.10
 	github.com/jlaffaye/ftp v0.0.0-20210307004419-5d4190119067
 	github.com/masterzen/winrm v0.0.0-20210623064412-3b76017826b0
 	github.com/miekg/dns v1.1.43
 	github.com/mitchellh/go-vnc v0.0.0-20150629162542-723ed9867aed
 	github.com/pkg/errors v0.9.1
 	github.com/pmezard/go-difflib v1.0.0
-	github.com/stacktitan/smb v0.0.0-20190531122847-da9a425dceb8
 	golang.org/x/crypto v0.0.0-20210921155107-089bfa567519
 	gonum.org/v1/plot v0.10.0
 	gorm.io/driver/sqlite v1.1.6
@@ -29,6 +29,7 @@ require (
 	github.com/ajstarks/svgo v0.0.0-20210923152817-c3b6e2f0c527 // indirect
 	github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21 // indirect
 	github.com/fogleman/gg v1.3.0 // indirect
+	github.com/geoffgarside/ber v1.1.0 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect
 	github.com/go-asn1-ber/asn1-ber v1.5.1 // indirect
 	github.com/go-fonts/liberation v0.2.0 // indirect

@@ -22,7 +22,7 @@ func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
 	lconn, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", boxIp, c.Port))
 	if err != nil {
 		res <- Result{
-			Error: "failed to connect to server",
+			Error: "failed to connect",
 			Debug: "login " + username + " password " + password + " failed with error: " + err.Error(),
 		}
 		return
@@ -56,6 +56,6 @@ func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
 
 	res <- Result{
 		Status: true,
-		Debug:  "check ran",
+		Debug:  "login successful",
 	}
 }

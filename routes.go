@@ -294,7 +294,6 @@ func createInject(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
 }
 
-
 func viewInject(c *gin.Context) {
 	// view individual inject
 	injectID, err := strconv.Atoi(c.Param("inject"))
@@ -354,11 +353,11 @@ func submitInject(c *gin.Context) {
 		}
 		if len(file.Filename) < 4 || file.Filename[len(file.Filename)-4:] != ".pdf" {
 			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must have a .PDF extension.", "inject": inject}))
-				return
+			return
 		}
 		if len(file.Header["Content-Type"]) != 1 || file.Header["Content-Type"][0] != "application/pdf" {
 			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must be a PDF.", "inject": inject}))
-				return
+			return
 		}
 		newSubmission := InjectSubmission{
 			Time:     time.Now(),
@@ -385,7 +384,6 @@ func submitInject(c *gin.Context) {
 
 	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
 }
-
 
 func invalidateInject(c *gin.Context) {
 	team := getUser(c)

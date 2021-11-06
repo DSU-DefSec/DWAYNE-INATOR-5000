@@ -1,6 +1,7 @@
 package checks
 
 import (
+	"crypto/tls"
 	"io/ioutil"
 	"math/rand"
 	"net/http"
@@ -34,6 +35,9 @@ func (c Web) Run(teamID uint, boxIp string, res chan Result) {
 		MaxIdleConns:      1,
 		IdleConnTimeout:   GlobalTimeout,
 		DisableKeepAlives: true,
+		TLSClientConfig: &tls.Config{
+			InsecureSkipVerify: true,
+		},
 	}
 	client := &http.Client{Transport: tr}
 	resp, err := client.Get(c.Scheme + "://" + boxIp + ":" + strconv.Itoa(c.Port) + u.Path)

@@ -82,7 +82,6 @@ func main() {
 	// Initialize mutex for credential table
 	ct.Mutex = &sync.Mutex{}
 
-
 	// Initialize Gin router
 	// gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()

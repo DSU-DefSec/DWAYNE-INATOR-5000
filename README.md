@@ -61,6 +61,11 @@ ip = "10.20.x.1"
     
     [[box.ssh]]
 
+    [[box.cmd]]
+    display="icmp"
+    command = "ping -c 4 BOXIP"
+    regex = "4 packets transmitted, 4 received, 0"
+
 
 [[box]]
 name="castle"

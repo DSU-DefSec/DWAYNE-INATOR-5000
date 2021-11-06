@@ -1,17 +1,17 @@
 package checks
 
 import (
-	"net"
-	"strings"
 	"log"
 	"math/rand"
+	"net"
+	"strings"
 	"sync"
 	"time"
 )
 
 var (
 	GlobalTimeout, _ = time.ParseDuration("20s")
-	Creds map[uint]map[string]map[string]string
+	Creds            map[uint]map[string]map[string]string
 	CredLists        []CredData
 )
 
@@ -47,7 +47,6 @@ func getCreds(teamID uint, credList string, checkName string) (string, string) {
 	return "", ""
 }
 
-
 // checks for each service
 type Check interface {
 	Run(uint, string, chan Result)
@@ -70,7 +69,7 @@ type checkBase struct {
 	Name      string // Name is the box name plus the service (ex. lunar-dns)
 	Display   string // Display is the name of the service (ex. dns)
 	IP        string
-	CredList string
+	CredList  string
 	Port      int
 	Anonymous bool
 }
@@ -80,7 +79,6 @@ type CredData struct {
 	Usernames []string
 	DefaultPw string
 }
-
 
 func (c checkBase) FetchName() string {
 	return c.Name

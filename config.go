@@ -42,6 +42,7 @@ type Box struct {
 	Name      string
 	IP        string
 	CheckList []checks.Check
+	Cmd       []checks.Cmd
 	Dns       []checks.Dns
 	Ftp       []checks.Ftp
 	Imap      []checks.Imap
@@ -65,6 +66,9 @@ const (
 func getBoxChecks(b Box) []checks.Check {
 	// Please forgive me
 	checkList := []checks.Check{}
+	for _, c := range b.Cmd {
+		checkList = append(checkList, c)
+	}
 	for _, c := range b.Dns {
 		checkList = append(checkList, c)
 	}
@@ -236,6 +240,19 @@ func checkConfig(conf *config) error {
 		conf.Box[i].CheckList = getBoxChecks(b)
 		for j, c := range conf.Box[i].CheckList {
 			switch c.(type) {
+			case checks.Cmd:
+				ck := c.(checks.Cmd)
+				ck.IP = b.IP
+				if ck.Display == "" {
+					ck.Display = "cmd"
+				}
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + ck.Display
+				}
+				if ck.CredList == "" {
+					ck.Anonymous = true
+				}
+				conf.Box[i].CheckList[j] = ck
 			case checks.Dns:
 				ck := c.(checks.Dns)
 				ck.IP = b.IP
