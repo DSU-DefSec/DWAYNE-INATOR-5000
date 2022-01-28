@@ -20,6 +20,7 @@ type config struct {
 	Event       string
 	Verbose     bool
 	NoPasswords bool
+	EasyPCR     bool
 	// Score persistence or not (for purple team comps)
 	Persists     bool
 	Delay        int

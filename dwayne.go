@@ -142,6 +142,9 @@ func main() {
 
 		// PCRs
 		authRoutes.GET("/pcr", viewPCR)
+		if dwConf.EasyPCR {
+			authRoutes.POST("/pcr", submitPCR)
+		}
 
 		// Red Team
 		authRoutes.GET("/red", viewRed)

@@ -14,6 +14,13 @@
 {{ else }}
 
 {{ if eq .inject.ID 1 }}
+
+    {{ if .m.EasyPCR }}
+    <p style="background-color: #700; padding: 1rem; text-align: center">
+    <b>NOTE:</b> Easy password changes are enabled. Consider using the <a href="/pcr">the PCR portal instead</a>.
+    </p>
+    {{ end }}
+
 <br>
 Welcome to the password change request portal! Your changes will not process unless you follow the naming convention:
 

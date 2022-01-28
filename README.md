@@ -29,7 +29,7 @@ Minimal example:
 event = "Rad Comp" 
 
 [[admin]]
-identifier = "admin"
+name = "admin"
 pw = "ohyeah"
 
 [[team]]
@@ -98,16 +98,17 @@ slapoints = 13       # how many points is an SLA penalty (default sla_threshold 
 
 darkmode = true      # an alternative dark mode stylesheet
 no_passwords = false # disables password change requests. makes all services anonymous
+easypcr = true       # allow easy password changes
 
 # Admins have access to all records and information
 [[admin]]
-identifier = "admin"
+name = "admin"
 pw = "letsallhavefun"
 
 # Red teams will be able to claim red team incidents
 # If no red teams are specified, red reporting is disabled
 [[red]]
-identifier = "red"
+name = "red"
 pw = "HACKTHEPLANET"
 
 # Each team added here will show up on the scoreboard
