@@ -14,11 +14,13 @@ type Ldap struct {
 }
 
 func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
+
+	username, password := getCreds(teamID, c.CredList, c.Name)
+
 	// Set timeout
 	ldap.DefaultTimeout = GlobalTimeout
 
-	username, password := getCreds(teamID, c.CredList, c.Name)
-	// Normal, default ldap check
+	// Connect
 	lconn, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", boxIp, c.Port))
 	if err != nil {
 		res <- Result{

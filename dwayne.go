@@ -95,8 +95,6 @@ func main() {
 
 	r.LoadHTMLGlob("templates/*")
 	r.Static("/assets", "./assets")
-	// TODO: make this an authenticated route
-	r.Static("/submissions", "./submissions")
 	initCookies(r)
 
 	// 404 handler
@@ -162,6 +160,8 @@ func main() {
 		authRoutes.GET("/reset", viewResets)
 		authRoutes.POST("/reset/:id", submitReset)
 
+		// Inject submissions
+		authRoutes.Static("/submissions", "./submissions")
 	}
 
 	var injects []Inject

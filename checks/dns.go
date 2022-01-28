@@ -29,7 +29,7 @@ func (c Dns) Run(teamID uint, boxIp string, res chan Result) {
 	// Setup for dns query
 	var msg dns.Msg
 
-	// switch of kind (A, MX, etc)
+	// switch of kind of record (A, MX, etc)
 	// TODO: add more values
 	switch record.Kind {
 	case "A":

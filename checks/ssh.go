@@ -2,6 +2,7 @@ package checks
 
 import (
 	"math/rand"
+	"os"
 	"regexp"
 	"strconv"
 	"strings"
@@ -12,7 +13,7 @@ import (
 
 type Ssh struct {
 	checkBase
-	PubKey      string
+	PrivKey     string
 	BadAttempts int
 	Command     []commandData
 }
@@ -25,20 +26,37 @@ type commandData struct {
 }
 
 func (c Ssh) Run(teamID uint, boxIp string, res chan Result) {
-	// if  pubkey
-	// var hostKey ssh.PublicKey
-	// pubkey
-	// else
-	username, password := getCreds(teamID, c.CredList, c.Name)
-
 	// Create client config
+	username, password := getCreds(teamID, c.CredList, c.Name)
 	config := &ssh.ClientConfig{
-		User: username,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(password),
-		},
+		User:            username,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         GlobalTimeout,
+	}
+	if c.PrivKey != "" {
+		key, err := os.ReadFile("./checkfiles/" + c.PrivKey)
+		if err != nil {
+			res <- Result{
+				Error: "error opening pubkey",
+				Debug: err.Error(),
+			}
+			return
+		}
+		signer, err := ssh.ParsePrivateKey(key)
+		if err != nil {
+			res <- Result{
+				Error: "error parsing private key",
+				Debug: err.Error(),
+			}
+			return
+		}
+		config.Auth = []ssh.AuthMethod{
+			ssh.PublicKeys(signer),
+		}
+	} else {
+		config.Auth = []ssh.AuthMethod{
+			ssh.Password(password),
+		}
 	}
 
 	for i := 0; i < c.BadAttempts; i++ {
@@ -60,9 +78,16 @@ func (c Ssh) Run(teamID uint, boxIp string, res chan Result) {
 	// Connect to ssh server
 	conn, err := ssh.Dial("tcp", boxIp+":"+strconv.Itoa(c.Port), config)
 	if err != nil {
-		res <- Result{
-			Error: "error logging in to ssh server for creds " + username + ":" + password,
-			Debug: "error: " + err.Error(),
+		if c.PrivKey != "" {
+			res <- Result{
+				Error: "error logging in to ssh server with private key " + c.PrivKey,
+				Debug: "error: " + err.Error(),
+			}
+		} else {
+			res <- Result{
+				Error: "error logging in to ssh server for creds " + username + ":" + password,
+				Debug: "error: " + err.Error(),
+			}
 		}
 		return
 	}

@@ -408,7 +408,7 @@ func checkConfig(conf *config) error {
 				if ck.Port == 0 {
 					ck.Port = 22
 				}
-				if ck.PubKey != "" && ck.BadAttempts != 0 {
+				if ck.PrivKey != "" && ck.BadAttempts != 0 {
 					return errors.New("can not have bad attempts with pubkey for ssh")
 				}
 				for _, r := range ck.Command {

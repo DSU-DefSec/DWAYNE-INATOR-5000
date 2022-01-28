@@ -23,7 +23,7 @@ type urlData struct {
 	Status        int
 	Diff          int
 	Regex         string
-	CompareFile   string // TODO
+	CompareFile   string // TODO implement
 }
 
 func (c Web) Run(teamID uint, boxIp string, res chan Result) {
