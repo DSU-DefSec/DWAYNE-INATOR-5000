@@ -53,7 +53,7 @@ func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
 	}
 
 	// Query the DB
-	// TODO: This is SQL injectable. Figure out Paramerterized queries
+	// TODO: This is SQL injectable. Figure out Paramerterized queries. not that it really matters...
 	rows, err := db.QueryContext(context.TODO(), fmt.Sprintf("SELECT %s FROM %s;", q.Column, q.Table))
 	if err != nil {
 		res <- Result{

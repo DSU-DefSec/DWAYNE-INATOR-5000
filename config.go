@@ -20,6 +20,7 @@ type config struct {
 	Event       string
 	Verbose     bool
 	NoPasswords bool
+	EasyPCR     bool
 	// Score persistence or not (for purple team comps)
 	Persists     bool
 	Delay        int
@@ -433,7 +434,7 @@ func checkConfig(conf *config) error {
 				if ck.Port == 0 {
 					ck.Port = 22
 				}
-				if ck.PubKey != "" && ck.BadAttempts != 0 {
+				if ck.PrivKey != "" && ck.BadAttempts != 0 {
 					return errors.New("can not have bad attempts with pubkey for ssh")
 				}
 				for _, r := range ck.Command {

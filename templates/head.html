@@ -29,6 +29,9 @@
                     {{ if .user.IsRed }}
                     <a href="/red">red</a>
                     {{ else }}
+                    {{ if .m.EasyPCR }}
+                    <a href="/pcr">passwords</a>
+                    {{ end }}
                     <a href="/injects">injects</a>
                     {{ end }}
                 {{ end }}

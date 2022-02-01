@@ -11,10 +11,63 @@
 
 {{ $loc := .loc }}
 
+{{ if .m.EasyPCR }}
+<h3>PCR Tutorial</h3>
+<br>
+
+This is where you can change the passwords that the engine uses to log into your services. If I wanted to change <b>joe</b> and <b>charlie</b>'s passswords for whichever service is currently selected, I would input something like:
+
+<blockquote>
+joe,Password2@<br>
+charlie,Password3#
+</blockquote>
+
+If I wanted to change all the user's passwords (for one service) at a time, I can use <b>all</b>:
+
+<blockquote>
+all,CoolPassword!
+</blockquote>
+
+Any new passwords input will overwrite previous passwords for a service. Newlines and blanks do nothing.
+
+<b>Your submissions will show up at the bottom of this page once the current check round concludes.</b>
+
+You can see your PCR submissions and their status at the <a href="/injects/1">injects portal</a>.
+<br>
+<br>
+
+<form style="width: 100%;" method="POST">
+    {{ if .user.IsAdmin }}
+    <label>Team:
+        <select name="team">
+            {{ range $team := .m.Team }}
+            <option value="{{ .ID }}">{{ .Name }}</option>
+            {{ end }}
+        </select>
+    </label>
+    {{ end }}
+    <label>Check:
+        <select name="check">
+            {{ range $box := .m.Box }}
+                {{ range $check := .CheckList }}
+                    {{ if not .Anonymous }}
+                    <option value="{{ $check.Name }}">{{ $check.Name }}</option>
+                    {{ end }}
+                {{ end }}
+            {{ end }}
+        </select>
+    </label>
+    <br><br>
+    <textarea name="pcr" placeholder="username,password"></textarea>
+    <input style="display: block; margin: 0 auto;" type="submit" value="Submit PCR"/>
+</form>
+<br>
+{{ end }}
+
 <h3>Credential State</h3>
 
 <p style="text-align: center; margin: 1rem 5rem; font-size: 90%">
-<i>This shows the current state of our credential table. If a password for a given user on a given service is here, it will be used. Otherwise, the default password will be used.</i>
+<i>This shows the current state of our credential table, for valid users only. If a password for a given user on a given service is here, it will be used. Otherwise, the default password will be used.</i>
 </p>
 
 {{ if .creds }}
@@ -23,9 +76,7 @@
     <th>Team</th>
     {{ end }}
     <th>Service</th>
-    {{ if or .m.Verbose .user.IsAdmin }}
     <th>Creds</th>
-    {{ end }}
     {{ range $team, $checks := .creds }}
         {{ range $check, $creds := $checks }}
             {{ if or $user.IsAdmin (eq $team $user.ID) }}
@@ -38,14 +89,12 @@
                 <td>
                     {{ $check }}
                 </td>
-                {{ if or $m.Verbose $user.IsAdmin }}
                 <td>
                     {{ range $user, $pass := $creds }}
                         {{ $user }},{{ $pass }}
                         <br>
                     {{ end }}
                 </td>
-                {{ end }}
             </tr>
             {{ end }}
         {{ end }}
@@ -53,7 +102,7 @@
 </table>
 {{ else }}
 <p style="text-align: center">
-No PCRs processed yet :(
+No valid PCRs processed yet :(
 </p>
 {{ end }}
 
@@ -61,7 +110,7 @@ No PCRs processed yet :(
 <h3>Submissions</h3>
 
 <p style="text-align: center; margin: 1rem 5rem; font-size: 90%">
-<i>These are your inject submissions that contribute to the credential table. If you submitted an improperly formatted submission, it is not included here.</i>
+<i>These are your inject submissions that contribute to the credential table. If you submitted an improperly formatted submission, it is not included here. This list DOES include invalid users, if you specified any.</i>
 </p>
 {{ if .submissions }}
 <br>
@@ -70,9 +119,8 @@ No PCRs processed yet :(
     <th>Team</th>
     {{ end }}
     <th>Time</th>
-    {{ if or .m.Verbose .user.IsAdmin }}
+    <th>Name</th>
     <th>Content</th>
-    {{ end }}
     {{ range $i := .submissions }}
         <tr>
             {{ if $user.IsAdmin }}
@@ -83,11 +131,12 @@ No PCRs processed yet :(
             <td>
                 {{ (.Time.In $loc).Format "03:04:05 PM" }}
             </td>
-            {{ if or $m.Verbose $user.IsAdmin }}
+            <td>
+                {{ .FileName }}
+            </td>
             <td>
                 {{ .Content }}
             </td>
-            {{ end }}
         </tr>
     {{ end }}
 </table>

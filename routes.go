@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
 	"sort"
 	"strconv"
 	"time"
@@ -103,14 +104,14 @@ func viewPCR(c *gin.Context) {
 
 	var submissions []InjectSubmission
 	if team.IsAdmin() {
-		// get all pcr entries
+		// Get all PCR entries
 		res := db.Order("time desc").Preload("Team").Where("inject_id = 1 and graded = true and feedback = ''").Find(&submissions)
 		if res.Error != nil {
 			errorPrint(res.Error)
 			return
 		}
 	} else {
-		// get all pcr entries
+		// Get only team's PCRs
 		res := db.Order("time desc").Preload("Team").Where("inject_id = 1 and feedback = '' and graded = true and team_id = ?", team.ID).Find(&submissions)
 		if res.Error != nil {
 			errorPrint(res.Error)
@@ -125,6 +126,47 @@ func viewPCR(c *gin.Context) {
 	}
 
 	c.HTML(http.StatusOK, "pcr.html", pageData(c, "PCRs", gin.H{"team": team, "creds": ct.Creds, "submissions": submissions}))
+}
+
+func submitPCR(c *gin.Context) {
+	team := getUser(c)
+	c.Request.ParseForm()
+
+	if team.IsAdmin() {
+		id, err := strconv.Atoi(c.Request.Form.Get("team"))
+		if err != nil {
+			c.HTML(http.StatusBadRequest, "pcr.html", pageData(c, "PCRs", gin.H{"error": err}))
+			return
+		}
+		if team.Name == "" {
+			c.HTML(http.StatusBadRequest, "pcr.html", pageData(c, "PCRs", gin.H{"error": "Invalid team"}))
+			return
+		}
+		team = getTeam(uint(id))
+	}
+
+	newSubmission := InjectSubmission{
+		Time:     time.Now(),
+		Updated:  time.Now(),
+		TeamID:   team.ID,
+		InjectID: 1,
+		FileName: team.Name + "_" + c.Request.Form.Get("check") + "_PWD_1.txt",
+		DiskFile: uuid.New().String(),
+	}
+
+	if res := db.Save(&newSubmission); res.Error != nil {
+		c.HTML(http.StatusBadRequest, "pcr.html", pageData(c, "PCRs", gin.H{"error": res.Error}))
+		return
+	}
+
+	file, err := os.Create("submissions/" + newSubmission.DiskFile)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "pcr.html", pageData(c, "PCRs", gin.H{"error": "unable to save file"}))
+	}
+	defer file.Close()
+
+	file.WriteString(c.Request.Form.Get("pcr"))
+	c.Redirect(http.StatusSeeOther, "/pcr")
 }
 
 func viewPersist(c *gin.Context) {

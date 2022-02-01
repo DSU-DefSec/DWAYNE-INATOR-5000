@@ -114,20 +114,25 @@ func getUser(c *gin.Context) TeamData {
 func getUserOptional(c *gin.Context) TeamData {
 	userID := sessions.Default(c).Get("id")
 	if userID != nil {
-		for _, team := range dwConf.Admin {
-			if team.ID == userID {
-				return team
-			}
+		return getTeam(userID.(uint))
+	}
+	return TeamData{}
+}
+
+func getTeam(id uint) TeamData {
+	for _, team := range dwConf.Admin {
+		if team.ID == id {
+			return team
 		}
-		for _, team := range dwConf.Team {
-			if team.ID == userID {
-				return team
-			}
+	}
+	for _, team := range dwConf.Team {
+		if team.ID == id {
+			return team
 		}
-		for _, team := range dwConf.Red {
-			if team.ID == userID {
-				return team
-			}
+	}
+	for _, team := range dwConf.Red {
+		if team.ID == id {
+			return team
 		}
 	}
 	return TeamData{}

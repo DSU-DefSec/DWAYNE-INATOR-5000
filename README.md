@@ -9,9 +9,16 @@ Usage
 -----
 
 1. Download this repository (`git clone https://github.com/DSU-DefSec/DWAYNE-INATOR-5000`).
-1. Compile the code (`cd DWAYNE-INATOR-5000; go build`)
-2. Write your configuration in `./dwayne.conf`.
-3. Run the engine: `./DWAYNE-INATOR-5000`
+2. Compile the code (`cd DWAYNE-INATOR-5000; go build`).
+   - Unfortunately, you need `gcc` for `go-sqlite3`.
+3. Save your configuration as `./dwayne.conf`.
+4. Run the engine (`./DWAYNE-INATOR-5000`).
+
+Screenshots
+-----------
+
+![Main Status Page](screenshots/status.png)
+
 
 Configuration
 -------------
@@ -22,7 +29,7 @@ Minimal example:
 event = "Rad Comp" 
 
 [[admin]]
-identifier = "admin"
+name = "admin"
 pw = "ohyeah"
 
 [[team]]
@@ -81,26 +88,27 @@ event = "Awesome Comp" # event title
 
 verbose = true # show more info to competitors
 
-delay = 20 # delay (seconds) between checks (>0) (default 60)
-           # note: the "real" max delay will be timeout+delay+jitter
-jitter = 3  # jitter (seconds) between rounds (0<jitter<delay)
-timeout = 5  # check timeout (must be smaller than delay-jitter)
+delay = 20           # delay (seconds) between checks (>0) (default 60)
+                        # note: the "real" max delay will be timeout+delay+jitter
+jitter = 3           # jitter (seconds) between rounds (0<jitter<delay)
+timeout = 5          # check timeout (must be smaller than delay-jitter)
 
-slathreshold = 6 # how many checks before incurring SLA violation
-slapoints = 13   # how many points is an SLA penalty (default sla_threshold * 2)
+slathreshold = 6     # how many checks before incurring SLA violation
+slapoints = 13       # how many points is an SLA penalty (default sla_threshold * 2)
 
-darkmode = true    # an alternative dark mode stylesheet
-no_passwords = true # disables password change requests. makes all services anonymous
+darkmode = true      # an alternative dark mode stylesheet
+no_passwords = false # disables password change requests. makes all services anonymous
+easypcr = true       # allow easy password changes
 
 # Admins have access to all records and information
 [[admin]]
-identifier = "admin"
+name = "admin"
 pw = "letsallhavefun"
 
 # Red teams will be able to claim red team incidents
 # If no red teams are specified, red reporting is disabled
 [[red]]
-identifier = "red"
+name = "red"
 pw = "HACKTHEPLANET"
 
 # Each team added here will show up on the scoreboard
@@ -140,6 +148,12 @@ defaultpw = "Password3#"
 [[box]]
 name = "village"
 ip = "10.20.x.1"
+
+    # Run command with sh, compare output against regex.
+    # Command must return exit code 0 to pass.
+    [[box.cmd]]
+    command = "python3 ./test.py"
+    regex = "success"
 
     # If you omit a value, it is set to the default
     # For example, if I removed the line port = 4000,
@@ -231,8 +245,8 @@ ip = "10.20.x.1"
         output = "Toby Turtle" # Must match exactly
 
     [[box.ssh]]
-    display = "remote" # you can set the display name for any check
-    pubkey = "village_sshkey"
+    display = "remote"         # you can set the display name for any check
+    privkey = "village_sshkey" # name of private key in checkfiles/
 
     [[box.ssh]]
     badattempts = 2
@@ -252,7 +266,7 @@ ip = "10.20.x.1"
         command = "getent `id`"
         output = '\w.*:[1-9].*:.*'
 
-    [[box.tcp]] # the most simple check
+    [[box.tcp]] # the most simple check. check tcp connect
     port = 4444
 
     [[box.vnc]]
@@ -306,11 +320,6 @@ suffix = "4"
 
     [[box.ssh]]
 ```
-
-Screenshots
------------
-
-![Main Status Page](screenshots/status.png)
 
 Notes
 -----------
