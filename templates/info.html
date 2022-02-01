@@ -1,80 +1,9 @@
 {{ template "head.html" . }}
 
 <br>
-<h3>Connecting</h3>
-Welcome to the competition! (ou, bienvenue à la Ratatouille!). This is a CCDC-Style competition. For more information and resources, please visit <a href="https://wiki.defsec.club/doku.php?id=dcdc">the wiki</a>.
+Competition info here. If this page is not populated, please contact a competition organizer. Or, if the information is elsewhere, please disregard.
 
 <br>
-<br>
-You can find the OpenVPN file in the Discord. This is the recommended way to connect to the environment. You can also use <a href="http://h5.defsec.club">the IALab</a>, which will allow you to issue resets (resets cost 100 points each, and will be subtracted from your score at the end of the competition).
+<i>This engine is proudly <a href="https://github.com/DSU-DefSec/DWAYNE-INATOR-5000">free and open source</a>.</i>
 
-<br>
-<br>
-<h3>Environment</h3>
-If the competition has begun, you can see your images and their external IP addresses from the "team" view above. Replace "X" with your team number to get the external IP. The external IP will be the one you access if using the VPN. Here are the boxes and services in this environment:
-
-<pre>
-NAME            OS              SERVICES                        INTERNAL IP 	EXTERNAL IP
-pfsense		pfsense     	Firewall			192.168.1.1	10.20.X.1
-toulon		Debian 10	SSH, FTP, SCADA			192.168.1.10    10.20.X.10
-havre		Centos 7	SSH, SMB, HTTP			192.168.1.11    10.20.X.11
-paris		Ubuntu 18	SSH, FTP, HTTP, SQL		192.168.1.12    10.20.X.12
-orleans		Ubuntu 20	SSH, ICMP, PLC			192.168.1.13    10.20.X.13
-metz		Win 2012 R2	SMB, IIS			192.168.1.14    10.20.X.14
-rouen		Win 2016	LDAP (DC), DNS, SMB		192.168.1.15    10.20.X.15
-rochelle	Win 2019	HTTP, HTTPS			192.168.1.16    10.20.X.16
-versailles	Win 10		RDP, SMB			192.168.1.17    10.20.X.17
-</pre>
-
-<br>
-<h3>Users</h3>
-The default users in this environment (at the start of the competition) are: 
-
-<br>
-<pre>
-remy**
-linguini**
-emile**
-anton**
-skinner
-django
-colette
-horst
-lalo
-larousse
-mustafa
-git
-ambrister
-cherie
-aimer
-poubelle
-talon
-</pre>
-
-<br>
-Administrators are marked with **. Default password for everything is <code>Password1!</code>.
-
-<br>
-<br>
-Password changes are CCDC-style, and thus done via Injects. Check out the <a href="https://wiki.defsec.club/doku.php?id=scoring_engine#dcdc">wiki</a> under Scoring Engine for more information, or if the competition is live, read the inject posting.
-
-<!--
-This is a purple team competition, so you get points for attacking other teams! Hit the scoring engine with an HTTP GET request at <code>http://10.30.0.100/persist/TOKEN</code>, where TOKEN is your team token that we've given to you. You must request that URL from the machine that you've hacked.
-
-<br>
-<br>
-When a team gets persistence on a box, checks on that box will show up with crossbones behind them on the main status page. Check out the <a href="/persist">persist</a> page above for more information.
-
-<br>
-<br>
-Everyone who has persistence on a box steals points from the team who owns it. For example, if a box generates 20 points (two checks), and they're both up, your persistence on the box will net you 10 points (plus another 10 hack points), while the owner only gets 10 for the entire box. If no checks are green, nobody gets any points. The point is to incentivize keeping services up and kicking out other people's persistence.
--->
-
-<br>
-<br>
-If you need any help, message #2021-ccdc-ratatouille, @Officers in the Discord, or DM any of us.
-
-<br>
-<br>
-<i>Run by <a href="https://defsec.club">DSU DefSec Club</a>.</i>
 {{ template "feet.html" . }}

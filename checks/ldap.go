@@ -1,8 +1,8 @@
 package checks
 
 import (
-	"crypto/tls"
 	"fmt"
+	"strings"
 
 	ldap "github.com/go-ldap/ldap/v3"
 )
@@ -18,8 +18,11 @@ func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
 	ldap.DefaultTimeout = GlobalTimeout
 
 	username, password := getCreds(teamID, c.CredList, c.Name)
-	// Normal, default ldap check
-	lconn, err := ldap.Dial("tcp", fmt.Sprintf("%s:%d", boxIp, c.Port))
+	scheme := "ldap"
+	if c.Encrypted {
+		scheme = "ldaps"
+	}
+	lconn, err := ldap.DialURL(fmt.Sprintf("%s://%s:%d", scheme, boxIp, c.Port))
 	if err != nil {
 		res <- Result{
 			Error: "failed to connect",
@@ -32,24 +35,22 @@ func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
 	// Set message timeout
 	lconn.SetTimeout(GlobalTimeout)
 
-	// Add TLS if needed
-	if c.Encrypted {
-		err = lconn.StartTLS(&tls.Config{InsecureSkipVerify: true})
-		if err != nil {
-			res <- Result{
-				Error: "tls session creation failed",
-				Debug: "login " + username + " password " + password + " failed with error: " + err.Error(),
-			}
-			return
+	// Attempt to login
+	splitDomain := strings.Split(c.Domain, ".")
+	if len(splitDomain) != 2 {
+		res <- Result{
+			Error: "configured domain is not valid (needs to be domain and tld)",
 		}
+		return
+
 	}
 
-	// Attempt to login
-	err = lconn.Bind(username, password)
+	authString := fmt.Sprintf("cn=%s,dc=%s,dc=%s", username, splitDomain[0], splitDomain[1])
+	err = lconn.Bind(authString, password)
 	if err != nil {
 		res <- Result{
 			Error: "login failed for " + username,
-			Debug: "login " + username + " password " + password + " failed with error: " + err.Error(),
+			Debug: "auth string " + authString + ", login " + username + " password " + password + " failed with error: " + err.Error(),
 		}
 		return
 	}

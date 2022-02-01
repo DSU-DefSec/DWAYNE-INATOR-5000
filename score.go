@@ -248,7 +248,7 @@ func calculatePersists() {
 						TeamID:     team,
 						OffenderID: p,
 					})
-					records[p-1].PersistPoints += distributedPoints
+					records[p-1].PersistPoints += distributedPoints / 2
 					records[p-1].PointsStolen += distributedPoints
 				}
 				victim.PointsLost += distributedPoints * len(persists)

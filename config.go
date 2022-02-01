@@ -236,6 +236,31 @@ func checkConfig(conf *config) error {
 		}
 	}
 
+	// if persists, make sure they have tokens
+	if conf.Persists {
+		for _, team := range conf.Team {
+			if team.Token == "" {
+				return errors.New("illegal config: team " + team.Name + " missing persist token")
+			}
+		}
+
+		// look for duplicate token
+		sort.SliceStable(conf.Team, func(i, j int) bool {
+			return conf.Team[i].Token < conf.Team[i].Token
+		})
+
+		for i := 0; i < len(conf.Team)-1; i++ {
+			if conf.Team[i].Token == conf.Team[i+1].Token {
+				return errors.New("illegal config: duplicate team persist tokens found: " + conf.Team[i].Token)
+			}
+		}
+
+		// sort by ip again lol
+		sort.SliceStable(conf.Team, func(i, j int) bool {
+			return conf.Team[i].IP < conf.Team[i].IP
+		})
+	}
+
 	// check validators
 	// please overlook this transgression
 	for i, b := range conf.Box {
