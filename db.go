@@ -24,6 +24,10 @@ type ResultEntry struct {
 	TeamID       uint
 	TeamRecordID uint
 	Round        int
+
+	// Uptime is only used in the uptime view, and not typically updated
+	Uptime int
+
 	checks.Result
 }
 

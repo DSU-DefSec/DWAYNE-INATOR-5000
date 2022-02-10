@@ -17,7 +17,9 @@
                 <h1 style="font-weight: normal; font-size: 1rem; line-height: 0;"><b>{{ .event }}</b> Scoring Engine</h1>
             </a>
             <div>
+                {{ if not .m.DisableInfoPage }}
                 <a href="/info">info</a>
+                {{ end }}
                 <a href="/">status</a>
                 {{ if or .m.Verbose (or .user.IsAdmin .user.IsRed) }}
                 <a href="/scores">scores</a>

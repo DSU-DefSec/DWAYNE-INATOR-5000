@@ -139,6 +139,7 @@ func main() {
 		authRoutes.GET("/export/:team", exportTeamData)
 		authRoutes.GET("/team/:team", viewTeam)
 		authRoutes.GET("/team/:team/:check", viewCheck)
+		authRoutes.GET("/uptime/:team", viewUptime)
 
 		// PCRs
 		authRoutes.GET("/pcr", viewPCR)
@@ -159,12 +160,15 @@ func main() {
 		authRoutes.GET("/injects/:inject/:submission/grade", gradeInject)
 		authRoutes.POST("/injects/:inject/:submission/grade", submitInjectGrade)
 
+		// Inject submissions
+		authRoutes.Static("/submissions", "./submissions")
+
+		// Settings
+		authRoutes.GET("/settings", viewSettings)
+
 		// Resets
 		authRoutes.GET("/reset", viewResets)
 		authRoutes.POST("/reset/:id", submitReset)
-
-		// Inject submissions
-		authRoutes.Static("/submissions", "./submissions")
 	}
 
 	var injects []Inject

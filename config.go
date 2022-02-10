@@ -17,10 +17,11 @@ import (
 )
 
 type config struct {
-	Event       string
-	Verbose     bool
-	NoPasswords bool
-	EasyPCR     bool
+	Event           string
+	Verbose         bool
+	NoPasswords     bool
+	EasyPCR         bool
+	DisableInfoPage bool
 	// Score persistence or not (for purple team comps)
 	Persists     bool
 	Delay        int
@@ -266,6 +267,9 @@ func checkConfig(conf *config) error {
 	// please overlook this transgression
 	for i, b := range conf.Box {
 		conf.Box[i].CheckList = getBoxChecks(b)
+		if b.IP == "" {
+			return errors.New("illegal config: no ip found for box " + b.Name)
+		}
 		for j, c := range conf.Box[i].CheckList {
 			switch c.(type) {
 			case checks.Cmd:

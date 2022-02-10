@@ -70,6 +70,47 @@ func viewTeam(c *gin.Context) {
 	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "records": records}))
 }
 
+func viewUptime(c *gin.Context) {
+	id, err := strconv.Atoi(c.Param("team"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid team id: "+c.Param("team")))
+		return
+	}
+	team := validateTeam(c, uint(id))
+
+	var records []TeamRecord
+	res := db.Preload("Results").Order("time desc").Find(&records, "team_id = ?", team.ID)
+	if res.Error != nil {
+		errorOutGraceful(c, res.Error)
+		return
+	}
+
+	var record TeamRecord
+	if len(records) > 0 {
+		// Average the results, lol
+		record = records[0]
+		record.Results = sortResults(record.Results)
+		for i := range record.Results {
+			uptimeSum := 0
+			uptimeTotal := 0
+			for _, r := range records {
+				// Sort Results, yeeesh... this is not efficient
+				if len(r.Results) > i {
+					r.Results = sortResults(r.Results)
+					if r.Results[i].Status {
+						uptimeSum += 1
+					}
+					uptimeTotal += 1
+				}
+			}
+			record.Results[i].Uptime = int(float64(uptimeSum) / float64(uptimeTotal) * 100)
+
+		}
+	}
+
+	c.HTML(http.StatusOK, "uptime.html", pageData(c, "Service Uptime", gin.H{"team": team, "record": record}))
+}
+
 func viewCheck(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("team"))
 	if err != nil {
@@ -590,6 +631,10 @@ func exportTeamData(c *gin.Context) {
 		csvString += strconv.Itoa(r.Total) + "\n"
 	}
 	c.Data(200, "text/csv", []byte(csvString))
+}
+
+func viewSettings(c *gin.Context) {
+	c.HTML(http.StatusOK, "settings.html", pageData(c, "Settings", gin.H{}))
 }
 
 func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {

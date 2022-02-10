@@ -76,7 +76,7 @@ ip = "10.20.x.1"
 
 [[box]]
 name="castle"
-suffix = "4"
+ip = "10.20.x.4"
 
     [[box.ssh]]
 ```
@@ -88,17 +88,19 @@ event = "Awesome Comp" # event title
 
 verbose = true # show more info to competitors
 
-delay = 20           # delay (seconds) between checks (>0) (default 60)
-                        # note: the "real" max delay will be timeout+delay+jitter
-jitter = 3           # jitter (seconds) between rounds (0<jitter<delay)
-timeout = 5          # check timeout (must be smaller than delay-jitter)
+delay = 20               # delay (seconds) between checks (>0) (default 60)
+                            # note: the "real" max delay will be timeout+delay+jitter
+jitter = 3               # jitter (seconds) between rounds (0<jitter<delay)
+timeout = 5              # check timeout (must be smaller than delay-jitter)
 
-slathreshold = 6     # how many checks before incurring SLA violation
-slapoints = 13       # how many points is an SLA penalty (default sla_threshold * 2)
+slathreshold = 6         # how many checks before incurring SLA violation
+slapoints = 13           # how many points is an SLA penalty (default sla_threshold * 2)
 
-darkmode = true      # an alternative dark mode stylesheet
-no_passwords = false # disables password change requests. makes all services anonymous
-easypcr = true       # allow easy password changes
+darkmode = true          # an alternative dark mode stylesheet
+no_passwords = false     # disables password change requests. makes all services anonymous
+
+easypcr = true           # allow easy password changes
+disableinfopage = false  # disable the "info" page on the nav header
 
 # Admins have access to all records and information
 [[admin]]
@@ -312,7 +314,7 @@ ip = "10.20.x.1"
 
 [[box]]
 name="castle"
-suffix = "4"
+ip = "10.20.x.4"
 
 	# The above example includes all option, so it's very verbose
 	# If you want to keep something default, just don't specify it
@@ -320,6 +322,11 @@ suffix = "4"
 
     [[box.ssh]]
 ```
+
+Adding Checks Mid-Competition
+-----------------------------
+
+Check results are treated as a simple array. Because of this, you can add new checks mid-competition (for example, from an inject), but you need to make sure that it ends up at the end of the array to avoid being mixed with different checks. It's sorted by IP. Will probably change the way this works at some point in the future.
 
 Notes
 -----------

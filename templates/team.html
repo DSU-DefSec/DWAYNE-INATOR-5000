@@ -11,9 +11,7 @@
 
 {{ if .records }}
 
-{{ if gt (len .records) 9 }}
-<p style="text-align: center"><i>(last 10 rounds)</i></p>
-{{ end  }}
+<h3>Service Status {{ if gt (len .records) 9 }} (last ten rounds) {{ end }} </h3>
 
 <table class="checks">
     <tr>
@@ -59,8 +57,13 @@ Your team doesn't have any completed checks yet :(
 {{ end }}
 
 <br>
-<h2>External IPs and Ports</h2>
+<h3>Check Service Uptime</h3>
+<p style="text-align: center">
+    <a href="/uptime/{{ $team.ID }}">Visit service uptime.</a>
+</p>
+
 <br>
+<h3>External IPs and Ports</h3>
 <table class="checks">
     <tr>
         {{ range $box := .m.Box }}

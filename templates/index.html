@@ -38,6 +38,8 @@
             {{ end }}
         </td>
         {{ range $check := .Results }}
+
+            <!-- Persist calculations -->
             {{ $isPersisted := false }}
             {{ if $record.Persists }}
                 {{ range $i := $record.Persists }}

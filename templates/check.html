@@ -54,6 +54,7 @@
                 All good!
             {{ end }}
         </td>
+        {{ if $m.Verbose }}
         <td>
             {{ if $result.Debug }}
                 {{ $result.Debug }}
@@ -61,6 +62,7 @@
                 N/A
             {{ end }}
         </td>
+        {{ end }}
     </tr>
     {{ end }}
 </table>
