@@ -33,6 +33,7 @@ func (c Ssh) Run(teamID uint, boxIp string, res chan Result) {
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
 		Timeout:         GlobalTimeout,
 	}
+	config.Ciphers = append(config.Ciphers, "3des-cbc")
 	if c.PrivKey != "" {
 		key, err := os.ReadFile("./checkfiles/" + c.PrivKey)
 		if err != nil {

@@ -45,7 +45,7 @@ func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
 
 	}
 
-	authString := fmt.Sprintf("cn=%s,dc=%s,dc=%s", username, splitDomain[0], splitDomain[1])
+	authString := fmt.Sprintf("%s@%s", username, c.Domain)
 	err = lconn.Bind(authString, password)
 	if err != nil {
 		res <- Result{
