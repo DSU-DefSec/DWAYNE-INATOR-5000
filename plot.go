@@ -20,20 +20,20 @@ func graphScores(records []TeamRecord) {
 	p := plot.New()
 
 	p.X.Label.Text = "Round"
-	p.X.Label.TextStyle.Color = color.White
-	p.X.Color = color.White
+	p.X.Label.TextStyle.Color = color.Black
+	p.X.Color = color.Black
 	p.X.Width = 2
-	p.X.Tick.Color = color.White
-	p.X.Tick.Label.Color = color.White
+	p.X.Tick.Color = color.Black
+	p.X.Tick.Label.Color = color.Black
 	p.Y.Label.Text = "Score"
-	p.Y.Label.TextStyle.Color = color.White
-	p.Y.Color = color.White
-	p.Y.Tick.Color = color.White
-	p.Y.Tick.Label.Color = color.White
+	p.Y.Label.TextStyle.Color = color.Black
+	p.Y.Color = color.Black
+	p.Y.Tick.Color = color.Black
+	p.Y.Tick.Label.Color = color.Black
 	p.Y.Width = 2
 	p.BackgroundColor = color.Transparent
 	p.BackgroundColor = color.Transparent
-	p.Legend.TextStyle.Color = color.White
+	p.Legend.TextStyle.Color = color.Black
 
 	graphData := make([]interface{}, len(records)*2)
 
@@ -41,7 +41,7 @@ func graphScores(records []TeamRecord) {
 		graphData[i*2] = rec.Team.Name
 		l, _ := plotter.NewLine(getTeamPoints(rec.Team.ID))
 		l.LineStyle.Width = vg.Points(1)
-		l.LineStyle.Color = color.RGBA{R: uint8(int(math.Pow(255, float64(i+3)))%80) + 160, B: uint8(int(math.Pow(255, float64(i+5)))%70) + 170, G: uint8(int(math.Pow(255, float64(i+7)))%90) + 150, A: 255}
+		l.LineStyle.Color = color.RGBA{R: uint8(int(math.Pow(255, float64(i+3)))%80), B: uint8(int(math.Pow(255, float64(i+5)))%70), G: uint8(int(math.Pow(255, float64(i+7)))%90), A: 255}
 		p.Add(l)
 		p.Legend.Add(rec.Team.Name, l)
 	}

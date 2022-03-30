@@ -14,7 +14,7 @@ c.unit_id(SERVER_U_ID)
 
 if not c.is_open():
 	if not c.open():
-		print("Unable to connect to "+SERVER_HOST+":"+str(SERVER_PORT))
+		print("No connct to "+SERVER_HOST+":"+str(SERVER_PORT))
 
 if c.is_open():
 	check = c.read_coils(103, 1)

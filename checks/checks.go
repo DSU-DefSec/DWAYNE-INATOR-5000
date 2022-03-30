@@ -103,7 +103,7 @@ func RunCheck(teamID uint, teamIP, boxIP, boxName string, check Check, wg *sync.
 	select {
 	case result = <-res:
 	case <-time.After(GlobalTimeout):
-		result.Error = "timed out"
+		result.Error = "Timed out"
 	}
 	result.Name = check.FetchName()
 	result.IP = fullIP

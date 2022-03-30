@@ -6,9 +6,9 @@
 
 body {
     padding: 1rem;
-    background-color: #212121;
+    background-color: #ececec;
     font-family: Helvetica, sans-serif;
-    color: white;
+    color: black;
 }
 
 .container {
@@ -53,11 +53,15 @@ hr {
 /* table styles
 –––––––––––––––––––––––––––––––––––––––––– */
 
-table {
+table, .graph {
     margin: 0 auto;
+    padding: 0 0.5rem;
+    width: 100%;
     text-align: center;
     border-spacing: 0;
     border-collapse: 0;
+    background-image: linear-gradient(rgba(236, 236, 236, 0.91), rgba(236, 236, 236, 0.92)), url("/assets/logo.png");
+    background-size: 8rem;
 }
 
 table a {

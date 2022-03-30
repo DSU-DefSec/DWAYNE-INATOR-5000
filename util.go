@@ -33,8 +33,7 @@ func errorOutAnnoying(c *gin.Context, err error) {
 }
 
 func parseTime(timeStr string) time.Time {
-	timeStr += " " + locString
-	parsedTime, err := time.Parse("01/02/06 3:04 MST", timeStr)
+	parsedTime, err := time.Parse("01/02/06 3:04", timeStr)
 	if err != nil {
 		errorPrint("time parsing failed,", timeStr, "did not parse correctly:", err.Error())
 	}

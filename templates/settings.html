@@ -1,7 +1,7 @@
 {{ template "head.html" . }}
 
 <br>
-<h2>Injects</h2>
+<h2>Settings</h2>
 
 {{ $loc := .loc }}
 {{ $time := .time }}
@@ -11,78 +11,11 @@
 {{.error}}
 {{ end }}
 
-<br>
-<table style="width: 100%">
-    <th>Posted</th>
-    <th>Inject Title</th>
-    <th>Due</th>
-    <th>Closes</th>
-    {{ if not $user.IsAdmin }}
-    <th>Status</th>
-    {{ end }}
 
-    {{ range $inject := .injects }}
-    <tr 
-       {{ if .Due.IsZero }}
-           style="background-color: #004d00"
-       {{ else if not ($time.After .Due)}}
-           style="background-color: #004d00"
-       {{ else }}
-           style="background-color: #4d0000"
-       {{ end }}
-    >
-        <td style="font-weight: normal">
-            {{ (.Time.In $loc).Format "03:04 PM" }}
-        </td>
-        <td>
-            <a href="/injects/{{ .ID }}" style="color: powderblue">
-                {{ $inject.Title }}
-            </a>
-        </td>
-        <td>
-            {{ if .Due.IsZero }}
-                N/A
-            {{ else }}
-                <b>{{ (.Due.In $loc).Format "03:04 PM" }}</b>
-            {{ end }}
-        </td>
-        <td>
-            {{ if .Closes.IsZero }}
-                N/A
-            {{ else }}
-                <b>{{ (.Closes.In $loc).Format "03:04 PM" }}</b>
-            {{ end }}
-        </td>
-        {{ if not $user.IsAdmin }}
-        <td>
-            {{ if eq .Status 0 }}
-                not submitted
-            {{ else if eq .Status 1 }}
-                submitted
-            {{ else if eq .Status 2 }}
-                graded
-            {{ end }}
+<h3>Config Dump</h3>
 
-        </td>
-        {{ end }}
-
-    </tr>
-    {{ end }}
-
-
-</table>
-
-<!--
-{{ if not .admin }}
-    posted injects
-    form to submit
-        file
-        textarea
-{{ else }}
-    admin interface to provide feedback on injects
-    /inject/injectname/[ team ]
-{{ end }}
-
--->
+<pre>
+{{ .config }}
+</pre>
 
 {{ template "feet.html" }}
