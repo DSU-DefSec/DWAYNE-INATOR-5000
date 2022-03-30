@@ -22,12 +22,12 @@ type config struct {
 	NoPasswords     bool
 	EasyPCR         bool
 	DisableInfoPage bool
-	// Score persistence or not (for purple team comps)
-	Persists     bool
-	Delay        int
-	Jitter       int
-	Timeout      int
-	SlaThreshold int
+	Timezone        string
+	Persists        bool // Score persistence or not (for purple team comps)
+	Delay           int
+	Jitter          int
+	Timeout         int
+	SlaThreshold    int
 	// Points per service check.
 	ServicePoints int
 	SlaPoints     int
@@ -170,18 +170,21 @@ func checkConfig(conf *config) error {
 	}
 
 	// setting defaults
+	if conf.Timezone == "" {
+		conf.Timezone = "America/Rainy_River"
+	}
 
 	// apply default cred lists
 	if len(dwConf.Creds) == 0 {
 		return errors.New("illegal config: no valid credentials")
 	}
 
-	if conf.SlaThreshold == 0 {
-		conf.SlaThreshold = 6
+	if conf.ServicePoints == 0 {
+		conf.ServicePoints = 1
 	}
 
-	if conf.ServicePoints == 0 {
-		conf.ServicePoints = 10
+	if conf.SlaThreshold == 0 {
+		conf.SlaThreshold = 6
 	}
 
 	if conf.SlaPoints == 0 {

@@ -1,0 +1,19 @@
+{{ template "head.html" . }}
+
+<h4 style="margin: 0.1rem; font-size: 120%">New Inject</h4>
+<br>
+<br>
+    <form style="display: block; margin: 0 auto;" method="POST" action="/login">
+        <div>
+            <input type="text" name="username" placeholder="Username"></input>
+        </div>
+        <div>
+            <input type="password" name="password" placeholder="Password"></input>
+        </div>
+        <input type="submit" value="Login"/>
+    </form>
+</div>
+<br>
+{{ template "error.html" .error }}
+
+{{ template "feet.html" }}

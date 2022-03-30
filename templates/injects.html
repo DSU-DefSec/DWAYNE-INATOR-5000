@@ -1,12 +1,17 @@
 {{ template "head.html" . }}
 
-<br>
-<h2>Injects</h2>
-
 {{ $loc := .loc }}
 {{ $time := .time }}
 {{ $user := .user }}
 
+<br>
+<h2>Injects{{ if $user.IsAdmin }}<a href="/injects/new"> +</a>{{ end }}</h2>
+
+{{ if $user.IsAdmin }}
+<p style="background-color: #aea; padding: 1rem; text-align: center">
+Grade injects via the <b><a href="/feed">inject feed</a></b>.
+</p>
+{{ end }}
 
 <br>
 <table style="width: 100%">
@@ -21,18 +26,18 @@
     {{ range $inject := .injects }}
     <tr 
        {{ if .Due.IsZero }}
-           style="background-color: #004d00"
+           style="background-color: #aea"
        {{ else if not ($time.After .Due)}}
-           style="background-color: #004d00"
+           style="background-color: #aea"
        {{ else }}
-           style="background-color: #4d0000"
+           style="background-color: #eaa"
        {{ end }}
     >
         <td style="font-weight: normal">
             {{ (.Time.In $loc).Format "03:04 PM" }}
         </td>
         <td>
-            <a href="/injects/{{ .ID }}" style="color: powderblue">
+            <a href="/injects/view/{{ .ID }}" style="color: blue">
                 {{ $inject.Title }}
             </a>
         </td>
@@ -71,7 +76,7 @@
 
 <br>
 <p style="text-align: center">
-ℹ️ All posted times are in <b>Central Time</b>.
+ℹ️ All times are in the <b>{{ .m.Timezone }}</b> timezone.
 </p>
 
 <!--

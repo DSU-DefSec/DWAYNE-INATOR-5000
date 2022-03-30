@@ -21,9 +21,6 @@
                 <a href="/info">info</a>
                 {{ end }}
                 <a href="/">status</a>
-                {{ if or .m.Verbose (or .user.IsAdmin .user.IsRed) }}
-                <a href="/scores">scores</a>
-                {{ end }}
                 {{ if .user.IsValid }}
                     {{ if and (not .user.IsAdmin) (not .user.IsRed) }}
                     <a href="/team/{{ .user.ID }}">team</a>
@@ -34,14 +31,13 @@
                     {{ if .m.EasyPCR }}
                     <a href="/pcr">passwords</a>
                     {{ end }}
-                    <a href="/injects">injects</a>
+                    <a href="http://10.30.0.100:8080/">injects</a>
                     {{ end }}
                 {{ end }}
                 {{ if .m.Persists }}
                 <a href="/persist">persists</a>
                 {{ end }}
                 {{ if .user.IsAdmin }}
-                <a href="/injectfeed">feed</a>
                 <a href="/settings">settings</a>
                 {{ end }}
                 {{ if .user.IsValid }}

@@ -7,9 +7,11 @@ import (
 	"net/http"
 	"sync"
 	"time"
+	"os"
 
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
+	"github.com/BurntSushi/toml"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -21,16 +23,17 @@ const (
 	apiEndpoint   = "http://172.16.1.122"
 )
 
+type injectList struct {
+	Inject []Inject
+}
+
 var (
 	dwConf = &config{}
 	db     = &gorm.DB{}
 
-	// Hardcoded CST timezone
-	loc, _    = time.LoadLocation("America/Rainy_River")
-	locString = "CT"
-
 	roundNumber int
 	ct          CredentialTable
+	loc *time.Location
 
 	teamMutex    = &sync.Mutex{}
 	persistMutex = &sync.Mutex{}
@@ -49,6 +52,12 @@ func main() {
 	err := checkConfig(dwConf)
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "illegal config"))
+	}
+
+	// Hardcoded CST timezone
+	loc, err = time.LoadLocation(dwConf.Timezone)
+	if err != nil {
+		log.Fatalln(errors.Wrap(err, "invalid timezone"))
 	}
 
 	// Open database
@@ -106,7 +115,6 @@ func main() {
 	routes := r.Group("/")
 	{
 		routes.GET("/", viewStatus)
-		routes.GET("/scores", viewScores)
 		routes.GET("/info", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "info.html", pageData(c, "Information", nil))
 		})
@@ -153,12 +161,16 @@ func main() {
 
 		// Injects
 		authRoutes.GET("/injects", viewInjects)
-		authRoutes.GET("/injectfeed", injectFeed)
-		authRoutes.GET("/injects/:inject", viewInject)
-		authRoutes.POST("/injects/:inject", submitInject)
-		authRoutes.POST("/injects/:inject/:submission/invalid", invalidateInject)
-		authRoutes.GET("/injects/:inject/:submission/grade", gradeInject)
-		authRoutes.POST("/injects/:inject/:submission/grade", submitInjectGrade)
+		authRoutes.GET("/injects/feed", injectFeed)
+		authRoutes.GET("/injects/new", func(c *gin.Context) {
+			c.HTML(http.StatusOK, "new_inject.html", pageData(c, "New Inject", nil))
+		})
+		authRoutes.POST("/injects/new", newInject)
+		authRoutes.GET("/injects/view/:inject", viewInject)
+		authRoutes.POST("/injects/view/:inject", submitInject)
+		authRoutes.POST("/injects/view/:inject/:submission/invalid", invalidateInject)
+		authRoutes.GET("/injects/view/:inject/:submission/grade", gradeInject)
+		authRoutes.POST("/injects/view/:inject/:submission/grade", submitInjectGrade)
 
 		// Inject submissions
 		authRoutes.Static("/submissions", "./submissions")
@@ -179,16 +191,40 @@ func main() {
 	}
 
 	if len(injects) == 0 {
-		pwChangeInject := Inject{
-			Time:  time.Now(),
-			Title: "Password Changes",
-			Body:  "Submit your password changes here!",
+		if !dwConf.NoPasswords {
+			pwChangeInject := Inject{
+				Time:  time.Now(),
+				Title: "Password Changes",
+				Body:  "Submit your password changes here!",
+			}
+			res := db.Create(&pwChangeInject)
+			if res.Error != nil {
+				errorPrint(res.Error)
+				return
+			}
 		}
-		res := db.Create(&pwChangeInject)
-		if res.Error != nil {
-			errorPrint(res.Error)
-			return
+
+		var configInjects injectList
+
+		fileContent, err := os.ReadFile("./injects.conf")
+		if err != nil {
+			debugPrint("Configuration file ("+configPath+") not found:", err)
+		} else {
+			if _, err := toml.Decode(string(fileContent), &configInjects); err != nil {
+				log.Fatalln(err)
+			}
+
+			for _, inject := range configInjects.Inject {
+				res := db.Create(&inject)
+				if res.Error != nil {
+					errorPrint(res.Error)
+					return
+				}
+			}
+
 		}
+	} else {
+		debugPrint("Injects list is not empty, so we are not adding password change inject or processing configured injects")
 	}
 
 	go Score(dwConf)

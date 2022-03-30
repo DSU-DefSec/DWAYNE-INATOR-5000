@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"net/http"
 	"os"
@@ -8,6 +9,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
@@ -24,27 +26,51 @@ var (
 
 func viewStatus(c *gin.Context) {
 	if roundNumber != cachedRound {
-		var records []TeamRecord
-		res := db.Limit(len(dwConf.Team)).Preload(clause.Associations).Order("time desc").Find(&records)
+		var statusRecords []TeamRecord
+		res := db.Limit(len(dwConf.Team)).Preload(clause.Associations).Order("time desc").Find(&statusRecords)
 		if res.Error != nil {
 			errorOutGraceful(c, res.Error)
 		}
 
 		// Sort results for viewing.
-		for i, rec := range records {
-			records[i].Results = sortResults(rec.Results)
+		for i, rec := range statusRecords {
+			statusRecords[i].Results = sortResults(rec.Results)
 		}
 
 		// Sort by team ID.
-		sort.SliceStable(records, func(i, j int) bool {
-			return records[i].TeamID < records[j].TeamID
+		sort.SliceStable(statusRecords, func(i, j int) bool {
+			return statusRecords[i].TeamID < statusRecords[j].TeamID
 		})
 
-		cachedStatus = records
+		cachedStatus = statusRecords
 		cachedRound = roundNumber
+
 	}
+		// TODO fix this, horrendous
+		teamMutex.Lock()
+		var records []TeamRecord
+	res := db.Limit(len(dwConf.Team)).Where("round = ?", roundNumber-1).Preload("Team").Order("time desc").Find(&records)
+		if res.Error != nil {
+			errorOutGraceful(c, res.Error)
+			teamMutex.Unlock()
+			return
+		}
+		teamMutex.Unlock()
+
+		// Calculate totals.
+		for i, rec := range records {
+			records[i].Total = calculateScoreTotal(rec)
+		}
+
+		// Sort by total score.
+		sort.SliceStable(records, func(i, j int) bool {
+			return records[i].Total > records[j].Total
+		})
+		graphScores(records)
+
+	team := getUserOptional(c)
 	ip := c.ClientIP()
-	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"records": cachedStatus, "ip": ip, "round": roundNumber}))
+	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": records, "team": team, "ip": ip, "round": roundNumber}))
 }
 
 func viewTeam(c *gin.Context) {
@@ -337,7 +363,7 @@ func injectFeed(c *gin.Context) {
 		errorOutGraceful(c, res.Error)
 		return
 	}
-	c.HTML(http.StatusOK, "injectfeed.html", pageData(c, "inject feed", gin.H{"submissions": submissions}))
+	c.HTML(http.StatusOK, "feed.html", pageData(c, "Inject Feed", gin.H{"submissions": submissions}))
 }
 
 func createInject(c *gin.Context) {
@@ -361,6 +387,28 @@ func createInject(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
+}
+
+func newInject(c *gin.Context) {
+	team := getUser(c)
+	if ! team.IsAdmin() {
+		errorOutAnnoying(c, errors.New("Non-admin attempted to post to newInject"))
+	}
+
+	var newInject Inject
+	err := c.Bind(&newInject)
+	if err != nil {
+		c.HTML(http.StatusBadRequest, "new_inject.html", pageData(c, "New Inject", gin.H{"error": err.Error()}))
+	}
+
+	newInject.Time = time.Now()
+
+	res := db.Create(&newInject)
+	if res.Error != nil {
+		c.HTML(http.StatusBadRequest, "new_inject.html", pageData(c, "New Inject", gin.H{"error": res.Error}))
+		return
+	}
+	c.HTML(http.StatusOK, "new_inject.html", pageData(c, "New Inject", gin.H{"msg": "Inject successfully created."}))
 }
 
 func viewInject(c *gin.Context) {
@@ -417,7 +465,7 @@ func submitInject(c *gin.Context) {
 	if !team.IsAdmin() {
 		file, err := c.FormFile("submission")
 		if err != nil {
-			c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
+			c.Redirect(http.StatusSeeOther, "/injects/view/"+strconv.Itoa(int(inject.ID)))
 			return
 		}
 		if injectID != 1 {
@@ -453,7 +501,7 @@ func submitInject(c *gin.Context) {
 		c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Sorry boss, admins can't submit injects.", "inject": inject}))
 	}
 
-	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(inject.ID)))
+	c.Redirect(http.StatusSeeOther, "/injects/view/"+strconv.Itoa(int(inject.ID)))
 }
 
 func invalidateInject(c *gin.Context) {
@@ -489,7 +537,7 @@ func invalidateInject(c *gin.Context) {
 	if res.Error != nil {
 		errorPrint(res.Error)
 	}
-	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(submission.InjectID)))
+	c.Redirect(http.StatusSeeOther, "/injects/view/"+strconv.Itoa(int(submission.InjectID)))
 }
 
 func gradeInject(c *gin.Context) {
@@ -557,38 +605,7 @@ func submitInjectGrade(c *gin.Context) {
 	}
 
 	fmt.Println("Score: ", submission.Score, "\nFeedback: ", submission.Feedback)
-	c.Redirect(http.StatusSeeOther, "/injects/"+strconv.Itoa(int(submission.InjectID)))
-}
-
-func viewScores(c *gin.Context) {
-	if !dwConf.Verbose && !getUser(c).IsAdmin() {
-		errorOutAnnoying(c, errors.New("access to score without admin or verbose mode"))
-	}
-
-	teamMutex.Lock()
-	var records []TeamRecord
-	res := db.Limit(len(dwConf.Team)).Where("round = ?", roundNumber-1).Preload("Team").Order("time desc").Find(&records)
-	if res.Error != nil {
-		errorOutGraceful(c, res.Error)
-		teamMutex.Unlock()
-		return
-	}
-	teamMutex.Unlock()
-
-	// Calculate totals.
-	for i, rec := range records {
-		records[i].Total = calculateScoreTotal(rec)
-	}
-
-	// Sort by total score.
-	sort.SliceStable(records, func(i, j int) bool {
-		return records[i].Total > records[j].Total
-	})
-
-	graphScores(records)
-	team := getUserOptional(c)
-
-	c.HTML(http.StatusOK, "scores.html", pageData(c, "scores", gin.H{"records": records, "team": team}))
+	c.Redirect(http.StatusSeeOther, "/injects/view/"+strconv.Itoa(int(submission.InjectID)))
 }
 
 func exportTeamData(c *gin.Context) {
@@ -634,7 +651,11 @@ func exportTeamData(c *gin.Context) {
 }
 
 func viewSettings(c *gin.Context) {
-	c.HTML(http.StatusOK, "settings.html", pageData(c, "Settings", gin.H{}))
+	buf := new(bytes.Buffer)
+	if err := toml.NewEncoder(buf).Encode(dwConf); err != nil {
+		c.HTML(http.StatusInternalServerError, "settings.html", pageData(c, "Settings", gin.H{"error": err}))
+	}
+	c.HTML(http.StatusOK, "settings.html", pageData(c, "Settings", gin.H{"config": buf.String()}))
 }
 
 func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {

@@ -89,16 +89,17 @@ event = "Awesome Comp" # event title
 verbose = true # show more info to competitors
 
 delay = 20               # delay (seconds) between checks (>0) (default 60)
-                            # note: the "real" max delay will be timeout+delay+jitter
+                         # note: the "real" max delay will be timeout+delay+jitter
 jitter = 3               # jitter (seconds) between rounds (0<jitter<delay)
 timeout = 5              # check timeout (must be smaller than delay-jitter)
 
+servicepoints = 10       # how many points each up check is worth
 slathreshold = 6         # how many checks before incurring SLA violation
-slapoints = 13           # how many points is an SLA penalty (default sla_threshold * 2)
+slapoints = 13           # how many points is an SLA penalty (default slathreshold * 2)
 
-darkmode = true          # an alternative dark mode stylesheet
-no_passwords = false     # disables password change requests. makes all services anonymous
+timezone = "America\Rainy_River" # timezone you want to use
 
+nopasswords = false      # disables password change requests. makes all services anonymous
 easypcr = true           # allow easy password changes
 disableinfopage = false  # disable the "info" page on the nav header
 
@@ -322,6 +323,12 @@ ip = "10.20.x.4"
 
     [[box.ssh]]
 ```
+
+Injects
+-------
+
+You can put your stuff in injects.conf in toml format.
+
 
 Adding Checks Mid-Competition
 -----------------------------

@@ -29,6 +29,7 @@ func (c Ftp) Run(teamID uint, boxIp string, res chan Result) {
 		}
 		return
 	}
+	defer conn.Quit()
 
 	var username, password string
 	if c.Anonymous {
@@ -45,7 +46,6 @@ func (c Ftp) Run(teamID uint, boxIp string, res chan Result) {
 		}
 		return
 	}
-	defer conn.Quit()
 
 	if len(c.File) > 0 {
 		file := c.File[rand.Intn(len(c.File))]

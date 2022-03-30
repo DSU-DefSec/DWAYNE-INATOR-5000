@@ -19,8 +19,8 @@ func getUUID() string {
 // initCookies use gin-contrib/sessions{/cookie} to initalize a cookie store.
 // It generates a random secret for the cookie store -- not ideal for continuity or invalidating previous cookies, but it's secure and it works
 func initCookies(r *gin.Engine) {
-	r.Use(sessions.Sessions("dwayne-inator-5000", cookie.NewStore([]byte(getUUID()))))
-	//r.Use(sessions.Sessions("dwayne-inator-5000", cookie.NewStore([]byte("sooper secure"))))
+	//r.Use(sessions.Sessions("dwayne-inator-5000", cookie.NewStore([]byte(getUUID()))))
+	r.Use(sessions.Sessions("dwayne-inator-5000", cookie.NewStore([]byte("sooper secure"))))
 }
 
 // authRequired provides authentication middleware for ensuring that a user is logged in.

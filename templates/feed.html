@@ -9,11 +9,10 @@
 {{ if .error }}
 	{{ template "error.html" .error }}
 	<p style="text-align: center">
-		<a href="/injects/{{ .inject.ID }}">Try again :)</a>
+		<a href="/injects/view/{{ .inject.ID }}">Try again :)</a>
 	</p>
 {{ else }}
 
-<br>
 {{ if .submissions }}
 <table style="width: 100%">
     {{ if .user.IsAdmin }}
@@ -32,7 +31,7 @@
     {{ range $submission := .submissions }}
     <tr {{ if .Invalid }} style="color: gray" {{ end }}>
         <td style="font-weight: normal">
-            <a href="/injects/{{ .InjectID }}">{{ .InjectID }}</a>
+            <a href="/injects/view/{{ .InjectID }}">{{ .InjectID }}</a>
         </td>
         <td>
             <a href="/team/{{ .TeamID }}">{{ .TeamID }}</a>
@@ -48,7 +47,7 @@
         </td>
         <td>
             {{ if not .Invalid }}
-            <form method="post" action="/injects/{{ .InjectID }}/{{ .ID }}/invalid">
+            <form method="post" action="/injects/view/{{ .InjectID }}/{{ .ID }}/invalid">
                 <input type="submit" value="Mark Invalid"/>
             </form>
             {{ else }}
@@ -60,7 +59,7 @@
         </td>
         {{ if and $user.IsAdmin (ne .InjectID 1)}}
         <td>
-        <a href="/injects/{{ .InjectID }}/{{ .ID }}/grade">grade</a>
+        <a href="/injects/view/{{ .InjectID }}/{{ .ID }}/grade">grade</a>
         </td>
         {{ end }}
     </tr>

@@ -96,9 +96,9 @@ type InjectSubmission struct {
 
 type Inject struct {
 	ID          uint
-	Time        time.Time `json:"time"`
-	Due         time.Time `json:"due"`
-	Closes      time.Time `json:"closes"`
+	Time        time.Time `json:"time" form:"time"`
+	Due         time.Time `json:"due" form:"due"`
+	Closes      time.Time `json:"closes" form:"closes"`
 	Submissions []InjectSubmission
 	Title       string `json:"title"`
 	Body        string `json:"body"`

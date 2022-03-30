@@ -39,7 +39,7 @@ func (c Ldap) Run(teamID uint, boxIp string, res chan Result) {
 	splitDomain := strings.Split(c.Domain, ".")
 	if len(splitDomain) != 2 {
 		res <- Result{
-			Error: "configured domain is not valid (needs to be domain and tld)",
+			Error: "Configured domain is not valid (needs to be domain and tld)",
 		}
 		return
 
