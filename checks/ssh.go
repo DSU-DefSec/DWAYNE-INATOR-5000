@@ -34,6 +34,7 @@ func (c Ssh) Run(teamID uint, boxIp string, res chan Result) {
 		Timeout:         GlobalTimeout,
 	}
 	config.Ciphers = append(config.Ciphers, "3des-cbc")
+	config.Ciphers = append(config.Ciphers, "aes-256-ctr")
 	if c.PrivKey != "" {
 		key, err := os.ReadFile("./checkfiles/" + c.PrivKey)
 		if err != nil {
