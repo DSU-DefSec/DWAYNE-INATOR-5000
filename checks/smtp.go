@@ -50,9 +50,9 @@ func (c Smtp) Run(teamID uint, boxIp string, res chan Result) {
 	var err error
 
 	if c.Encrypted {
-		conn, err = tls.DialWithDialer(&dialer, "tcp", fmt.Sprintf("%s:%s", boxIp, c.Port), &tlsConfig)
+		conn, err = tls.DialWithDialer(&dialer, "tcp", fmt.Sprintf("%s:%d", boxIp, c.Port), &tlsConfig)
 	} else {
-		conn, err = dialer.DialContext(context.TODO(), "tcp", fmt.Sprintf("%s:%s", boxIp, c.Port))
+		conn, err = dialer.DialContext(context.TODO(), "tcp", fmt.Sprintf("%s:%d", boxIp, c.Port))
 	}
 	if err != nil {
 		res <- Result{
@@ -94,7 +94,7 @@ func (c Smtp) Run(teamID uint, boxIp string, res chan Result) {
 		return
 	}
 
-	// Set the reciver
+	// Set the receiver
 	err = sconn.Rcpt(c.Receiver)
 	if err != nil {
 		res <- Result{

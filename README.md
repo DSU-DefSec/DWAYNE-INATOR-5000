@@ -97,7 +97,7 @@ servicepoints = 10       # how many points each up check is worth
 slathreshold = 6         # how many checks before incurring SLA violation
 slapoints = 13           # how many points is an SLA penalty (default slathreshold * 2)
 
-timezone = "America\Rainy_River" # timezone you want to use
+timezone = "America/Rainy_River" # timezone you want to use
 
 nopasswords = false      # disables password change requests. makes all services anonymous
 easypcr = true           # allow easy password changes
