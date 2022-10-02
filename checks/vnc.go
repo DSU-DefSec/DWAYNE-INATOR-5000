@@ -14,7 +14,7 @@ type Vnc struct {
 
 func (c Vnc) Run(teamID uint, boxIp string, res chan Result) {
 	// Configure the vnc client
-	username, password := getCreds(teamID, c.CredList, c.Name)
+	username, password := getCreds(teamID, c.CredLists, c.Name)
 	config := vnc.ClientConfig{
 		Auth: []vnc.ClientAuth{
 			&vnc.PasswordAuth{Password: password},
