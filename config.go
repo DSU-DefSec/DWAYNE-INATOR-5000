@@ -284,7 +284,7 @@ func checkConfig(conf *config) error {
 				if ck.Name == "" {
 					ck.Name = b.Name + "-" + ck.Display
 				}
-				if ck.CredList == "" {
+				if len(ck.CredLists) < 1 {
 					ck.Anonymous = true
 				}
 				conf.Box[i].CheckList[j] = ck
@@ -498,7 +498,7 @@ func checkConfig(conf *config) error {
 				if len(ck.Url) == 0 {
 					return errors.New("no urls specified for web check " + ck.Name)
 				}
-				if ck.CredList == "" {
+				if len(ck.CredLists) < 1 {
 					ck.Anonymous = true
 				}
 				if ck.Scheme == "" {

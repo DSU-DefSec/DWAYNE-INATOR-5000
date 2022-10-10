@@ -40,7 +40,7 @@ func (c Imap) Run(teamID uint, boxIp string, res chan Result) {
 	defer cl.Close()
 
 	if !c.Anonymous {
-		username, password := getCreds(teamID, c.CredList, c.Name)
+		username, password := getCreds(teamID, c.CredLists, c.Name)
 		// Set timeout for commands
 		cl.Timeout = GlobalTimeout
 

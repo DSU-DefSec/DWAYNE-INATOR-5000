@@ -27,7 +27,7 @@ type commandData struct {
 
 func (c Ssh) Run(teamID uint, boxIp string, res chan Result) {
 	// Create client config
-	username, password := getCreds(teamID, c.CredList, c.Name)
+	username, password := getCreds(teamID, c.CredLists, c.Name)
 	config := &ssh.ClientConfig{
 		User:            username,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(),

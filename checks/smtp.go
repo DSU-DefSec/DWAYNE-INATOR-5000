@@ -34,7 +34,7 @@ func (c Smtp) Run(teamID uint, boxIp string, res chan Result) {
 
 	// ***********************************************
 	// Set up custom auth for bypassing net/smtp protections
-	username, password := getCreds(teamID, c.CredList, c.Name)
+	username, password := getCreds(teamID, c.CredLists, c.Name)
 	auth := unencryptedAuth{smtp.PlainAuth("", username, password, boxIp)}
 	// ***********************************************
 

@@ -26,7 +26,7 @@ func (c Smb) Run(teamID uint, boxIp string, res chan Result) {
 	// create smb object outside of if statement scope
 
 	// Authenticated SMB
-	username, password := getCreds(teamID, c.CredList, c.Name)
+	username, password := getCreds(teamID, c.CredLists, c.Name)
 
 	conn, err := net.Dial("tcp", boxIp+":"+strconv.Itoa(c.Port))
 	if err != nil {

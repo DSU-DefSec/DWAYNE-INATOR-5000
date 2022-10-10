@@ -36,7 +36,7 @@ func (c Ftp) Run(teamID uint, boxIp string, res chan Result) {
 		username = "anonymous"
 		password = "anonymous"
 	} else {
-		username, password = getCreds(teamID, c.CredList, c.Name)
+		username, password = getCreds(teamID, c.CredLists, c.Name)
 	}
 	err = conn.Login(username, password)
 	if err != nil {

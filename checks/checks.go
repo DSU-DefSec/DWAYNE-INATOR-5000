@@ -15,8 +15,10 @@ var (
 	CredLists        []CredData
 )
 
-func getCreds(teamID uint, credList string, checkName string) (string, string) {
+func getCreds(teamID uint, credLists []string, checkName string) (string, string) {
 	var usernameList CredData
+	rand.Seed(time.Now().UnixNano())
+	credList := credLists[rand.Intn(len(credLists))]
 	if credList != "" {
 		found := false
 		for _, l := range CredLists {
@@ -69,7 +71,7 @@ type checkBase struct {
 	Name      string // Name is the box name plus the service (ex. lunar-dns)
 	Display   string // Display is the name of the service (ex. dns)
 	IP        string
-	CredList  string
+	CredLists []string
 	Port      int
 	Anonymous bool
 }
