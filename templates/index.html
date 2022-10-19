@@ -102,8 +102,8 @@ Round {{ .round }}. Checks ran at {{ ((index .statusRecords 0).Time.In .loc).For
     <th>Red Team</th>
     {{ end }}
     {{ if $m.Persists }}
-    <th>Lost Points</th>
-    <th>Stolen Points</th>
+    <th>Lost Points (Stolen From You)</th>
+    <th>Gained Points (You've Stolen)</th>
     <th>Bonus Hack Points</th>
     {{ end }}
     <th>Reset Penalties</th>
