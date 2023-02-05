@@ -66,7 +66,10 @@ func viewStatus(c *gin.Context) {
 	sort.SliceStable(records, func(i, j int) bool {
 		return records[i].Total > records[j].Total
 	})
-	graphScores(records)
+
+	// Get graphs for both color schemes
+	graphScores(records, true)
+	graphScores(records, false)
 
 	team := getUserOptional(c)
 	ip := c.ClientIP()

@@ -14,26 +14,34 @@ import (
 	"gonum.org/v1/plot/vg/vgimg"
 )
 
-func graphScores(records []TeamRecord) {
+func graphScores(records []TeamRecord, darkmode bool) {
 	rand.Seed(int64(time.Now().Nanosecond()))
 
 	p := plot.New()
-
 	p.X.Label.Text = "Round"
-	p.X.Label.TextStyle.Color = color.Black
-	p.X.Color = color.Black
 	p.X.Width = 2
-	p.X.Tick.Color = color.Black
-	p.X.Tick.Label.Color = color.Black
+
+	var clr color.Color
+	if darkmode {
+		clr = color.White
+	} else {
+		clr = color.Black
+	}
+
+	p.X.Label.TextStyle.Color = clr
+	p.X.Color = clr
+	p.X.Tick.Color = clr
+	p.X.Tick.Label.Color = clr
+	p.Y.Label.TextStyle.Color = clr
+	p.Y.Color = clr
+	p.Y.Tick.Color = clr
+	p.Y.Tick.Label.Color = clr
+	p.Legend.TextStyle.Color = clr
+
 	p.Y.Label.Text = "Score"
-	p.Y.Label.TextStyle.Color = color.Black
-	p.Y.Color = color.Black
-	p.Y.Tick.Color = color.Black
-	p.Y.Tick.Label.Color = color.Black
 	p.Y.Width = 2
 	p.BackgroundColor = color.Transparent
 	p.BackgroundColor = color.Transparent
-	p.Legend.TextStyle.Color = color.Black
 
 	graphData := make([]interface{}, len(records)*2)
 
@@ -53,7 +61,11 @@ func graphScores(records []TeamRecord) {
 	p.Draw(draw.New(c))
 
 	// Save the plot to a png file
-	f, err := os.Create("assets/points.png")
+	path := "assets/points.png"
+	if darkmode {
+		path = "assets/points-dark.png"
+	}
+	f, err := os.Create(path)
 	if err != nil {
 		errorPrint(err)
 		return

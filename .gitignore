@@ -4,6 +4,7 @@ injects.conf
 delayed-checks.conf
 dwayne.db
 assets/points.png
+assets/points-dark.png
 templates/info.html
 tags
 *.swp

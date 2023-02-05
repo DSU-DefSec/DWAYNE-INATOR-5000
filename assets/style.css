@@ -20,6 +20,12 @@
 		--white: #1a1a1d;
 		--black: #fcfcfc;
 	}
+	.graph-light {
+		display: none;
+	}
+	.graph-dark {
+		display: block;
+	}
 }
 
 @media (prefers-color-scheme: light) {
@@ -40,6 +46,12 @@
 		--lightgray: #f6f6f6;
 		--black: #212121;
 		--white: #fcfcfc;
+	}
+	.graph-dark {
+		display: none;
+	}
+	.graph-light {
+		display: block;
 	}
 }
 
@@ -152,6 +164,7 @@ table, .graph {
     background-image: url("/assets/logo.png");
     background-size: 8rem;
 }
+
 
 table a {
     display: block;

@@ -39,7 +39,9 @@ func Score(m *config) {
 	//mux := &sync.Mutex{}
 
 	// Build initial PCR table
-	constructPCRState()
+	if !dwConf.NoPasswords {
+		constructPCRState()
+	}
 
 	for {
 		debugPrint("[SCORE] ===== Round", roundNumber)
@@ -135,10 +137,12 @@ func Score(m *config) {
 			// Next round!
 			roundNumber++
 
-			// Build PCR state before sleep.
-			// We want submitted PCRs to miss at least one check round.
-			debugPrint("[PCR] Constructing PCR state...")
-			constructPCRState()
+			if !dwConf.NoPasswords {
+				// Build PCR state before sleep.
+				// We want submitted PCRs to miss at least one check round.
+				debugPrint("[PCR] Constructing PCR state...")
+				constructPCRState()
+			}
 		}
 		teamMutex.Unlock()
 

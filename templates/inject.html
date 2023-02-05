@@ -5,6 +5,7 @@
 
 {{ $m := .m }}
 {{ $loc := .loc }}
+{{ $inject := .inject }}
 {{ $user := .user }}
 
 {{ if .error }}
@@ -65,7 +66,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
     <th>Time</th>
     <th>Updated</th>
     <th>File Name</th>
-    <th></th>
+    <th>Status</th>
     <th>Feedback</th>
     {{ if and $user.IsAdmin (or ($m.NoPasswords) (ne .inject.ID 1)) }}
     <th>Grade</th>
@@ -85,7 +86,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
             {{ (.Updated.In $loc).Format "03:04 PM" }}
         </td>
         <td>
-            {{ .FileName }}
+            <a href="/submissions/{{ .DiskFile }}">{{ .FileName }}</a>
         </td>
         <td>
             {{ if not .Invalid }}
@@ -93,10 +94,14 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
                 <input type="submit" value="Mark Invalid"/>
             </form>
             {{ else }}
-                {{ if and (eq .InjectID 1) .Graded }}
-                <i>processed</i>
+                {{ if and (eq .InjectID 1) (not $m.NoPasswords) }}
+                    {{ if .Graded }}
+                    <i>processed</i>
+                    {{ else  }}
+                    <i>invalid</i>
+                    {{ end }}
                 {{ else }}
-                <i>invalid</i>
+                <i>graded ({{ .Score }}% of {{ $inject.Points }} points)</i>
                 {{ end }}
             {{ end }}
         </td>
@@ -107,7 +112,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
             {{ .Feedback }}
             {{ end }}
         </td>
-        {{ if and $user.IsAdmin (ne .InjectID 1)}}
+        {{ if and $user.IsAdmin (or ($m.NoPasswords) (ne .InjectID 1))}}
         <td>
         <a href="/injects/view/{{ .InjectID }}/{{ .ID }}/grade">grade</a>
         </td>
@@ -134,7 +139,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
     <input type="submit" value="Upload submission">
 </form>
 
-{{ if eq .inject.ID 1 }}
+{{ if and (eq .inject.ID 1) (not .m.NoPasswords) }}
 <br>
 <p style="text-align: center">You can check on your PCRs <a href="/pcr">here</a>.</p>
 {{ end }}
