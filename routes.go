@@ -75,10 +75,11 @@ func viewStatus(c *gin.Context) {
 
 func viewTeam(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("team"))
-	if err != nil {
+	if err != nil || id < 1 {
 		errorOutAnnoying(c, errors.New("invalid team id: "+c.Param("team")))
 		return
 	}
+
 	team := validateTeam(c, uint(id))
 	// failed
 	if team.Name == "" {

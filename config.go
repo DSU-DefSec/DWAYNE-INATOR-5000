@@ -310,6 +310,9 @@ func validateChecks(boxList []Box) error {
 		if b.IP == "" {
 			return errors.New("illegal config: no ip found for box " + b.Name)
 		}
+		// Ensure IP replacement chars are lowercase
+		b.IP = strings.ToLower(b.IP)
+		boxList[i].IP = b.IP
 		for j, c := range boxList[i].CheckList {
 			switch c.(type) {
 			case checks.Cmd:

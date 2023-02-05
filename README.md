@@ -49,6 +49,9 @@ slapoints = 13           # how many points is an SLA penalty (default slathresho
 
 # Mode settings
 nopasswords = false      # disables password change requests (like CyberPatriot NSMC)
+                             # note: some checks do not support being anonymous.
+                             # for example, anonymous ssh wouldn't test anything.
+                             # so, you can use a tcp check and just name it 'ssh'.
 easypcr = true           # allow easy password changes
 disableinfopage = true   # disable the "info" page on the nav header
 persists = false         # run in cyberconquest mode (purple team events)
@@ -100,8 +103,8 @@ defaultpw = "Password2@"
 name="castle"
 ip = "10.20.x.1"
 
-	# If you want to keep something default, just don't specify it
-	# For this box, we're running default SMB and SSH login checks
+    # If you want to keep something default, just don't specify it
+    # For this box, we're running default SMB and SSH login checks
     [[box.smb]]
     [[box.ssh]]
 
@@ -295,18 +298,18 @@ Example `delayed-checks.conf`:
 
 ```toml
 [[box]]
-name·=·"castle"
-ip·=·"10.20.x.1"
+name = "castle"
+ip = "10.20.x.1"
 
 # This field is the critical component.
 # Specify a time after the competition has begun in 
 # HH:MM:SS that you  want the checks to appear.
-# This works very similarly to injects.
-time·=·00:00:20
+# This works just like injects.
+time = 00:00:20
 
-····[[box.cmd]]
-····display·=·"new-command"
-→   cmd·=·"ls·-Ral"
+    [[box.cmd]]
+    display = "new-command"
+    cmd = "ls -Ral"
 ```
 
 
