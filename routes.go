@@ -258,13 +258,7 @@ func scorePersist(c *gin.Context) {
 	defer teamMutex.Unlock()
 
 	// Identify box (team and check)
-	remoteIPRaw, _ := c.RemoteIP()
-	if remoteIPRaw == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "your IP is nil?! (contact the organizer please)"})
-		return
-	}
-	remoteIP := remoteIPRaw.String()
-
+	remoteIP := c.RemoteIP()
 	team, boxName, err := boxFromIP(remoteIP)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "your IP is not a valid box"})
