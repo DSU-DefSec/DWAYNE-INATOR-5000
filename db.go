@@ -4,6 +4,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	//"log"
 
 	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 )
@@ -38,6 +39,7 @@ type TeamRecord struct {
 	Team             TeamData
 	Round            int
 	Results          []ResultEntry
+	ResultsMap       map[string]ResultEntry `gorm:"-"`
 	RedTeamPoints    int
 	ServicePoints    int
 	InjectPoints     int
@@ -96,15 +98,31 @@ type InjectSubmission struct {
 
 type Inject struct {
 	ID          uint
-	Time        time.Time `json:"time" form:"time"`
-	Due         time.Time `json:"due" form:"due"`
-	Closes      time.Time `json:"closes" form:"closes"`
+	Time        time.Time `json:"time"`
+	Due         time.Time `json:"due"`
+	Closes      time.Time `json:"closes"`
 	Submissions []InjectSubmission
 	Title       string `json:"title"`
 	Body        string `json:"body"`
 	File        string `json:"file"`
 	Points      int    `json:"points"`
 	Status      int    `json:"status"`
+}
+
+// add start time
+func (i *Inject) OpenTime() time.Time {
+	if i.Time.IsZero() {
+		return startTime
+	}
+	return startTime.Add(i.Time.Sub(ZeroTime)).In(loc)
+}
+
+func (i *Inject) DueTime() time.Time {
+	return startTime.Add(i.Due.Sub(ZeroTime)).In(loc)
+}
+
+func (i *Inject) CloseTime() time.Time {
+	return startTime.Add(i.Closes.Sub(ZeroTime)).In(loc)
 }
 
 type CredentialTable struct {
@@ -116,7 +134,8 @@ type CredentialTable struct {
 // of PCRs that contain changes. Kind of like a git repo.
 //
 // The structure goes like:
-//     creds[team][check][username]
+//
+//	creds[team][check][username]
 //
 // Thus, it serves to create a lookup table state for each team.
 func constructPCRState() {

@@ -23,98 +23,50 @@ Screenshots
 Configuration
 -------------
 
-Minimal example:
+Example configuration (`dwayne.conf`):
 
 ```toml
-event = "Rad Comp" 
+# Event title
+event = "Awesome Comp"
 
-[[admin]]
-name = "admin"
-pw = "ohyeah"
+# Port to listen on
+port = 80
 
-[[team]]
-ip = "1"
-pw = "Team1Pw!"
+# Show more info to competitors
+verbose = true 
 
-[[team]]
-ip = "2"
-pw = "AppleSauce"
+# Timezone you want to use
+timezone = "America/Rainy_River"
 
-[[creds]]
-name = "users"
-usernames = ["john", "hiss", "richard", "sheriff", "captain", "guards", "otto", "rabbits", "skippy", "tagalong", "kluck", "toby"]
-defaultpw = "Password1!"
-
-[[box]]
-name = "village"
-ip = "10.20.x.1"
-
-    [[box.dns]]
-        [[box.dns.record]]
-        kind = "A" 
-        domain = "townsquare.sherwood.lan"
-        answer = ["192.168.1.4",] 
-
-        [[box.dns.record]]
-        kind = "MX"
-        domain = "sherwood.lan"
-        answer = ["192.168.1.5", "10.20.1.5"]
-
-    [[box.ftp]]
-    anonymous = true 
-        [[box.ftp.file]]
-        name = "memo.txt"
-        hash = "9d8453505bdc6f269678e16b3e56c2a2948a41f2c792617cc9611ed363c95b63"
-    
-    [[box.ssh]]
-
-    [[box.cmd]]
-    display="icmp"
-    command = "ping -c 4 BOXIP"
-    regex = "4 packets transmitted, 4 received, 0"
-
-
-[[box]]
-name="castle"
-ip = "10.20.x.4"
-
-    [[box.ssh]]
-```
-
-Maximal example, with comments:
-
-```toml
-event = "Awesome Comp" # event title
-
-verbose = true # show more info to competitors
-
+# Timing settings
 delay = 20               # delay (seconds) between checks (>0) (default 60)
-                         # note: the "real" max delay will be timeout+delay+jitter
+                             # note: the "real" max delay will be timeout+delay+jitter
 jitter = 3               # jitter (seconds) between rounds (0<jitter<delay)
 timeout = 5              # check timeout (must be smaller than delay-jitter)
-
 servicepoints = 10       # how many points each up check is worth
 slathreshold = 6         # how many checks before incurring SLA violation
 slapoints = 13           # how many points is an SLA penalty (default slathreshold * 2)
 
-timezone = "America/Rainy_River" # timezone you want to use
-
-nopasswords = false      # disables password change requests. makes all services anonymous
+# Mode settings
+nopasswords = false      # disables password change requests (like CyberPatriot NSMC)
 easypcr = true           # allow easy password changes
-disableinfopage = false  # disable the "info" page on the nav header
+disableinfopage = true   # disable the "info" page on the nav header
+persists = false         # run in cyberconquest mode (purple team events)
 
-# Admins have access to all records and information
+# Admins have access to all records and information.
+# You need at least one admin.
 [[admin]]
 name = "admin"
-pw = "letsallhavefun"
+pw = "coolpass"
 
-# Red teams will be able to claim red team incidents
-# If no red teams are specified, red reporting is disabled
+# Red teams (OPTIONAL) will be able to claim red team incidents.
+# If no red teams are specified, red reporting is disabled.
 [[red]]
 name = "red"
 pw = "HACKTHEPLANET"
 
 # Each team added here will show up on the scoreboard
+# You need at least one team.
 [[team]]
 ip = "1"
 pw = "Team1Pw!"
@@ -130,7 +82,7 @@ name = "users"
 usernames = ["john", "hiss", "richard", "sheriff", "captain", "guards", "otto", "rabbits", "skippy", "tagalong", "kluck", "toby"]
 defaultpw = "Password1!"
 
-# Users are permitted to change passwords for any user
+# Teams are permitted to change passwords for any user
 # But they can not change usernames or add new ones
 [[creds]]
 name = "admins"
@@ -142,15 +94,21 @@ name = "database"
 usernames = ["wordpress",]
 defaultpw = "Password2@"
 
-[[creds]]
-name = "web"
-usernames = ["admin",]
-defaultpw = "Password3#"
-
 # Box configurations
+
+[[box]]
+name="castle"
+ip = "10.20.x.1"
+
+	# If you want to keep something default, just don't specify it
+	# For this box, we're running default SMB and SSH login checks
+    [[box.smb]]
+    [[box.ssh]]
+
+
 [[box]]
 name = "village"
-ip = "10.20.x.1"
+ip = "10.20.x.2"
 
     # Run command with sh, compare output against regex.
     # Command must return exit code 0 to pass.
@@ -233,14 +191,7 @@ ip = "10.20.x.1"
         table = "users"
         column = "username"
         output = "Tuck"
-
-        [[box.sql.query]]
-        useregex = true
-        database = "magento"
-        table = "products"
-        column = "name"
-        output = "soup.*[1-9]"
-
+        
         [[box.sql.query]]
         database = "squirrelmail"
         table = "senders"
@@ -259,10 +210,6 @@ ip = "10.20.x.1"
         command = "cat /etc/passwd"
         contains = true
         output = "robin:"
-
-        [[box.ssh.command]]
-        command = "echo -e '123\n456' | grep 4"
-        output = "456"
 
         [[box.ssh.command]]
         useregex = true
@@ -284,11 +231,6 @@ ip = "10.20.x.1"
         regex = ".*easy to get started creating your website.*"
 
         [[box.web.url]]
-        path="/wordpress"
-        comparefile = "village_wp.html"
-        diff = 50
-
-        [[box.web.url]]
         path="/wp-admin.php"
         usernameparam = "user"
         passwordparam = "pw"
@@ -306,35 +248,68 @@ ip = "10.20.x.1"
     encrypted = true
 
         [[box.winrm.command]]
-        command = "net user Administrator"
-
-        [[box.winrm.command]]
         command = "Get-FileContent memo.txt"
         contains = true
         output = "business as usual in the kingdom!"
-
-[[box]]
-name="castle"
-ip = "10.20.x.4"
-
-	# The above example includes all option, so it's very verbose
-	# If you want to keep something default, just don't specify it
-    [[box.smb]]
-
-    [[box.ssh]]
 ```
 
 Injects
 -------
 
-You can put your stuff in injects.conf in toml format.
+Put your injects into  `injects.conf`. Note that the engine will only load inject from this file if you don't have any injects.
 
+Place PDFs or anything you link as `file = ` into the `./injects` folder. 
 
-Adding Checks Mid-Competition
+Times in the config are given in HH:MM:SS from the start of the competition. Go to settings in order to reset scoring data (including start time). Only the open time (`time = ...`) can be set to a zero value.
+
+Example injects config:
+
+```toml
+[[inject]]
+title = "Management Request" 
+body = "We want to add a user to all Linux machines."
+file = "mgmtreq1.pdf" 
+time = 00:00:00
+due = 02:00:00
+closes = 04:00:00
+points = 500
+
+[[inject]]
+title="Extraterrestrial Sighting on WAN1" 
+body = "Jimmy from accounting snapped this picture. Can you tell us what's in this image?"
+file = "ET.pdf" 
+time = 00:05:00
+due = 01:00:00
+closes = 04:00:00
+points = 250
+```
+
+Adding Scoring Checks Mid-Competition
 -----------------------------
 
-Check results are treated as a simple array. Because of this, you can add new checks mid-competition (for example, from an inject), but you need to make sure that it ends up at the end of the array to avoid being mixed with different checks. It's sorted by IP. Will probably change the way this works at some point in the future.
+Add boxes and checks that you want to occur mid-competition to the `delayed-checks.conf` file.
+
+If the box already exists, ensure that you use the same IP, and the checks will be appended to the existing box.
+
+Example `delayed-checks.conf`:
+
+```toml
+[[box]]
+name·=·"castle"
+ip·=·"10.20.x.1"
+
+# This field is the critical component.
+# Specify a time after the competition has begun in 
+# HH:MM:SS that you  want the checks to appear.
+# This works very similarly to injects.
+time·=·00:00:20
+
+····[[box.cmd]]
+····display·=·"new-command"
+→   cmd·=·"ls·-Ral"
+```
+
 
 Notes
------------
+---------------
 Thanks to the [scorestack](https://github.com/scorestack/scorestack/) project for some check code.

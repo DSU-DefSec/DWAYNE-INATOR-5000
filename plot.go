@@ -41,7 +41,7 @@ func graphScores(records []TeamRecord) {
 		graphData[i*2] = rec.Team.Name
 		l, _ := plotter.NewLine(getTeamPoints(rec.Team.ID))
 		l.LineStyle.Width = vg.Points(1)
-		l.LineStyle.Color = color.RGBA{R: uint8(int(math.Pow(255, float64(i+3)))%80), B: uint8(int(math.Pow(255, float64(i+5)))%70), G: uint8(int(math.Pow(255, float64(i+7)))%90), A: 255}
+		l.LineStyle.Color = color.RGBA{R: uint8(int(math.Pow(255, float64(i+3))) % 80), B: uint8(int(math.Pow(255, float64(i+5))) % 70), G: uint8(int(math.Pow(255, float64(i+7))) % 90), A: 255}
 		p.Add(l)
 		p.Legend.Add(rec.Team.Name, l)
 	}

@@ -5,13 +5,14 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"os"
+	"sort"
 	"sync"
 	"time"
-	"os"
 
+	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
 	"github.com/pkg/errors"
-	"github.com/BurntSushi/toml"
 
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -23,17 +24,20 @@ const (
 	apiEndpoint   = "http://172.16.1.122"
 )
 
-type injectList struct {
-	Inject []Inject
-}
-
 var (
 	dwConf = &config{}
 	db     = &gorm.DB{}
 
+	startTime     time.Time
+	delayedChecks struct {
+		Box []Box
+	}
+
 	roundNumber int
+	resetIssued bool
 	ct          CredentialTable
-	loc *time.Location
+	loc         *time.Location
+	ZeroTime    time.Time
 
 	teamMutex    = &sync.Mutex{}
 	persistMutex = &sync.Mutex{}
@@ -59,6 +63,13 @@ func main() {
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "invalid timezone"))
 	}
+
+	localTime := time.FixedZone("time-local", func() int { _, o := time.Now().Zone(); return o }())
+
+	// we've evolved to... superjank.
+	dateDiff := time.Date(0, 1, 1, 0, 0, 0, 0, localTime).Sub(time.Date(0, 1, 1, 0, 0, 0, 0, loc))
+	ZeroTime = time.Date(0, 1, 1, 0, 0, 0, 0, loc).Add(dateDiff)
+	time.Local = loc
 
 	// Open database
 	db, err = gorm.Open(sqlite.Open("dwayne.db"), &gorm.Config{})
@@ -92,7 +103,7 @@ func main() {
 	ct.Mutex = &sync.Mutex{}
 
 	// Initialize Gin router
-	// gin.SetMode(gin.ReleaseMode)
+	gin.SetMode(gin.ReleaseMode)
 	r := gin.Default()
 
 	// Add... add function
@@ -108,7 +119,7 @@ func main() {
 
 	// 404 handler
 	r.NoRoute(func(c *gin.Context) {
-		c.HTML(http.StatusNotFound, "404.html", pageData(c, "Login", nil))
+		c.HTML(http.StatusNotFound, "404.html", pageData(c, "404 Not Found", nil))
 	})
 
 	// Routes
@@ -147,7 +158,7 @@ func main() {
 		authRoutes.GET("/export/:team", exportTeamData)
 		authRoutes.GET("/team/:team", viewTeam)
 		authRoutes.GET("/team/:team/:check", viewCheck)
-		authRoutes.GET("/uptime/:team", viewUptime)
+		//authRoutes.GET("/uptime/:team", viewUptime)
 
 		// PCRs
 		authRoutes.GET("/pcr", viewPCR)
@@ -162,21 +173,45 @@ func main() {
 		// Injects
 		authRoutes.GET("/injects", viewInjects)
 		authRoutes.GET("/injects/feed", injectFeed)
-		authRoutes.GET("/injects/new", func(c *gin.Context) {
-			c.HTML(http.StatusOK, "new_inject.html", pageData(c, "New Inject", nil))
-		})
-		authRoutes.POST("/injects/new", newInject)
 		authRoutes.GET("/injects/view/:inject", viewInject)
 		authRoutes.POST("/injects/view/:inject", submitInject)
+		authRoutes.GET("/injects/delete/:inject", deleteInject)
 		authRoutes.POST("/injects/view/:inject/:submission/invalid", invalidateInject)
 		authRoutes.GET("/injects/view/:inject/:submission/grade", gradeInject)
 		authRoutes.POST("/injects/view/:inject/:submission/grade", submitInjectGrade)
 
 		// Inject submissions
 		authRoutes.Static("/submissions", "./submissions")
+		r.Static("/inject_files", "./injects")
 
 		// Settings
 		authRoutes.GET("/settings", viewSettings)
+		authRoutes.POST("/settings/reset", func(c *gin.Context) {
+			team := getUser(c)
+			if !team.IsAdmin() {
+				errorOutAnnoying(c, errors.New("non-admin tried to issue a scoring engine reset: "+c.Param("team")))
+				return
+			}
+
+			teamMutex.Lock()
+			resetIssued = true
+
+			db.Exec("DELETE FROM result_entries")
+			db.Exec("DELETE FROM team_records")
+			db.Exec("DELETE FROM inject_submissions")
+			db.Exec("DELETE FROM slas")
+			db.Exec("DELETE FROM persists")
+
+			// Deal with cache
+			cachedStatus = []TeamRecord{}
+			cachedRound = 0
+			roundNumber = 0
+			startTime = time.Now()
+			persistHits = make(map[uint]map[string][]uint)
+			teamMutex.Unlock()
+
+			c.Redirect(http.StatusSeeOther, "/")
+		})
 
 		// Resets
 		authRoutes.GET("/reset", viewResets)
@@ -191,6 +226,7 @@ func main() {
 	}
 
 	if len(injects) == 0 {
+
 		if !dwConf.NoPasswords {
 			pwChangeInject := Inject{
 				Time:  time.Now(),
@@ -204,11 +240,13 @@ func main() {
 			}
 		}
 
-		var configInjects injectList
+		var configInjects struct {
+			Inject []Inject
+		}
 
 		fileContent, err := os.ReadFile("./injects.conf")
 		if err != nil {
-			debugPrint("Configuration file ("+configPath+") not found:", err)
+			log.Println("[WARN] Injects file (injects.conf) not found:", err)
 		} else {
 			if _, err := toml.Decode(string(fileContent), &configInjects); err != nil {
 				log.Fatalln(err)
@@ -221,12 +259,32 @@ func main() {
 					return
 				}
 			}
-
 		}
+
 	} else {
 		debugPrint("Injects list is not empty, so we are not adding password change inject or processing configured injects")
 	}
 
+	// Load delayed checks
+	fileContent, err := os.ReadFile("./delayed-checks.conf")
+	if err == nil {
+		debugPrint("Adding delayed checks...")
+		if _, err := toml.Decode(string(fileContent), &delayedChecks); err != nil {
+			log.Fatalln(err)
+		}
+
+		for _, b := range delayedChecks.Box {
+			if b.Time.IsZero() {
+				log.Fatalln("Delayed check box time cannot be zero:", b.Name)
+			}
+		}
+
+		// sort based on reverse time to inject into checks
+		sort.SliceStable(delayedChecks.Box, func(i, j int) bool {
+			return delayedChecks.Box[i].InjectTime().After(delayedChecks.Box[i].InjectTime())
+		})
+	}
+
 	go Score(dwConf)
-	r.Run(":80")
+	r.Run(":" + fmt.Sprint(dwConf.Port))
 }

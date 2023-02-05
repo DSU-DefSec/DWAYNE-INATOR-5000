@@ -1,5 +1,7 @@
 DWAYNE-INATOR-5000
 dwayne.conf
+injects.conf
+delayed-checks.conf
 dwayne.db
 assets/points.png
 templates/info.html

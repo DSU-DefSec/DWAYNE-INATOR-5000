@@ -5,15 +5,18 @@
 {{ $user := .user }}
 
 <br>
-<h2>Injects{{ if $user.IsAdmin }}<a href="/injects/new"> +</a>{{ end }}</h2>
+<h2>Injects</h2>
 
 {{ if $user.IsAdmin }}
-<p style="background-color: #aea; padding: 1rem; text-align: center">
-Grade injects via the <b><a href="/feed">inject feed</a></b>.
+<p style="border: 0.1rem solid black; background-color: var(--lightgray); padding: 1rem; text-align: center">
+Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
 </p>
 {{ end }}
 
+<p style="text-align: center">
+    🕒 Current time is <b>{{ (.time.In .loc).Format "03:04:05 PM" }}</b>. Event started at <b>{{ (.start.In .loc).Format "03:04:05 PM" }}</b>.</p>
 <br>
+
 <table style="width: 100%">
     <th>Posted</th>
     <th>Inject Title</th>
@@ -21,23 +24,29 @@ Grade injects via the <b><a href="/feed">inject feed</a></b>.
     <th>Closes</th>
     {{ if not $user.IsAdmin }}
     <th>Status</th>
+    {{ else }}
+    <th>Delete</th>
     {{ end }}
 
+    {{ $posted := false }}
+
     {{ range $inject := .injects }}
+    {{ if $time.After .OpenTime }}
+    {{ $posted = true }}
     <tr 
        {{ if .Due.IsZero }}
-           style="background-color: #aea"
-       {{ else if not ($time.After .Due)}}
-           style="background-color: #aea"
+           style="background-color: var(--green)"
+       {{ else if not ($time.After .DueTime )}}
+           style="background-color: var(--green)"
        {{ else }}
-           style="background-color: #eaa"
+           style="background-color: var(--orange)"
        {{ end }}
     >
         <td style="font-weight: normal">
-            {{ (.Time.In $loc).Format "03:04 PM" }}
+            {{ (.OpenTime.In $loc).Format "03:04 PM" }}
         </td>
         <td>
-            <a href="/injects/view/{{ .ID }}" style="color: blue">
+            <a href="/injects/view/{{ .ID }}">
                 {{ $inject.Title }}
             </a>
         </td>
@@ -45,14 +54,14 @@ Grade injects via the <b><a href="/feed">inject feed</a></b>.
             {{ if .Due.IsZero }}
                 N/A
             {{ else }}
-                <b>{{ (.Due.In $loc).Format "03:04 PM" }}</b>
+                <b>{{ (.DueTime.In $loc).Format "03:04 PM" }}</b>
             {{ end }}
         </td>
         <td>
             {{ if .Closes.IsZero }}
                 N/A
             {{ else }}
-                <b>{{ (.Closes.In $loc).Format "03:04 PM" }}</b>
+                <b>{{ (.CloseTime.In $loc).Format "03:04 PM" }}</b>
             {{ end }}
         </td>
         {{ if not $user.IsAdmin }}
@@ -66,30 +75,97 @@ Grade injects via the <b><a href="/feed">inject feed</a></b>.
             {{ end }}
 
         </td>
+        {{ else }}
+        <td>
+            <a style="color: var(--darkred)";  href="/injects/delete/{{ .ID }}">
+	            Delete!
+            </a>
+        </td>
         {{ end }}
-
+    {{ end }}
     </tr>
     {{ end }}
 
+</table>
+
+{{ if not $posted }}
+<p style="text-align: center">
+📄 No injects have been posted yet! Stay tuned.
+</p>
+{{ end }}
+
+
+{{ if .user.IsAdmin }}
+<br>
+<hr>
+
+<p style="text-align: center">
+These injects have not yet been posted:
+</p>
+
+<table style="width: 100%">
+    <th>Posted</th>
+    <th>Inject Title</th>
+    <th>Due</th>
+    <th>Closes</th>
+    <th>Delete</th>
+
+    {{ range $inject := .injects }}
+    {{ if $time.Before .OpenTime }}
+    <tr 
+       {{ if .Due.IsZero }}
+           style="background-color: var(--green)"
+       {{ else if not ($time.After .DueTime )}}
+           style="background-color: var(--green)"
+       {{ else }}
+           style="background-color: var(--orange)"
+       {{ end }}
+    >
+        <td style="font-weight: normal">
+            {{ (.OpenTime.In $loc).Format "03:04 PM" }}
+        </td>
+        <td>
+            <a href="/injects/view/{{ .ID }}">
+                {{ $inject.Title }}
+            </a>
+        </td>
+        <td>
+            {{ if .Due.IsZero }}
+                N/A
+            {{ else }}
+                <b>{{ (.DueTime.In $loc).Format "03:04 PM" }}</b>
+            {{ end }}
+        </td>
+        <td>
+            {{ if .Closes.IsZero }}
+                N/A
+            {{ else }}
+                <b>{{ (.CloseTime.In $loc).Format "03:04 PM" }}</b>
+            {{ end }}
+        </td>
+        <td>
+            <a style="color: var(--darkred)";  href="/injects/delete/{{ .ID }}">
+	            Delete!
+            </a>
+        </td>
+    {{ end }}
+    </tr>
+    {{ end }}
+
+{{ if eq (len .) 0 }}
+<p style="text-align: center">
+🗓️ No injects have been added to the engine yet.
+</p>
+{{ end }}
 
 </table>
+{{ end }}
+
+
 
 <br>
 <p style="text-align: center">
 ℹ️ All times are in the <b>{{ .m.Timezone }}</b> timezone.
 </p>
-
-<!--
-{{ if not .admin }}
-    posted injects
-    form to submit
-        file
-        textarea
-{{ else }}
-    admin interface to provide feedback on injects
-    /inject/injectname/[ team ]
-{{ end }}
-
--->
 
 {{ template "feet.html" }}

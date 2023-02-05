@@ -3,10 +3,10 @@ package main
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -72,28 +72,53 @@ func getCsv() (string, error) {
 	return csvString, nil
 }
 
-func sortResults(resList []ResultEntry) []ResultEntry {
-	sort.SliceStable(resList, func(i, j int) bool {
-		if resList[i].IP < resList[j].IP {
-			return true
-		} else if resList[i].IP > resList[j].IP {
-			return false
+func addDelayedChecks() {
+	// go in reverse to make truncation easier
+	for i := len(delayedChecks.Box) - 1; i >= 0; i-- {
+		if time.Now().After(delayedChecks.Box[i].InjectTime()) {
+
+			delayedBox := delayedChecks.Box[i]
+
+			// remove box from list
+			delayedChecks.Box[i] = delayedChecks.Box[len(delayedChecks.Box)-1]
+			delayedChecks.Box = delayedChecks.Box[:len(delayedChecks.Box)-1]
+
+			boxList := []Box{delayedBox}
+			err := validateChecks(boxList)
+			if err != nil {
+				log.Println("[ERROR] Check validation on delayed check:", delayedBox.Name, err)
+				continue
+			}
+
+			delayedBox = boxList[0]
+
+			boxIndex := -1
+			for j, b := range dwConf.Box {
+				if b.Name == delayedBox.Name {
+					boxIndex = j
+				}
+			}
+
+			if boxIndex < 0 {
+				// Add new box
+				dwConf.Box = append(dwConf.Box, delayedBox)
+			} else {
+				// Add new checks
+				for _, c := range delayedBox.CheckList {
+					dwConf.Box[boxIndex].CheckList = append(dwConf.Box[boxIndex].CheckList, c)
+				}
+			}
+
 		}
-		return resList[i].Name < resList[j].Name
-	})
-	return resList
+	}
 }
 
-func sortChecks(checkList []checks.Check) []checks.Check {
-	sort.SliceStable(checkList, func(i, j int) bool {
-		if checkList[i].FetchIP() < checkList[j].FetchIP() {
-			return true
-		} else if checkList[i].FetchIP() > checkList[j].FetchIP() {
-			return false
-		}
-		return checkList[i].FetchName() < checkList[j].FetchName()
-	})
-	return checkList
+func makeResultsMap(resList []ResultEntry) map[string]ResultEntry {
+	resMap := make(map[string]ResultEntry)
+	for _, r := range resList {
+		resMap[r.Name] = r
+	}
+	return resMap
 }
 
 func validateString(input string) bool {

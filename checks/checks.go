@@ -12,14 +12,15 @@ import (
 var (
 	GlobalTimeout, _ = time.ParseDuration("20s")
 	Creds            map[uint]map[string]map[string]string
+
+	// Global list of all current CredData
 	CredLists        []CredData
 )
 
 func getCreds(teamID uint, credLists []string, checkName string) (string, string) {
 	var usernameList CredData
-	rand.Seed(time.Now().UnixNano())
-	credList := credLists[rand.Intn(len(credLists))]
-	if credList != "" {
+	if len(credLists) != 0 {
+		credList := credLists[rand.Intn(len(credLists))]
 		found := false
 		for _, l := range CredLists {
 			if l.Name == credList {

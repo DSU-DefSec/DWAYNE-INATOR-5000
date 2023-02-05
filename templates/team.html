@@ -37,12 +37,23 @@
         <td>
             {{ (.Time.In $loc).Format "03:04:05 PM" }}
         </td>
-    {{ range $check := $record.Results }}
+
+    {{ range $box := $m.Box }}
+    {{ range .CheckList }}
+
+        {{ $check := index $record.ResultsMap .Name }}
+
         <td>
+        {{ if ne $check.Name "" }}
             <a href="/team/{{ $check.TeamID }}/{{ $check.Name }}">
-            {{ template "bool.html" .Status }}
+            {{ template "bool.html" $check.Status }}
             </a>
+        {{ else }}
+            <img src="/assets/pending.png"/>
+	    {{ end }}
         </td>
+
+    {{ end }}
     {{ end }}
     </tr>
     {{ end }}
@@ -56,11 +67,13 @@ Your team doesn't have any completed checks yet :(
 
 {{ end }}
 
+<!--
 <br>
 <h3>Check Service Uptime</h3>
 <p style="text-align: center">
     <a href="/uptime/{{ $team.ID }}">Visit service uptime.</a>
 </p>
+-->
 
 <br>
 <h3>External IPs and Ports</h3>
@@ -94,7 +107,6 @@ Your team doesn't have any completed checks yet :(
 
 </table>
 
-{{ if $m.Verbose }}
 {{ $record := index .records 0 }}
 <br>
 <br>
@@ -106,9 +118,8 @@ Your team doesn't have any completed checks yet :(
     <br>
     SLA Violations: {{ $record.SlaViolations }}
     <br>
-    <a href="/scores">See scores</a>
+    <a href="/">See all teams status</a>
 </p>
 </fieldset>
-{{ end }}
 
 {{ template "feet.html" }}

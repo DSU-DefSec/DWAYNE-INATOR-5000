@@ -37,7 +37,11 @@
                 {{ end }}
             {{ end }}
         </td>
-        {{ range $check := .Results }}
+
+        {{ range $box := $m.Box }}
+        {{ range .CheckList }}
+
+        {{ $check := index $record.ResultsMap .Name }}
 
             <!-- Persist calculations -->
             {{ $isPersisted := false }}
@@ -56,13 +60,18 @@
                 <td>
             {{ end }}
 
-            {{ if $team }}
-                {{ if $m.IsValid $team $record.Team.Name }}
-                <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
-                {{ end }}
-            {{ end }}
+            {{ if ne $check.Name "" }}
 
-            {{ template "bool.html" $check.Status }}
+	            {{ if $team }}
+	                {{ if $m.IsValid $team $record.Team.Name }}
+	                <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
+	                {{ end }}
+	            {{ end }}
+                {{ template "bool.html" $check.Status }}
+
+            {{ else }}
+                <img src="/assets/pending.png"/>
+            {{ end }}
 
             {{ if $team }}
                 {{ if $m.IsValid $team $record.Team.Name }}
@@ -73,13 +82,14 @@
           {{ else }}
         </td>
         {{ end }}
+        {{ end }}
     </tr>
     {{ end }}
 </table>
 
 <br>
 <p style="text-align: center">
-Round {{ .round }}. Checks ran at {{ ((index .statusRecords 0).Time.In .loc).Format "03:04:05 PM" }}.
+⏱️ Round {{ .round }}. Checks last ran at <b>{{ ((index .statusRecords 0).Time.In .loc).Format "03:04:05 PM" }}</b>. Event has been running for <b>{{ .runtime }}</b>.
 </p>
 
 <br>

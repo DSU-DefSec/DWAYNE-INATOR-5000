@@ -3,6 +3,7 @@
 <br>
 <h2>Inject {{ .inject.ID }} Submissions: <i>{{ .inject.Title }}</i></h2>
 
+{{ $m := .m }}
 {{ $loc := .loc }}
 {{ $user := .user }}
 
@@ -13,10 +14,10 @@
 	</p>
 {{ else }}
 
-{{ if eq .inject.ID 1 }}
+{{ if and (not .m.NoPasswords) (eq .inject.ID 1) }}
 
     {{ if .m.EasyPCR }}
-    <p style="background-color: #700; padding: 1rem; text-align: center">
+    <p style="background-color: var(--red); padding: 1rem; text-align: center">
     <b>NOTE:</b> Easy password changes are enabled. Consider using the <a href="/pcr">the PCR portal instead</a>.
     </p>
     {{ end }}
@@ -42,13 +43,16 @@ username2,coolpassword
 
 You must allow 3 to 5 minutes for password changes to take effect. You do NOT need to provide us with password changes for "root" or "administrator" accounts. Passwords can be up to 24 characters Long. Make sure to only use the following special charaters: <code>. @ # $ % & ! ? : * ^ _ - + = < > ~</code>
 <br>
-<br>
 
 {{ else }}
 
-{{ .inject.Body }}
+	{{ if .inject.Body }}
+	<p style="text-align: center"><b>{{ .inject.Body }}</b></p>
+	{{ end }}
 
-<br>
+	{{ if .inject.File }}
+	<p style="text-align: center">See attached: <a href="/inject_files/{{ .inject.File }}">{{ .inject.File }}</a></p>
+	{{ end }}
 
 {{ end }}
 
@@ -63,7 +67,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
     <th>File Name</th>
     <th></th>
     <th>Feedback</th>
-    {{ if and $user.IsAdmin (ne .inject.ID 1)}}
+    {{ if and $user.IsAdmin (or ($m.NoPasswords) (ne .inject.ID 1)) }}
     <th>Grade</th>
     {{ end }}
 
@@ -97,7 +101,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
             {{ end }}
         </td>
         <td>
-            {{ if and (and (eq .InjectID 1) .Invalid) (and (eq .Feedback "") .Graded) }}
+            {{ if or (and (and (eq .InjectID 1) (not $m.NoPasswords)) .Invalid) (and (eq .Feedback "") .Graded) }}
             👍
             {{ else }}
             {{ .Feedback }}

@@ -25,6 +25,15 @@ func Score(m *config) {
 		roundNumber = 1
 	}
 
+	// Load earliest startTime from DB record
+	record = TeamRecord{}
+	res = db.Limit(1).Find(&record)
+	if res.Error == nil && !record.Time.IsZero() {
+		startTime = record.Time
+	} else {
+		startTime = time.Now().In(loc)
+	}
+
 	rand.Seed(time.Now().UnixNano())
 	// checkList = append(checkList, m.Web...)
 	//mux := &sync.Mutex{}
@@ -33,8 +42,10 @@ func Score(m *config) {
 	constructPCRState()
 
 	for {
-		debugPrint("===================================")
-		debugPrint("[SCORE] round", roundNumber)
+		debugPrint("[SCORE] ===== Round", roundNumber)
+
+		// Check to see if any delayed checks need to be added
+		addDelayedChecks()
 
 		allTeamsWg := &sync.WaitGroup{}
 		for _, t := range m.Team {
@@ -45,7 +56,7 @@ func Score(m *config) {
 				wg := &sync.WaitGroup{}
 				resChan := make(chan checks.Result)
 
-				debugPrint("team going into teamrecord is", team)
+				//debugPrint("team going into teamrecord is", team)
 				newRecord := TeamRecord{
 					Time:   time.Now().In(loc),
 					TeamID: team.ID,
@@ -56,7 +67,7 @@ func Score(m *config) {
 				for _, b := range m.Box {
 					for _, check := range b.CheckList {
 						wg.Add(1)
-						log.Println("running check for", team.Name, check)
+						debugPrint("[SCORE] Running check for", team.Name, check)
 						go checks.RunCheck(team.ID, team.IP, b.IP, b.Name, check, wg, resChan)
 					}
 				}
@@ -87,7 +98,7 @@ func Score(m *config) {
 						}
 						newRecord.Results = append(newRecord.Results, resEntry)
 					case <-done:
-						debugPrint("[SCORE] checks for team", team.Name, "are done")
+						debugPrint("[SCORE] Checks for team", team.Name, "are done!")
 						doneSwitch = true
 					}
 					if doneSwitch {
@@ -104,33 +115,44 @@ func Score(m *config) {
 
 		// Process all team records
 		teamMutex.Lock()
-		for _, rec := range recordsStaging {
-			processNewRecord(&rec)
-		}
-		recordsStaging = []TeamRecord{}
+		if resetIssued {
+			debugPrint("[SCORE] Not saving current round, since reset was issued.")
+			recordsStaging = []TeamRecord{}
+			resetIssued = false
+		} else {
+			for _, rec := range recordsStaging {
+				processNewRecord(&rec)
+			}
+			recordsStaging = []TeamRecord{}
 
-		// Calculate persist points
-		if dwConf.Persists {
-			calculatePersists()
-			// Reset persists
-			persistHits = make(map[uint]map[string][]uint)
+			// Calculate persist points
+			if dwConf.Persists {
+				calculatePersists()
+				// Reset persists
+				persistHits = make(map[uint]map[string][]uint)
+			}
+
+			// Next round!
+			roundNumber++
+
+			// Build PCR state before sleep.
+			// We want submitted PCRs to miss at least one check round.
+			debugPrint("[PCR] Constructing PCR state...")
+			constructPCRState()
 		}
 		teamMutex.Unlock()
-
-		// Next round!
-		roundNumber++
-
-		// Build PCR state before sleep.
-		// We want submitted PCRs to miss at least one check round.
-		debugPrint("[PCR] constructing PCR state")
-		constructPCRState()
 
 		jitter := time.Duration(0)
 		if dwConf.Jitter != 0 {
 			jitter = time.Duration(time.Duration(rand.Intn(dwConf.Jitter+1)) * time.Second)
 		}
-		debugPrint("[SCORE] sleeping for", dwConf.Delay, "with jitter", jitter)
+		debugPrint("[SCORE] Sleeping for", dwConf.Delay, "with jitter", jitter)
 		time.Sleep((time.Duration(dwConf.Delay) * time.Second) + jitter)
+
+		// If reset was issued during sleep, we ignore it
+		if resetIssued == true {
+			resetIssued = false
+		}
 	}
 }
 

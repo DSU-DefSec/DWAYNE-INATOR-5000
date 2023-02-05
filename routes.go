@@ -32,9 +32,9 @@ func viewStatus(c *gin.Context) {
 			errorOutGraceful(c, res.Error)
 		}
 
-		// Sort results for viewing.
+		// Build results map
 		for i, rec := range statusRecords {
-			statusRecords[i].Results = sortResults(rec.Results)
+			statusRecords[i].ResultsMap = makeResultsMap(rec.Results)
 		}
 
 		// Sort by team ID.
@@ -46,27 +46,27 @@ func viewStatus(c *gin.Context) {
 		cachedRound = roundNumber
 
 	}
-		// TODO fix this, horrendous
-		teamMutex.Lock()
-		var records []TeamRecord
+	// TODO fix this, horrendous
+	teamMutex.Lock()
+	var records []TeamRecord
 	res := db.Limit(len(dwConf.Team)).Where("round = ?", roundNumber-1).Preload("Team").Order("time desc").Find(&records)
-		if res.Error != nil {
-			errorOutGraceful(c, res.Error)
-			teamMutex.Unlock()
-			return
-		}
+	if res.Error != nil {
+		errorOutGraceful(c, res.Error)
 		teamMutex.Unlock()
+		return
+	}
+	teamMutex.Unlock()
 
-		// Calculate totals.
-		for i, rec := range records {
-			records[i].Total = calculateScoreTotal(rec)
-		}
+	// Calculate totals.
+	for i, rec := range records {
+		records[i].Total = calculateScoreTotal(rec)
+	}
 
-		// Sort by total score.
-		sort.SliceStable(records, func(i, j int) bool {
-			return records[i].Total > records[j].Total
-		})
-		graphScores(records)
+	// Sort by total score.
+	sort.SliceStable(records, func(i, j int) bool {
+		return records[i].Total > records[j].Total
+	})
+	graphScores(records)
 
 	team := getUserOptional(c)
 	ip := c.ClientIP()
@@ -80,6 +80,10 @@ func viewTeam(c *gin.Context) {
 		return
 	}
 	team := validateTeam(c, uint(id))
+	// failed
+	if team.Name == "" {
+		return
+	}
 
 	var records []TeamRecord
 	res := db.Limit(10).Preload("Results").Order("time desc").Find(&records, "team_id = ?", team.ID)
@@ -90,12 +94,14 @@ func viewTeam(c *gin.Context) {
 
 	// Sort all the Results...
 	for i := range records {
-		records[i].Results = sortResults(records[i].Results)
+		records[i].ResultsMap = makeResultsMap(records[i].Results)
 	}
 
 	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "records": records}))
 }
 
+/*
+sorry... this may or may not work lol
 func viewUptime(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("team"))
 	if err != nil {
@@ -115,7 +121,7 @@ func viewUptime(c *gin.Context) {
 	if len(records) > 0 {
 		// Average the results, lol
 		record = records[0]
-		record.Results = sortResults(record.Results)
+		record.Results = N/A(record.Results)
 		for i := range record.Results {
 			uptimeSum := 0
 			uptimeTotal := 0
@@ -130,12 +136,12 @@ func viewUptime(c *gin.Context) {
 				}
 			}
 			record.Results[i].Uptime = int(float64(uptimeSum) / float64(uptimeTotal) * 100)
-
 		}
 	}
 
 	c.HTML(http.StatusOK, "uptime.html", pageData(c, "Service Uptime", gin.H{"team": team, "record": record}))
 }
+*/
 
 func viewCheck(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("team"))
@@ -348,7 +354,7 @@ func viewInjects(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": injects, "time": time.Now()}))
+	c.HTML(http.StatusOK, "injects.html", pageData(c, "injects", gin.H{"injects": injects}))
 }
 
 func injectFeed(c *gin.Context) {
@@ -379,7 +385,7 @@ func createInject(c *gin.Context) {
 		return
 	}
 
-	newInject.Time = time.Now()
+	newInject.Time = ZeroTime.Add(time.Now().Sub(startTime))
 
 	res := db.Create(&newInject)
 	if res.Error != nil {
@@ -387,28 +393,6 @@ func createInject(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"status": "OK"})
-}
-
-func newInject(c *gin.Context) {
-	team := getUser(c)
-	if ! team.IsAdmin() {
-		errorOutAnnoying(c, errors.New("Non-admin attempted to post to newInject"))
-	}
-
-	var newInject Inject
-	err := c.Bind(&newInject)
-	if err != nil {
-		c.HTML(http.StatusBadRequest, "new_inject.html", pageData(c, "New Inject", gin.H{"error": err.Error()}))
-	}
-
-	newInject.Time = time.Now()
-
-	res := db.Create(&newInject)
-	if res.Error != nil {
-		c.HTML(http.StatusBadRequest, "new_inject.html", pageData(c, "New Inject", gin.H{"error": res.Error}))
-		return
-	}
-	c.HTML(http.StatusOK, "new_inject.html", pageData(c, "New Inject", gin.H{"msg": "Inject successfully created."}))
 }
 
 func viewInject(c *gin.Context) {
@@ -440,9 +424,43 @@ func viewInject(c *gin.Context) {
 			errorOutGraceful(c, err)
 			return
 		}
+		if time.Now().Before(inject.OpenTime()) {
+			errorOutAnnoying(c, errors.New("non-admin attempted inject before being available"))
+			return
+		}
 	}
 
 	c.HTML(http.StatusOK, "inject.html", pageData(c, "injects", gin.H{"inject": inject, "submissions": submissions}))
+}
+
+func deleteInject(c *gin.Context) {
+	team := getUser(c)
+	if !team.IsAdmin() {
+		errorOutAnnoying(c, errors.New("non-admin tried to delete inject: "+c.Param("team")))
+		return
+	}
+
+	// delete inject
+	injectID, err := strconv.Atoi(c.Param("inject"))
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid inject id (not a number)"))
+		return
+	}
+
+	var inject Inject
+	res := db.First(&inject, "id = ?", injectID)
+	if res.Error != nil {
+		errorOutAnnoying(c, errors.New("invalid inject id"))
+		return
+	}
+
+	// lol no sql injection tho
+	res = db.Exec(fmt.Sprintf("DELETE FROM injects where id = %d", inject.ID))
+	if res.Error != nil {
+		errorOutAnnoying(c, errors.New("invalid inject id"))
+		return
+	}
+	c.Redirect(http.StatusSeeOther, "/injects")
 }
 
 func submitInject(c *gin.Context) {
@@ -468,7 +486,7 @@ func submitInject(c *gin.Context) {
 			c.Redirect(http.StatusSeeOther, "/injects/view/"+strconv.Itoa(int(inject.ID)))
 			return
 		}
-		if injectID != 1 {
+		if dwConf.NoPasswords || injectID != 1 {
 			if len(file.Filename) < 4 || file.Filename[len(file.Filename)-4:] != ".pdf" {
 				c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "Your inject upload must have a .PDF extension.", "inject": inject}))
 				return
@@ -665,6 +683,13 @@ func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {
 	newGinMap["m"] = dwConf
 	newGinMap["event"] = dwConf.Event
 	newGinMap["loc"] = loc
+	newGinMap["start"] = startTime
+	newGinMap["time"] = time.Now()
+	runtime := time.Since(startTime).Round(time.Second)
+	if runtime < 0 {
+		runtime = 0
+	}
+	newGinMap["runtime"] = runtime
 	for key, value := range ginMap {
 		newGinMap[key] = value
 	}
