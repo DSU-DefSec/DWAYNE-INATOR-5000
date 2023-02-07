@@ -25,9 +25,12 @@ type ResultEntry struct {
 	TeamID       uint
 	TeamRecordID uint
 	Round        int
+	RoundCount   int
+	// Total points check has earned
+	Points int
 
-	// Uptime is only used in the uptime view, and not typically updated
-	Uptime int
+	// Uptime is only used in the uptime view
+	Uptime int `gorm:"-"`
 
 	checks.Result
 }
@@ -45,6 +48,7 @@ type TeamRecord struct {
 	InjectPoints     int
 	SlaViolations    int
 	ManualAdjustment int
+
 	// Field must be calculated before displaying.
 	// We don't want to hardcode weights.
 	Total int

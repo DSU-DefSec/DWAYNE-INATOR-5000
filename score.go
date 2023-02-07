@@ -44,112 +44,118 @@ func Score(m *config) {
 	}
 
 	for {
-		debugPrint("[SCORE] ===== Round", roundNumber)
 
-		// Check to see if any delayed checks need to be added
-		addDelayedChecks()
+		if m.Running {
 
-		allTeamsWg := &sync.WaitGroup{}
-		for _, t := range m.Team {
-			allTeamsWg.Add(1)
+			debugPrint("[SCORE] ===== Round", roundNumber)
 
-			go func(team TeamData) {
+			// Check to see if any delayed checks need to be added
+			addDelayedChecks()
 
-				wg := &sync.WaitGroup{}
-				resChan := make(chan checks.Result)
+			allTeamsWg := &sync.WaitGroup{}
+			for _, t := range m.Team {
+				allTeamsWg.Add(1)
 
-				//debugPrint("team going into teamrecord is", team)
-				newRecord := TeamRecord{
-					Time:   time.Now().In(loc),
-					TeamID: team.ID,
-					Team:   team,
-					Round:  roundNumber,
-				}
+				go func(team TeamData) {
 
-				for _, b := range m.Box {
-					for _, check := range b.CheckList {
-						wg.Add(1)
-						debugPrint("[SCORE] Running check for", team.Name, check)
-						go checks.RunCheck(team.ID, team.IP, b.IP, b.Name, check, wg, resChan)
+					wg := &sync.WaitGroup{}
+					resChan := make(chan checks.Result)
+
+					//debugPrint("team going into teamrecord is", team)
+					newRecord := TeamRecord{
+						Time:   time.Now().In(loc),
+						TeamID: team.ID,
+						Team:   team,
+						Round:  roundNumber,
 					}
-				}
 
-				done := make(chan struct{})
-				go func() {
-					wg.Wait()
-					close(done)
-				}()
-
-				// team record
-				doneSwitch := false
-				for {
-					select {
-					case res := <-resChan:
-						resEntry := ResultEntry{
-							Time:   time.Now(),
-							TeamID: team.ID,
-							Round:  roundNumber,
-							Result: checks.Result{
-								Name:   res.Name,
-								Status: res.Status,
-								Error:  res.Error,
-								Debug:  res.Debug,
-								IP:     res.IP,
-								Box:    res.Box,
-							},
+					for _, b := range m.Box {
+						for _, check := range b.CheckList {
+							wg.Add(1)
+							debugPrint("[SCORE] Running check for", team.Name, check)
+							go checks.RunCheck(team.ID, team.IP, b.IP, b.Name, check, wg, resChan)
 						}
-						newRecord.Results = append(newRecord.Results, resEntry)
-					case <-done:
-						debugPrint("[SCORE] Checks for team", team.Name, "are done!")
-						doneSwitch = true
 					}
-					if doneSwitch {
-						break
+
+					done := make(chan struct{})
+					go func() {
+						wg.Wait()
+						close(done)
+					}()
+
+					// team record
+					doneSwitch := false
+					for {
+						select {
+						case res := <-resChan:
+							resEntry := ResultEntry{
+								Time:   time.Now(),
+								TeamID: team.ID,
+								Round:  roundNumber,
+								Result: checks.Result{
+									Name:   res.Name,
+									Status: res.Status,
+									Error:  res.Error,
+									Debug:  res.Debug,
+									IP:     res.IP,
+									Box:    res.Box,
+								},
+							}
+							newRecord.Results = append(newRecord.Results, resEntry)
+						case <-done:
+							debugPrint("[SCORE] Checks for team", team.Name, "are done!")
+							doneSwitch = true
+						}
+						if doneSwitch {
+							break
+						}
 					}
+					teamMutex.Lock()
+					recordsStaging = append(recordsStaging, newRecord)
+					teamMutex.Unlock()
+					allTeamsWg.Done()
+				}(t)
+			}
+			allTeamsWg.Wait()
+
+			// Process all team records
+			teamMutex.Lock()
+			if resetIssued {
+				debugPrint("[SCORE] Not saving current round, since reset or pause was issued.")
+				recordsStaging = []TeamRecord{}
+				resetIssued = false
+			} else {
+				for _, rec := range recordsStaging {
+					processNewRecord(&rec)
 				}
-				teamMutex.Lock()
-				recordsStaging = append(recordsStaging, newRecord)
-				teamMutex.Unlock()
-				allTeamsWg.Done()
-			}(t)
+				recordsStaging = []TeamRecord{}
+
+				// Calculate persist points
+				if dwConf.Persists {
+					calculatePersists()
+					// Reset persists
+					persistHits = make(map[uint]map[string][]uint)
+				}
+
+				// Next round!
+				roundNumber++
+
+				if !dwConf.NoPasswords {
+					// Build PCR state before sleep.
+					// We want submitted PCRs to miss at least one check round.
+					debugPrint("[PCR] Constructing PCR state...")
+					constructPCRState()
+				}
+			}
+			teamMutex.Unlock()
+
 		}
-		allTeamsWg.Wait()
-
-		// Process all team records
-		teamMutex.Lock()
-		if resetIssued {
-			debugPrint("[SCORE] Not saving current round, since reset was issued.")
-			recordsStaging = []TeamRecord{}
-			resetIssued = false
-		} else {
-			for _, rec := range recordsStaging {
-				processNewRecord(&rec)
-			}
-			recordsStaging = []TeamRecord{}
-
-			// Calculate persist points
-			if dwConf.Persists {
-				calculatePersists()
-				// Reset persists
-				persistHits = make(map[uint]map[string][]uint)
-			}
-
-			// Next round!
-			roundNumber++
-
-			if !dwConf.NoPasswords {
-				// Build PCR state before sleep.
-				// We want submitted PCRs to miss at least one check round.
-				debugPrint("[PCR] Constructing PCR state...")
-				constructPCRState()
-			}
-		}
-		teamMutex.Unlock()
 
 		jitter := time.Duration(0)
 		if dwConf.Jitter != 0 {
 			jitter = time.Duration(time.Duration(rand.Intn(dwConf.Jitter+1)) * time.Second)
 		}
+
 		debugPrint("[SCORE] Sleeping for", dwConf.Delay, "with jitter", jitter)
 		time.Sleep((time.Duration(dwConf.Delay) * time.Second) + jitter)
 
@@ -170,7 +176,7 @@ func processNewRecord(rec *TeamRecord) {
 	}
 
 	// Calculate service and SLA values
-	for _, res := range rec.Results {
+	for i, res := range rec.Results {
 		var slaRecord SLA
 		result = db.First(&slaRecord, "team_id = ? and check_name = ?", rec.TeamID, res.Name)
 		if result.Error != nil {
@@ -179,6 +185,16 @@ func processNewRecord(rec *TeamRecord) {
 				CheckName: res.Name,
 			}
 		}
+		// O(n^2) lol
+		var oldRes ResultEntry
+		for _, prevRes := range currentRec.Results {
+			if prevRes.Name == res.Name {
+				oldRes = prevRes
+				break
+			}
+		}
+		rec.Results[i].Points = oldRes.Points
+		rec.Results[i].RoundCount = oldRes.RoundCount + 1
 		if !res.Status {
 			slaRecord.Counter++
 			if slaRecord.Counter >= dwConf.SlaThreshold {
@@ -188,8 +204,10 @@ func processNewRecord(rec *TeamRecord) {
 			}
 		} else {
 			slaRecord.Counter = 0
-			rec.ServicePoints += dwConf.ServicePoints
+			rec.ServicePoints++
+			rec.Results[i].Points++
 		}
+
 		if result = db.Save(&slaRecord); result.Error != nil {
 			errorPrint(result.Error)
 			return

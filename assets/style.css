@@ -6,15 +6,20 @@
 		--blue: #6cb2fc;
 		--darkblue: #79a0fc;
 		--orange: #602d00;
+		--oranget: #602d007f;
 		--darkorange: #fcac76;
 		--pink: #fcb3e0;
 		--purple: #be9ffc;
 		--gray: #313131;
 		--green: #153917;
+		--greent: #1539177f;
 		--darkgreen: lightgreen;
 		--darkyellow: goldenrod;
 		--darkred: #e55;
 		--red: #700;
+		--redt: #7700007f;
+		--yellow: #887509;
+		--yellowt: #8875097f;
 		--darkgray: #eae8ea;
 		--lightgray: #1f1f1f;
 		--white: #1a1a1d;
@@ -33,15 +38,20 @@
 		--blue: #469efc;
 		--darkblue: #3547e8;
 		--orange: #fc9550;
+		--oranget: #fc95507f;
 		--darkorange: #602d00;
 		--pink: #f796d2;
 		--purple: #a16fed;
 		--gray: #ddd;
 		--green: #aea;
+		--greent: #aaeeaa7f;
 		--darkgreen: darkgreen;
 		--darkyellow: goldenrod;
+		--yellow: #f9cd49;
+		--yellowt: #f9cd497f;
 		--darkred: #700;
-		--red: #e55;
+		--red: #fb6262;
+		--redt: #fb62627f;
 		--darkgray: #313131;
 		--lightgray: #f6f6f6;
 		--black: #212121;
@@ -178,7 +188,7 @@ th {
 
 td, th {
     font-weight: normal;
-    padding: 0.7rem;
+    padding: 0.6rem;
 }
 
 .status {

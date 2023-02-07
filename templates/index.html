@@ -11,6 +11,13 @@
 <br>
 <h2>Status</h2>
 
+{{ if not .m.Running }}
+<p style="text-align: center">
+🧊 Scoring paused at {{ (.pauseTime.In .loc).Format "03:04:05 PM" }}.
+</p>
+<br>
+{{ end }}
+
 <table>
     <tr>
         <th style="border-bottom: none"></th>
@@ -62,11 +69,11 @@
 
             {{ if ne $check.Name "" }}
 
-	            {{ if $team }}
-	                {{ if $m.IsValid $team $record.Team.Name }}
-	                <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
-	                {{ end }}
-	            {{ end }}
+                {{ if $team }}
+                    {{ if $m.IsValid $team $record.Team.Name }}
+                    <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
+                    {{ end }}
+                {{ end }}
                 {{ template "bool.html" $check.Status }}
 
             {{ else }}
@@ -86,11 +93,76 @@
     </tr>
     {{ end }}
 </table>
-
 <br>
 <p style="text-align: center">
-⏱️ Round {{ .round }}. Checks last ran at <b>{{ ((index .statusRecords 0).Time.In .loc).Format "03:04:05 PM" }}</b>. Event has been running for <b>{{ .runtime }}</b>.
+⏱️ Round {{ .round }}. Checks last ran at <b>{{ ((index .statusRecords 0).Time.In .loc).Format "03:04:05 PM" }}</b>.{{ if $m.Running }} Event has been running for <b>{{ .runtime }}</b>.{{ end }}
 </p>
+
+
+<br>
+<h2>Uptime</h2>
+
+<table class="uptime">
+    <tr>
+        <th style="border: none"></th>
+        {{ range $box := .m.Box }}
+        <th colspan="{{ len .CheckList }}"><i>{{ .Name }}</i></th>
+        {{ end }}
+    </tr>
+    <th></th>
+    {{ template "boxlist.html" .m }}
+
+    {{ range $index, $record := $records }}
+    <tr>
+        <td>
+            {{ if $team }}
+                {{ if $m.IsValid $team .Team.Name }}
+                <a style="padding-right: 0.6rem; text-align: right" href="/team/{{ .Team.ID }}">
+                {{ end }}
+            {{ end }}
+            {{ .Team.Name }}
+            {{ if $team }}
+                {{ if $m.IsValid $team .Team.Name }}
+                    </a>
+                {{ end }}
+            {{ end }}
+        </td>
+        {{ range $box := $m.Box }}
+        {{ range .CheckList }}
+
+        {{ $check := index $record.ResultsMap .Name }}
+            {{ if eq $check.Name "" }}
+            {{ $uptime := 0 }}
+            {{ else }}
+            {{ $uptime := $check.Uptime }}
+            {{ end }}
+            <td style="{{ if gt $check.Uptime 89 }}
+            background-color: var(--greent);
+            {{ else if gt $check.Uptime 59 }}
+            background-color: var(--yellowt);
+            {{ else if gt $check.Uptime 39 }}
+            background-color: var(--oranget);
+            {{ else }}
+            background-color: var(--redt);
+            {{ end }}"
+            >
+            {{ if $team }}
+                {{ if $m.IsValid $team $record.Team.Name }}
+                <a style="text-decoration: none; color: var(--black);" href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
+                {{ end }}
+            {{ end }}
+            {{ $check.Uptime }}%
+            {{ if $team }}
+                {{ if $m.IsValid $team $record.Team.Name }}
+                </a>
+                {{ end }}
+            {{ end }}
+            </td>
+        {{ end }}
+        {{ end }}
+    </tr>
+    {{ end }}
+</table>
 
 <br>
 <h2>Scores Over Time</h2>
@@ -99,7 +171,13 @@
 <img class="graph graph-light" src="assets/points.png"/>
 <img class="graph graph-dark" src="assets/points-dark.png"/>
 
+
 <br>
+<p style="text-align: center">
+    📈 Scores calculated at <b>{{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}</b>.
+</p>
+
+
 <br>
 <h2>Standings</h2>
 <br>
@@ -110,14 +188,16 @@
     <th>SLA</th>
     <th>Injects</th>
     {{ if $m.Red }}
-    <th>Red Team</th>
+    <!--<th>Red Team</th>-->
     {{ end }}
     {{ if $m.Persists }}
     <th>Lost Points (Stolen From You)</th>
     <th>Gained Points (You've Stolen)</th>
     <th>Bonus Hack Points</th>
     {{ end }}
+    {{ if not $m.NoPasswords }}
     <th>Reset Penalties</th>
+    {{ end }}
     <th>Total</th>
 
     {{ range $index, $record := .records }}
@@ -132,7 +212,7 @@
         {{ else }}
             <td>{{ $record.Team.Name }}</td>
         {{ end }}
-        <td>{{ $record.ServicePoints }}</td>
+        <td>{{ mul $record.ServicePoints $m.ServicePoints }}</td>
         <td>{{ $record.SlaViolations }}</td>
         {{ if eq $record.TeamID $team.ID }}
             <td>
@@ -144,31 +224,35 @@
             <td>{{ $record.InjectPoints }}</td>
         {{ end }}
         {{ if $m.Red }}
-        <td>{{ $record.RedTeamPoints }}</td>
+        <!--<td>{{ $record.RedTeamPoints }}</td>-->
         {{ end }}
         {{ if $m.Persists }}
         <td>{{ $record.PointsLost }}</td>
         <td>{{ $record.PointsStolen }}</td>
         <td>{{ $record.PersistPoints }}</td>
         {{ end  }}
+        {{ if not $m.NoPasswords }}
         <td>{{ $record.ManualAdjustment }}</td>
+        {{ end }}
         <td><b>{{ $record.Total }}</b></td>
     </tr>
     {{ end }}
 </table>
-
-<br>
-<p style="text-align: center">
-    📈 Scores calculated at {{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}.
-</p>
 <br>
 
 {{ else }}
 
+{{ if .m.Running }}
 <br>
 <p style="text-align: center">
 First round of checks are currently running. Good luck! 🍀
 </p>
+{{ else }}
+<br>
+<p style="text-align: center">
+⏳ Competition organizers haven't started scoring yet.
+</p>
+{{ end }}
 
 {{ end }}
 

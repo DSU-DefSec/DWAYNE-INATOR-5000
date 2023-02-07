@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"html/template"
 	"log"
@@ -21,7 +22,6 @@ import (
 const (
 	defaultDelay  = 60
 	defaultJitter = 30
-	apiEndpoint   = "http://172.16.1.122"
 )
 
 var (
@@ -33,8 +33,11 @@ var (
 		Box []Box
 	}
 
+	configPath = flag.String("c", "dwayne.conf", "configPath")
+
 	roundNumber int
 	resetIssued bool
+	pauseTime   time.Time
 	ct          CredentialTable
 	loc         *time.Location
 	ZeroTime    time.Time
@@ -51,6 +54,10 @@ func debugPrint(a ...interface{}) {
 	log.Printf("[DEBUG] %s", fmt.Sprintln(a...))
 }
 
+func init() {
+	flag.Parse()
+}
+
 func main() {
 	readConfig(dwConf)
 	err := checkConfig(dwConf)
@@ -58,21 +65,20 @@ func main() {
 		log.Fatalln(errors.Wrap(err, "illegal config"))
 	}
 
-	// Hardcoded CST timezone
+	// Load timezone
 	loc, err = time.LoadLocation(dwConf.Timezone)
 	if err != nil {
 		log.Fatalln(errors.Wrap(err, "invalid timezone"))
 	}
 
-	localTime := time.FixedZone("time-local", func() int { _, o := time.Now().Zone(); return o }())
-
 	// we've evolved to... superjank.
+	localTime := time.FixedZone("time-local", func() int { _, o := time.Now().Zone(); return o }())
 	dateDiff := time.Date(0, 1, 1, 0, 0, 0, 0, localTime).Sub(time.Date(0, 1, 1, 0, 0, 0, 0, loc))
 	ZeroTime = time.Date(0, 1, 1, 0, 0, 0, 0, loc).Add(dateDiff)
 	time.Local = loc
 
 	// Open database
-	db, err = gorm.Open(sqlite.Open("dwayne.db"), &gorm.Config{})
+	db, err = gorm.Open(sqlite.Open(dwConf.DBPath), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect database!")
 	}
@@ -110,6 +116,9 @@ func main() {
 	r.SetFuncMap(template.FuncMap{
 		"increment": func(x int) int {
 			return x + 1
+		},
+		"mul": func(x, y int) int {
+			return x * y
 		},
 	})
 
@@ -212,6 +221,26 @@ func main() {
 
 			c.Redirect(http.StatusSeeOther, "/")
 		})
+		authRoutes.POST("/settings/start", func(c *gin.Context) {
+			team := getUser(c)
+			if !team.IsAdmin() {
+				errorOutAnnoying(c, errors.New("non-admin tried to start scoring: "+c.Param("team")))
+				return
+			}
+			dwConf.Running = true
+			c.Redirect(http.StatusSeeOther, "/settings")
+		})
+		authRoutes.POST("/settings/stop", func(c *gin.Context) {
+			team := getUser(c)
+			if !team.IsAdmin() {
+				errorOutAnnoying(c, errors.New("non-admin tried to start scoring: "+c.Param("team")))
+				return
+			}
+			dwConf.Running = false
+			resetIssued = true
+			pauseTime = time.Now()
+			c.Redirect(http.StatusSeeOther, "/settings")
+		})
 
 		// Resets
 		authRoutes.GET("/reset", viewResets)
@@ -285,6 +314,7 @@ func main() {
 		})
 	}
 
+	dwConf.Running = true
 	go Score(dwConf)
 	r.Run(":" + fmt.Sprint(dwConf.Port))
 }

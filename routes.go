@@ -34,6 +34,11 @@ func viewStatus(c *gin.Context) {
 
 		// Build results map
 		for i, rec := range statusRecords {
+			for j, res := range statusRecords[i].Results {
+				statusRecords[i].Results[j].Uptime = int((float64(res.Points) / float64(res.RoundCount)) * 100)
+				debugPrint("setting uptime to", res.Name, statusRecords[i].Results[j].Uptime, res.Points, res.RoundCount)
+			}
+			statusRecords[i].Total = calculateScoreTotal(rec)
 			statusRecords[i].ResultsMap = makeResultsMap(rec.Results)
 		}
 
@@ -46,34 +51,25 @@ func viewStatus(c *gin.Context) {
 		cachedRound = roundNumber
 
 	}
+
 	// TODO fix this, horrendous
 	teamMutex.Lock()
-	var records []TeamRecord
-	res := db.Limit(len(dwConf.Team)).Where("round = ?", roundNumber-1).Preload("Team").Order("time desc").Find(&records)
-	if res.Error != nil {
-		errorOutGraceful(c, res.Error)
-		teamMutex.Unlock()
-		return
-	}
+	sortedRecords := make([]TeamRecord, len(dwConf.Team))
+	copy(sortedRecords, cachedStatus)
 	teamMutex.Unlock()
 
-	// Calculate totals.
-	for i, rec := range records {
-		records[i].Total = calculateScoreTotal(rec)
-	}
-
 	// Sort by total score.
-	sort.SliceStable(records, func(i, j int) bool {
-		return records[i].Total > records[j].Total
+	sort.SliceStable(sortedRecords, func(i, j int) bool {
+		return sortedRecords[i].Total > sortedRecords[j].Total
 	})
 
 	// Get graphs for both color schemes
-	graphScores(records, true)
-	graphScores(records, false)
+	graphScores(sortedRecords, true)
+	graphScores(sortedRecords, false)
 
 	team := getUserOptional(c)
 	ip := c.ClientIP()
-	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": records, "team": team, "ip": ip, "round": roundNumber}))
+	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "team": team, "ip": ip, "round": roundNumber, "pauseTime": pauseTime}))
 }
 
 func viewTeam(c *gin.Context) {
@@ -103,49 +99,6 @@ func viewTeam(c *gin.Context) {
 
 	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "records": records}))
 }
-
-/*
-sorry... this may or may not work lol
-func viewUptime(c *gin.Context) {
-	id, err := strconv.Atoi(c.Param("team"))
-	if err != nil {
-		errorOutAnnoying(c, errors.New("invalid team id: "+c.Param("team")))
-		return
-	}
-	team := validateTeam(c, uint(id))
-
-	var records []TeamRecord
-	res := db.Preload("Results").Order("time desc").Find(&records, "team_id = ?", team.ID)
-	if res.Error != nil {
-		errorOutGraceful(c, res.Error)
-		return
-	}
-
-	var record TeamRecord
-	if len(records) > 0 {
-		// Average the results, lol
-		record = records[0]
-		record.Results = N/A(record.Results)
-		for i := range record.Results {
-			uptimeSum := 0
-			uptimeTotal := 0
-			for _, r := range records {
-				// Sort Results, yeeesh... this is not efficient
-				if len(r.Results) > i {
-					r.Results = sortResults(r.Results)
-					if r.Results[i].Status {
-						uptimeSum += 1
-					}
-					uptimeTotal += 1
-				}
-			}
-			record.Results[i].Uptime = int(float64(uptimeSum) / float64(uptimeTotal) * 100)
-		}
-	}
-
-	c.HTML(http.StatusOK, "uptime.html", pageData(c, "Service Uptime", gin.H{"team": team, "record": record}))
-}
-*/
 
 func viewCheck(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("team"))

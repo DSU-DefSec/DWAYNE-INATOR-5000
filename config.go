@@ -35,14 +35,16 @@ type config struct {
 	ServicePoints int
 	SlaPoints     int
 
-	Admin []TeamData
-	Red   []TeamData
-	Team  []TeamData
-	Box   []Box
-	Creds []checks.CredData
+	Admin   []TeamData
+	Red     []TeamData
+	Team    []TeamData
+	Box     []Box
+	Creds   []checks.CredData
+	Running bool
 
 	// Inject API key
 	InjectAPIKey string
+	DBPath       string
 }
 
 type Box struct {
@@ -73,10 +75,6 @@ type Box struct {
 func (b Box) InjectTime() time.Time {
 	return startTime.Add(b.Time.Sub(ZeroTime)).In(loc)
 }
-
-const (
-	configPath = "./dwayne.conf"
-)
 
 func getBoxChecks(b Box) []checks.Check {
 	// Please forgive me
@@ -130,9 +128,9 @@ func getBoxChecks(b Box) []checks.Check {
 }
 
 func readConfig(conf *config) {
-	fileContent, err := ioutil.ReadFile(configPath)
+	fileContent, err := ioutil.ReadFile(*configPath)
 	if err != nil {
-		log.Fatalln("Configuration file ("+configPath+") not found:", err)
+		log.Fatalln("Configuration file ("+*configPath+") not found:", err)
 	}
 	if _, err := toml.Decode(string(fileContent), &conf); err != nil {
 		log.Fatalln(err)
@@ -155,6 +153,10 @@ func checkConfig(conf *config) error {
 
 	if conf.Port == 0 {
 		conf.Port = 80
+	}
+
+	if conf.DBPath == "" {
+		conf.DBPath = "dwayne.db"
 	}
 
 	if conf.InjectAPIKey == "" {

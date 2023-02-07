@@ -52,6 +52,7 @@ nopasswords = false      # disables password change requests (like CyberPatriot 
                              # note: some checks do not support being anonymous.
                              # for example, anonymous ssh wouldn't test anything.
                              # so, you can use a tcp check and just name it 'ssh'.
+                             # this also will turn off reset penalties.
 easypcr = true           # allow easy password changes
 disableinfopage = true   # disable the "info" page on the nav header
 persists = false         # run in cyberconquest mode (purple team events)
@@ -61,12 +62,6 @@ persists = false         # run in cyberconquest mode (purple team events)
 [[admin]]
 name = "admin"
 pw = "coolpass"
-
-# Red teams (OPTIONAL) will be able to claim red team incidents.
-# If no red teams are specified, red reporting is disabled.
-[[red]]
-name = "red"
-pw = "HACKTHEPLANET"
 
 # Each team added here will show up on the scoreboard
 # You need at least one team.

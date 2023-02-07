@@ -146,7 +146,7 @@ func (m *config) getCheck(checkName string) (checks.Check, error) {
 }
 
 func calculateScoreTotal(rec TeamRecord) int {
-	total := rec.ServicePoints + rec.InjectPoints
+	total := (rec.ServicePoints * dwConf.ServicePoints) + rec.InjectPoints
 	total -= rec.RedTeamPoints + (rec.SlaViolations * dwConf.SlaPoints)
 	if dwConf.Persists {
 		total += rec.PointsStolen + rec.PersistPoints

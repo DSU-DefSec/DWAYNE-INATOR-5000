@@ -2,10 +2,7 @@ package main
 
 import (
 	"image/color"
-	"math"
-	"math/rand"
 	"os"
-	"time"
 
 	"gonum.org/v1/plot"
 	"gonum.org/v1/plot/plotter"
@@ -15,8 +12,6 @@ import (
 )
 
 func graphScores(records []TeamRecord, darkmode bool) {
-	rand.Seed(int64(time.Now().Nanosecond()))
-
 	p := plot.New()
 	p.X.Label.Text = "Round"
 	p.X.Width = 2
@@ -37,7 +32,6 @@ func graphScores(records []TeamRecord, darkmode bool) {
 	p.Y.Tick.Color = clr
 	p.Y.Tick.Label.Color = clr
 	p.Legend.TextStyle.Color = clr
-
 	p.Y.Label.Text = "Score"
 	p.Y.Width = 2
 	p.BackgroundColor = color.Transparent
@@ -45,11 +39,31 @@ func graphScores(records []TeamRecord, darkmode bool) {
 
 	graphData := make([]interface{}, len(records)*2)
 
+	offset := 1.0 / float64(len(records))
+	colors := map[uint]RGB{}
+	light := 0.45
+	if darkmode {
+		light = 0.7
+	}
+	count := uint(0)
+	for h := 0.0; h < 1; h += offset {
+		colors[count] = HSL{
+			H: h,
+			S: 1,
+			L: light,
+		}.ToRGB()
+		count++
+	}
+
 	for i, rec := range records {
 		graphData[i*2] = rec.Team.Name
 		l, _ := plotter.NewLine(getTeamPoints(rec.Team.ID))
-		l.LineStyle.Width = vg.Points(1)
-		l.LineStyle.Color = color.RGBA{R: uint8(int(math.Pow(255, float64(i+3))) % 80), B: uint8(int(math.Pow(255, float64(i+5))) % 70), G: uint8(int(math.Pow(255, float64(i+7))) % 90), A: 255}
+		l.LineStyle.Width = vg.Points(2)
+		l.LineStyle.Color = color.RGBA{
+			R: uint8(float64(0xff) * colors[rec.TeamID].R),
+			G: uint8(float64(0xff) * colors[rec.TeamID].G),
+			B: uint8(float64(0xff) * colors[rec.TeamID].B),
+			A: 255}
 		p.Add(l)
 		p.Legend.Add(rec.Team.Name, l)
 	}
