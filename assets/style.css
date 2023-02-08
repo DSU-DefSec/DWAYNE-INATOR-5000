@@ -11,6 +11,7 @@
 		--pink: #fcb3e0;
 		--purple: #be9ffc;
 		--gray: #313131;
+		--grayt: #313131af;
 		--green: #153917;
 		--greent: #1539177f;
 		--darkgreen: lightgreen;
@@ -43,6 +44,7 @@
 		--pink: #f796d2;
 		--purple: #a16fed;
 		--gray: #ddd;
+		--grayt: #ddddddaf;
 		--green: #aea;
 		--greent: #aaeeaa7f;
 		--darkgreen: darkgreen;
@@ -164,22 +166,33 @@ hr {
 /* table styles
 –––––––––––––––––––––––––––––––––––––––––– */
 
-table, .graph {
+table {
     margin: 0 auto;
     padding: 0 0.5rem;
-    width: 100%;
     text-align: center;
     border-spacing: 0;
     border-collapse: 0;
     background-image: url("/assets/logo.png");
     background-size: 8rem;
+    display: flex;
+    justify-content: center;
 }
 
+.graph {
+    margin: 0 auto;
+    background-image: url("/assets/logo.png");
+    background-size: 8rem;
+}
 
 table a {
     display: block;
     text-decoration: none;
     text-align: center;
+}
+
+tbody {
+    flex-grow: 1;
+    display: table;
 }
 
 th {
@@ -188,7 +201,14 @@ th {
 
 td, th {
     font-weight: normal;
-    padding: 0.6rem;
+    padding: 0.4rem;
+}
+
+td a {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.2rem;
 }
 
 .status {
@@ -204,7 +224,9 @@ th {
 }
 
 .teamname, .teamname a {
-    text-align: right;
+    justify-content: right;
+    padding-right: 0.5rem;
+    font-weight: normal;
 }
 
 th:nth-child(n+2){

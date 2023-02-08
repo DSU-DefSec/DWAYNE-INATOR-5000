@@ -14,7 +14,7 @@ var (
 	Creds            map[uint]map[string]map[string]string
 
 	// Global list of all current CredData
-	CredLists        []CredData
+	CredLists []CredData
 )
 
 func getCreds(teamID uint, credLists []string, checkName string) (string, string) {

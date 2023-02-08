@@ -17,34 +17,34 @@
                 <h1 style="font-weight: normal; font-size: 1rem; line-height: 0;"><b>{{ .event }}</b> Scoring Engine</h1>
             </a>
             <div>
-                {{ if not .m.DisableInfoPage }}
+                {{- if not .m.DisableInfoPage -}}
                 <a href="/info">info</a>
-                {{ end }}
+                {{- end }}
                 <a href="/">status</a>
-                {{ if .user.IsValid }}
+                {{ if .user.IsValid -}}
                     {{ if and (not .user.IsAdmin) (not .user.IsRed) }}
                     <a href="/team/{{ .user.ID }}">team</a>
-                    {{ end }}
-                    {{ if .user.IsRed }}
+                    {{ end -}}
+                    {{- if .user.IsRed -}}
                     <a href="/red">red</a>
-                    {{ else }}
-                    {{ if and .m.EasyPCR (not .m.NoPasswords) }}
+                    {{ else -}}
+                    {{- if and .m.EasyPCR (not .m.NoPasswords) -}}
                     <a href="/pcr">passwords</a>
-                    {{ end }}
+                    {{ end -}}
                     <a href="/injects">injects</a>
-                    {{ end }}
-                {{ end }}
-                {{ if .m.Persists }}
+                    {{- end }}
+                {{ end -}}
+                {{- if .m.Persists -}}
                 <a href="/persist">persists</a>
-                {{ end }}
-                {{ if .user.IsAdmin }}
+                {{- end -}}
+                {{ if .user.IsAdmin -}}
                 <a href="/settings">settings</a>
-                {{ end }}
-                {{ if .user.IsValid }}
+                {{ end -}}
+                {{- if .user.IsValid -}}
                 <a href="/logout">logout</a>
-                {{ else }}
+                {{- else }}
                 <a href="/login">login</a>
-                {{ end }}
+                {{- end }}
             </div>
         </div>
         <hr>

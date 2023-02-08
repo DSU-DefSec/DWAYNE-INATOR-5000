@@ -47,10 +47,10 @@ func Score(m *config) {
 
 		if m.Running {
 
-			debugPrint("[SCORE] ===== Round", roundNumber)
-
 			// Check to see if any delayed checks need to be added
 			addDelayedChecks()
+
+			log.Println("[SCORE] ===== Round", roundNumber, "(scoring", len(m.Team), "teams)")
 
 			allTeamsWg := &sync.WaitGroup{}
 			for _, t := range m.Team {
@@ -156,7 +156,7 @@ func Score(m *config) {
 			jitter = time.Duration(time.Duration(rand.Intn(dwConf.Jitter+1)) * time.Second)
 		}
 
-		debugPrint("[SCORE] Sleeping for", dwConf.Delay, "with jitter", jitter)
+		log.Println("[SCORE] Sleeping for", dwConf.Delay, "with jitter", jitter)
 		time.Sleep((time.Duration(dwConf.Delay) * time.Second) + jitter)
 
 		// If reset was issued during sleep, we ignore it

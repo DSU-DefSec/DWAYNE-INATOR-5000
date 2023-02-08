@@ -34,6 +34,7 @@ var (
 	}
 
 	configPath = flag.String("c", "dwayne.conf", "configPath")
+	debug      = flag.Bool("d", false, "debugFlag")
 
 	roundNumber int
 	resetIssued bool
@@ -51,7 +52,9 @@ func errorPrint(a ...interface{}) {
 }
 
 func debugPrint(a ...interface{}) {
-	log.Printf("[DEBUG] %s", fmt.Sprintln(a...))
+	if *debug {
+		log.Printf("[DEBUG] %s", fmt.Sprintln(a...))
+	}
 }
 
 func init() {
@@ -277,8 +280,12 @@ func main() {
 		if err != nil {
 			log.Println("[WARN] Injects file (injects.conf) not found:", err)
 		} else {
-			if _, err := toml.Decode(string(fileContent), &configInjects); err != nil {
+			if md, err := toml.Decode(string(fileContent), &configInjects); err != nil {
 				log.Fatalln(err)
+			} else {
+				for _, undecoded := range md.Undecoded() {
+					log.Println("[WARN] Undecoded check configuration key \"" + undecoded.String() + "\" will not be used.")
+				}
 			}
 
 			for _, inject := range configInjects.Inject {
@@ -298,10 +305,13 @@ func main() {
 	fileContent, err := os.ReadFile("./delayed-checks.conf")
 	if err == nil {
 		debugPrint("Adding delayed checks...")
-		if _, err := toml.Decode(string(fileContent), &delayedChecks); err != nil {
+		if md, err := toml.Decode(string(fileContent), &delayedChecks); err != nil {
 			log.Fatalln(err)
+		} else {
+			for _, undecoded := range md.Undecoded() {
+				log.Println("[WARN] Undecoded delayed checks configuration key \"" + undecoded.String() + "\" will not be used.")
+			}
 		}
-
 		for _, b := range delayedChecks.Box {
 			if b.Time.IsZero() {
 				log.Fatalln("Delayed check box time cannot be zero:", b.Name)

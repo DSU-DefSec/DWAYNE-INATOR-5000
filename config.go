@@ -132,8 +132,12 @@ func readConfig(conf *config) {
 	if err != nil {
 		log.Fatalln("Configuration file ("+*configPath+") not found:", err)
 	}
-	if _, err := toml.Decode(string(fileContent), &conf); err != nil {
+	if md, err := toml.Decode(string(fileContent), &conf); err != nil {
 		log.Fatalln(err)
+	} else {
+		for _, undecoded := range md.Undecoded() {
+			log.Println("[WARN] Undecoded scoring configuration key \"" + undecoded.String() + "\" will not be used.")
+		}
 	}
 }
 

@@ -36,7 +36,6 @@ func viewStatus(c *gin.Context) {
 		for i, rec := range statusRecords {
 			for j, res := range statusRecords[i].Results {
 				statusRecords[i].Results[j].Uptime = int((float64(res.Points) / float64(res.RoundCount)) * 100)
-				debugPrint("setting uptime to", res.Name, statusRecords[i].Results[j].Uptime, res.Points, res.RoundCount)
 			}
 			statusRecords[i].Total = calculateScoreTotal(rec)
 			statusRecords[i].ResultsMap = makeResultsMap(rec.Results)
@@ -93,8 +92,13 @@ func viewTeam(c *gin.Context) {
 	}
 
 	// Sort all the Results...
-	for i := range records {
-		records[i].ResultsMap = makeResultsMap(records[i].Results)
+	if len(records) > 0 {
+		for j, res := range records[0].Results {
+			records[0].Results[j].Uptime = int((float64(res.Points) / float64(res.RoundCount)) * 100)
+		}
+		for i := range records {
+			records[i].ResultsMap = makeResultsMap(records[i].Results)
+		}
 	}
 
 	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "records": records}))

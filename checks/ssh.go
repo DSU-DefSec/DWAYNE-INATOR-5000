@@ -1,11 +1,14 @@
 package checks
 
 import (
+	"bytes"
+	"fmt"
 	"math/rand"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/ssh"
@@ -122,6 +125,21 @@ func (c Ssh) Run(teamID uint, boxIp string, res chan Result) {
 		return
 	}
 
+	// I/O for shell
+	stdin, err := session.StdinPipe()
+	if err != nil {
+		res <- Result{
+			Error: "couldn't get stdin pipe",
+			Debug: err.Error(),
+		}
+		return
+	}
+
+	var stdoutBytes bytes.Buffer
+	var stderrBytes bytes.Buffer
+	session.Stdout = &stdoutBytes
+	session.Stderr = &stderrBytes
+
 	// Start remote shell
 	if err := session.Shell(); err != nil {
 		res <- Result{
@@ -131,43 +149,43 @@ func (c Ssh) Run(teamID uint, boxIp string, res chan Result) {
 		return
 	}
 
-	// If any commands specified, run them
+	// If any commands specified, run a random one
 	if len(c.Command) > 0 {
 		r := c.Command[rand.Intn(len(c.Command))]
-		output, err := session.CombinedOutput(r.Command)
-		if err != nil {
-			res <- Result{
-				Error: "command execution failed",
-				Debug: err.Error(),
+		fmt.Fprintln(stdin, r.Command)
+		time.Sleep(time.Duration(int(GlobalTimeout) / 8))
+		if r.Contains {
+			if !strings.Contains(stdoutBytes.String(), r.Output) {
+				res <- Result{
+					Error: "command output didn't contain string",
+					Debug: "command output of '" + r.Command + "' didn't contain string '" + r.Output + "': " + stdoutBytes.String() + ",  " + stderrBytes.String(),
+				}
+				return
 			}
-			return
-		}
-		if r.Output != "" {
-			if r.Contains {
-				if !strings.Contains(string(output), r.Output) {
+		} else if r.UseRegex {
+			re := regexp.MustCompile(r.Output)
+			if !re.Match([]byte(stdoutBytes.String())) {
+				res <- Result{
+					Error: "command output didn't match regex",
+					Debug: "command output'" + r.Command + "' didn't match regex '" + r.Output,
+				}
+				return
+			} else {
+				if strings.TrimSpace(stdoutBytes.String()) != r.Output {
 					res <- Result{
-						Error: "command output didn't contain string",
-						Debug: "command output of '" + r.Command + "' didn't contain string '" + r.Output,
+						Error: "command output didn't match string",
+						Debug: "command output of '" + r.Command + "' didn't match string '" + r.Output,
 					}
 					return
 				}
-			} else if r.UseRegex {
-				re := regexp.MustCompile(r.Output)
-				if !re.Match(output) {
-					res <- Result{
-						Error: "command output didn't match regex",
-						Debug: "command output'" + r.Command + "' didn't match regex '" + r.Output,
-					}
-					return
-				} else {
-					if strings.TrimSpace(string(output)) != r.Output {
-						res <- Result{
-							Error: "command output didn't match string",
-							Debug: "command output of '" + r.Command + "' didn't match string '" + r.Output,
-						}
-						return
-					}
+			}
+		} else {
+			if stderrBytes.Len() != 0 {
+				res <- Result{
+					Error: "command returned an error",
+					Debug: "command stderr was not empty: " + stderrBytes.String(),
 				}
+				return
 			}
 		}
 	}

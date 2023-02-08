@@ -18,7 +18,7 @@
 <br>
 {{ end }}
 
-<table>
+<table class="checks">
     <tr>
         <th style="border-bottom: none"></th>
         {{ range $box := .m.Box }}
@@ -77,6 +77,7 @@
                 {{ template "bool.html" $check.Status }}
 
             {{ else }}
+            	<a>
                 <img src="/assets/pending.png"/>
             {{ end }}
 
@@ -114,10 +115,10 @@
 
     {{ range $index, $record := $records }}
     <tr>
-        <td>
+        <td class="teamname">
             {{ if $team }}
                 {{ if $m.IsValid $team .Team.Name }}
-                <a style="padding-right: 0.6rem; text-align: right" href="/team/{{ .Team.ID }}">
+                <a href="/team/{{ .Team.ID }}">
                 {{ end }}
             {{ end }}
             {{ .Team.Name }}
@@ -132,10 +133,8 @@
 
         {{ $check := index $record.ResultsMap .Name }}
             {{ if eq $check.Name "" }}
-            {{ $uptime := 0 }}
+            <td style="background-color: var(--grayt);">
             {{ else }}
-            {{ $uptime := $check.Uptime }}
-            {{ end }}
             <td style="{{ if gt $check.Uptime 89 }}
             background-color: var(--greent);
             {{ else if gt $check.Uptime 59 }}
@@ -146,12 +145,17 @@
             background-color: var(--redt);
             {{ end }}"
             >
+            {{ end }}
             {{ if $team }}
                 {{ if $m.IsValid $team $record.Team.Name }}
                 <a style="text-decoration: none; color: var(--black);" href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
                 {{ end }}
             {{ end }}
+            {{ if eq $check.Name "" }}
+            N/A
+            {{ else }}
             {{ $check.Uptime }}%
+            {{ end }}
             {{ if $team }}
                 {{ if $m.IsValid $team $record.Team.Name }}
                 </a>

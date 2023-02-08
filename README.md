@@ -18,25 +18,25 @@ Screenshots
 -----------
 
 ![Main Status Page](screenshots/status.png)
-
+![Inject Portal](screenshots/injects.png)
 
 Configuration
 -------------
 
-Example configuration (`dwayne.conf`):
+Anything you leave blank will be default. Example configuration (`dwayne.conf`):
 
 ```toml
 # Event title
 event = "Awesome Comp"
 
-# Port to listen on
-port = 80
-
 # Show more info to competitors
 verbose = true 
 
-# Timezone you want to use
-timezone = "America/Rainy_River"
+# Engine settings
+timezone = "America/Rainy_River"   # Timezone you want to use
+port = 80                          # Port to listen on
+dbpath = ""                        # Path to sqlite3 database (default "dwayne.db")
+injectapikey = "superSecretKey1!"  # API key for remotely adding injects
 
 # Timing settings
 delay = 20               # delay (seconds) between checks (>0) (default 60)
@@ -56,6 +56,7 @@ nopasswords = false      # disables password change requests (like CyberPatriot 
 easypcr = true           # allow easy password changes
 disableinfopage = true   # disable the "info" page on the nav header
 persists = false         # run in cyberconquest mode (purple team events)
+
 
 # Admins have access to all records and information.
 # You need at least one admin.

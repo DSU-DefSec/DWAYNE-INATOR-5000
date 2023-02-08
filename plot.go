@@ -11,6 +11,11 @@ import (
 	"gonum.org/v1/plot/vg/vgimg"
 )
 
+var (
+	// lcg state
+	lcg int
+)
+
 func graphScores(records []TeamRecord, darkmode bool) {
 	p := plot.New()
 	p.X.Label.Text = "Round"
@@ -43,14 +48,15 @@ func graphScores(records []TeamRecord, darkmode bool) {
 	colors := map[uint]RGB{}
 	light := 0.45
 	if darkmode {
-		light = 0.7
+		light = 0.8
 	}
-	count := uint(0)
+	count := uint(1)
+	lcg = 37
 	for h := 0.0; h < 1; h += offset {
 		colors[count] = HSL{
 			H: h,
-			S: 1,
-			L: light,
+			S: 0.9 + (float64(LCG()%20)-10)/100.0,
+			L: light + (float64(LCG()%20)-10)/100.0,
 		}.ToRGB()
 		count++
 	}
@@ -92,6 +98,12 @@ func graphScores(records []TeamRecord, darkmode bool) {
 	}
 }
 
+// ZX81 <3. Range of 0-100
+func LCG() int {
+	lcg = (75*lcg + 74) % 101
+	return lcg
+}
+
 func getTeamPoints(teamID uint) plotter.XYs {
 	var records []TeamRecord
 	res := db.Where("team_id = ?", teamID).Order("time asc").Find(&records)
@@ -105,4 +117,60 @@ func getTeamPoints(teamID uint) plotter.XYs {
 		pts[i].Y = float64(calculateScoreTotal(records[i]))
 	}
 	return pts
+}
+
+/*
+	RGB/HSL code from https://github.com/gerow/go-color/blob/master/color.go
+*/
+
+type RGB struct {
+	R, G, B float64
+}
+
+type HSL struct {
+	H, S, L float64
+}
+
+func hueToRGB(v1, v2, h float64) float64 {
+	if h < 0 {
+		h += 1
+	}
+	if h > 1 {
+		h -= 1
+	}
+	switch {
+	case 6*h < 1:
+		return (v1 + (v2-v1)*6*h)
+	case 2*h < 1:
+		return v2
+	case 3*h < 2:
+		return v1 + (v2-v1)*((2.0/3.0)-h)*6
+	}
+	return v1
+}
+
+func (c HSL) ToRGB() RGB {
+	h := c.H
+	s := c.S
+	l := c.L
+
+	if s == 0 {
+		// it's gray
+		return RGB{l, l, l}
+	}
+
+	var v1, v2 float64
+	if l < 0.5 {
+		v2 = l * (1 + s)
+	} else {
+		v2 = (l + s) - (s * l)
+	}
+
+	v1 = 2*l - v2
+
+	r := hueToRGB(v1, v2, h+(1.0/3.0))
+	g := hueToRGB(v1, v2, h)
+	b := hueToRGB(v1, v2, h-(1.0/3.0))
+
+	return RGB{r, g, b}
 }

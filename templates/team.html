@@ -1,15 +1,63 @@
-{{ template "head.html" . }}
+{{ template "head.html" . -}}
 
-{{ $m := .m }}
-{{ $loc := .loc }}
-{{ $team := .team }}
+{{- $m := .m -}}
+{{- $loc := .loc -}}
+{{- $team := .team }}
 
-{{ template "refresh.html" }}
+        {{ template "refresh.html" }}
 
 <br>
 <h2>{{ .team.Name }}</h2>
 
-{{ if .records }}
+{{ if .records -}}
+
+<h3>Uptime</h3>
+
+<table class="uptime">
+    <tr>
+        <th style="border: none"></th>
+        {{ range $box := .m.Box }}
+        <th colspan="{{ len .CheckList }}"><i>{{ .Name }}</i></th>
+        {{ end }}
+    </tr>
+    <th></th>
+    {{- template "boxlist.html" .m -}}
+    {{- $record := index .records 0 -}}
+    <tr>
+        <td style="font-weight: normal">
+            Uptime (Round {{ $record.Round }})
+        </td>
+        {{ range $box := $m.Box -}}
+        {{- range .CheckList -}}
+        {{- $check := index $record.ResultsMap .Name -}}
+            {{ if eq $check.Name "" }}
+            <td style="background-color: var(--grayt);">
+            {{ else }}
+            <td style="{{ if gt $check.Uptime 89 }}
+            background-color: var(--greent);
+            {{ else if gt $check.Uptime 59 }}
+            background-color: var(--yellowt);
+            {{ else if gt $check.Uptime 39 }}
+            background-color: var(--oranget);
+            {{ else }}
+            background-color: var(--redt);
+            {{ end }}"
+            >
+            {{ end }}
+            <a style="text-decoration: none; color: var(--black);" href="/team/{{ $team.ID }}/{{ $check.Name }}">
+	            {{ if eq $check.Name "" }}
+	            N/A
+	            {{ else }}
+	            {{ $check.Uptime }}%
+	            {{ end }}
+            </a>
+            </td>
+            {{ end }}
+        {{ end }}
+    </tr>
+</table>
+<br>
+
 
 <h3>Service Status {{ if gt (len .records) 9 }} (last ten rounds) {{ end }} </h3>
 
@@ -23,25 +71,24 @@
     </tr>
     <th>#</th>
     <th>Time</th>
-    {{ template "boxlist.html" .m }}
-
-    {{ range $index, $record := .records }}
+    {{ template "boxlist.html" .m -}}
+    {{- range $index, $record := .records -}}
     <tr>
         <td>
-            {{ if eq $index 0 }}
+            {{ if eq $index 0 -}}
                 <b>Current</b>
-            {{ else }}
+            {{- else -}}
                 {{ .Round }}
-            {{ end }}
+            {{- end -}}
         </td>
         <td>
             {{ (.Time.In $loc).Format "03:04:05 PM" }}
         </td>
 
-    {{ range $box := $m.Box }}
-    {{ range .CheckList }}
+    {{ range $box := $m.Box -}}
+    {{- range .CheckList -}}
 
-        {{ $check := index $record.ResultsMap .Name }}
+        {{- $check := index $record.ResultsMap .Name -}}
 
         <td>
         {{ if ne $check.Name "" }}
@@ -49,14 +96,16 @@
             {{ template "bool.html" $check.Status }}
             </a>
         {{ else }}
-            <img src="/assets/pending.png"/>
+            <a>
+	            <img src="/assets/pending.png"/>
+            </a>
 	    {{ end }}
         </td>
 
-    {{ end }}
-    {{ end }}
+    {{- end -}}
+    {{- end -}}
     </tr>
-    {{ end }}
+    {{- end -}}
 </table>
 {{ else }}
 
@@ -86,7 +135,7 @@ Your team doesn't have any completed checks yet :(
     <tr>
         {{ range $box := .m.Box }}
         <td style="text-align: center" colspan="{{ len .CheckList }}">
-            {{ $m.GetFullIP .IP $team.IP }}
+            <i>{{ $m.GetFullIP .IP $team.IP }}</i>
         </td>
         {{ end }}
     </tr>
@@ -99,7 +148,7 @@ Your team doesn't have any completed checks yet :(
             {{ if eq .Port 0 }}
             <td>N/A</td>
             {{ else }}
-            <td>{{ .Port }}</td>
+            <td><b>{{ .Port }}</b></td>
             {{ end }}
         {{ end }}
     {{ end }}
@@ -107,12 +156,13 @@ Your team doesn't have any completed checks yet :(
 
 </table>
 
+{{ if .records }}
 {{ $record := index .records 0 }}
 <br>
 <br>
 <fieldset>
 <p>
-    Service points: {{ $record.ServicePoints }}
+    Service points: {{ mul $record.ServicePoints $m.ServicePoints }}
     <br>
     Inject points: {{ $record.InjectPoints }}
     <br>
@@ -121,5 +171,6 @@ Your team doesn't have any completed checks yet :(
     <a href="/">See all teams status</a>
 </p>
 </fieldset>
+{{ end }}
 
 {{ template "feet.html" }}
