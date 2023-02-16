@@ -284,7 +284,9 @@ func main() {
 				log.Fatalln(err)
 			} else {
 				for _, undecoded := range md.Undecoded() {
-					log.Println("[WARN] Undecoded check configuration key \"" + undecoded.String() + "\" will not be used.")
+					errMsg := "[WARN] Undecoded injects configuration key \"" + undecoded.String() + "\" will not be used."
+					configErrors = append(configErrors, errMsg)
+					log.Println(errMsg)
 				}
 			}
 
@@ -309,7 +311,9 @@ func main() {
 			log.Fatalln(err)
 		} else {
 			for _, undecoded := range md.Undecoded() {
-				log.Println("[WARN] Undecoded delayed checks configuration key \"" + undecoded.String() + "\" will not be used.")
+				errMsg := "[WARN] Undecoded delayed checks configuration key \"" + undecoded.String() + "\" will not be used."
+				configErrors = append(configErrors, errMsg)
+				log.Println(errMsg)
 			}
 		}
 		for _, b := range delayedChecks.Box {

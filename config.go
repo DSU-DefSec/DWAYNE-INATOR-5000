@@ -16,6 +16,10 @@ import (
 	"github.com/DSU-DefSec/DWAYNE-INATOR-5000/checks"
 )
 
+var (
+	configErrors = []string{}
+)
+
 type config struct {
 	Event           string
 	Verbose         bool
@@ -136,7 +140,9 @@ func readConfig(conf *config) {
 		log.Fatalln(err)
 	} else {
 		for _, undecoded := range md.Undecoded() {
-			log.Println("[WARN] Undecoded scoring configuration key \"" + undecoded.String() + "\" will not be used.")
+			errMsg := "[WARN] Undecoded scoring configuration key \"" + undecoded.String() + "\" will not be used."
+			configErrors = append(configErrors, errMsg)
+			log.Println(errMsg)
 		}
 	}
 }

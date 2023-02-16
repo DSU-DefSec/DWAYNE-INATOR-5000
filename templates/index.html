@@ -1,11 +1,21 @@
 {{ template "head.html" . }}
 
 {{ $m := .m }}
-{{ $admin := .admin }}
 {{ $team := .user }}
 {{ $records := .statusRecords }}
 
 {{ template "refresh.html" }}
+
+{{ if .user.IsAdmin }}
+{{ if .configErrors }}
+	<br>
+    <p style="background-color: var(--red); padding: 1rem; text-align: center">
+	    {{ range $err := .configErrors }}
+	    {{ . }}<br>
+	    {{ end }}
+    </p>
+{{ end }}
+{{ end }}
 
 {{ if $records }}
 <br>
@@ -168,6 +178,7 @@
     {{ end }}
 </table>
 
+<br>
 <br>
 <h2>Scores Over Time</h2>
 

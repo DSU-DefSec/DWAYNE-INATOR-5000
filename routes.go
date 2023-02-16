@@ -68,7 +68,7 @@ func viewStatus(c *gin.Context) {
 
 	team := getUserOptional(c)
 	ip := c.ClientIP()
-	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "team": team, "ip": ip, "round": roundNumber, "pauseTime": pauseTime}))
+	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "team": team, "ip": ip, "round": roundNumber, "pauseTime": pauseTime, "configErrors": configErrors}))
 }
 
 func viewTeam(c *gin.Context) {
