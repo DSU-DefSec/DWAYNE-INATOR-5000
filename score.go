@@ -125,16 +125,60 @@ func Score(m *config) {
 				recordsStaging = []TeamRecord{}
 				resetIssued = false
 			} else {
+
+				// Assign uptime SLAs if needed
+				if dwConf.Uptime {
+					agentMutex.Lock()
+					for team, boxes := range agentHits {
+						for box, lastSeen := range boxes {
+
+							var slaRecord SLA
+							result := db.First(&slaRecord, "team_id = ? and reason = ?", team, box)
+							if result.Error != nil {
+								slaRecord = SLA{
+									TeamID: team,
+									Reason: box,
+								}
+							}
+
+							// Issue an SLA only if it's been at least uptimeSLA since the a report AND last SLA
+							if time.Since(lastSeen) > uptimeSLA && time.Since(slaRecord.Time) > uptimeSLA {
+
+								slaRecord.Time = time.Now()
+								slaRecord.Violations++
+
+								// Inefficient but we'll allow it
+								for i, rec := range recordsStaging {
+									if rec.TeamID == team {
+										recordsStaging[i].SlaViolations++
+									}
+								}
+
+								if result = db.Save(&slaRecord); result.Error != nil {
+									errorPrint(result.Error)
+									return
+								}
+							}
+						}
+					}
+					agentMutex.Unlock()
+				}
+
+				adjustmentMutex.Lock()
 				for _, rec := range recordsStaging {
 					processNewRecord(&rec)
 				}
 				recordsStaging = []TeamRecord{}
+				manualAdjustments = make(map[uint]int)
+				adjustmentMutex.Unlock()
 
 				// Calculate persist points
 				if dwConf.Persists {
+					persistMutex.Lock()
 					calculatePersists()
 					// Reset persists
 					persistHits = make(map[uint]map[string][]uint)
+					persistMutex.Unlock()
 				}
 
 				// Next round!
@@ -178,11 +222,11 @@ func processNewRecord(rec *TeamRecord) {
 	// Calculate service and SLA values
 	for i, res := range rec.Results {
 		var slaRecord SLA
-		result = db.First(&slaRecord, "team_id = ? and check_name = ?", rec.TeamID, res.Name)
+		result = db.First(&slaRecord, "team_id = ? and reason = ?", rec.TeamID, res.Name)
 		if result.Error != nil {
 			slaRecord = SLA{
-				TeamID:    rec.TeamID,
-				CheckName: res.Name,
+				TeamID: rec.TeamID,
+				Reason: res.Name,
 			}
 		}
 		// O(n^2) lol
@@ -199,6 +243,7 @@ func processNewRecord(rec *TeamRecord) {
 			slaRecord.Counter++
 			if slaRecord.Counter >= dwConf.SlaThreshold {
 				rec.SlaViolations++
+				slaRecord.Time = time.Now()
 				slaRecord.Violations++
 				slaRecord.Counter = 0
 			}
@@ -213,11 +258,17 @@ func processNewRecord(rec *TeamRecord) {
 			return
 		}
 	}
-	// Add carry-over points
+
+	// Check for manual adjustments
+	rec.ManualAdjustment += currentRec.ManualAdjustment
+	if adjustment, ok := manualAdjustments[rec.TeamID]; ok {
+		rec.ManualAdjustment += adjustment
+	}
+
+	// Add other carry-over points
 	rec.RedTeamPoints = currentRec.RedTeamPoints
 	rec.SlaViolations += currentRec.SlaViolations
 	rec.ServicePoints += currentRec.ServicePoints
-	rec.ManualAdjustment += currentRec.ManualAdjustment
 
 	// Calculate inject points
 	rec.InjectPoints = calculateInjects(currentRec)
@@ -229,7 +280,6 @@ func processNewRecord(rec *TeamRecord) {
 	}
 
 	db.Create(&rec)
-
 }
 
 func calculateInjects(rec TeamRecord) int {

@@ -13,6 +13,7 @@ import (
 
 	"github.com/BurntSushi/toml"
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 
 	"gorm.io/driver/sqlite"
@@ -43,8 +44,10 @@ var (
 	loc         *time.Location
 	ZeroTime    time.Time
 
-	teamMutex    = &sync.Mutex{}
-	persistMutex = &sync.Mutex{}
+	teamMutex       = &sync.Mutex{}
+	persistMutex    = &sync.Mutex{}
+	agentMutex      = &sync.Mutex{}
+	adjustmentMutex = &sync.Mutex{}
 )
 
 func errorPrint(a ...interface{}) {
@@ -88,13 +91,28 @@ func main() {
 
 	db.AutoMigrate(&ResultEntry{}, &TeamRecord{}, &Inject{}, &InjectSubmission{}, &TeamData{}, &SLA{}, &Persist{})
 
+	// Initialize manual adjustments map
+	manualAdjustments = make(map[uint]int)
+
 	if dwConf.Persists {
 		persistHits = make(map[uint]map[string][]uint)
 	}
 
-	// Assign team IDs
+	// Assign team IDs sequentially
 	for i := range dwConf.Team {
 		dwConf.Team[i].ID = uint(i + 1)
+	}
+
+	// Fill uptime hits with engine start time
+	if dwConf.Uptime {
+		initAgentTime := time.Now().In(loc)
+		agentHits = make(map[uint]map[string]time.Time)
+		for _, t := range dwConf.Team {
+			agentHits[t.ID] = make(map[string]time.Time)
+			for _, b := range dwConf.Box {
+				agentHits[t.ID][b.Name] = initAgentTime
+			}
+		}
 	}
 
 	// Save into DB if not already in there.
@@ -122,6 +140,10 @@ func main() {
 		},
 		"mul": func(x, y int) int {
 			return x * y
+		},
+		"rand": func() string {
+			// Lol
+			return uuid.New().String()
 		},
 	})
 
@@ -156,6 +178,17 @@ func main() {
 			routes.GET("/persist", viewPersist)
 		}
 
+		if dwConf.Uptime {
+			routes.GET("/agents", func(c *gin.Context) {
+				c.HTML(http.StatusOK, "agents.html", pageData(c, "Forbidden", gin.H{"agentHits": agentHits, "uptimeSLA": uptimeSLA, "now": time.Now()}))
+			})
+			// aeacus compatability line :shrug:
+			routes.GET("/status/:id/:boxName", func(c *gin.Context) {
+				c.JSON(http.StatusOK, nil)
+			})
+			routes.POST("/update", scoreAgent)
+		}
+
 		// Has API key check. If more API routes are added in the future,
 		// add own endpoint group with auth middleware
 		routes.POST("/injects", createInject)
@@ -178,9 +211,12 @@ func main() {
 			authRoutes.POST("/pcr", submitPCR)
 		}
 
-		// Red Team
-		authRoutes.GET("/red", viewRed)
-		authRoutes.POST("/red", submitRed)
+		/*
+			// Red Team
+			// not implemented yet
+			authRoutes.GET("/red", viewRed)
+			authRoutes.POST("/red", submitRed)
+		*/
 
 		// Injects
 		authRoutes.GET("/injects", viewInjects)
@@ -218,7 +254,7 @@ func main() {
 			cachedStatus = []TeamRecord{}
 			cachedRound = 0
 			roundNumber = 0
-			startTime = time.Now()
+			startTime = time.Now().In(loc)
 			persistHits = make(map[uint]map[string][]uint)
 			teamMutex.Unlock()
 
@@ -244,6 +280,7 @@ func main() {
 			pauseTime = time.Now()
 			c.Redirect(http.StatusSeeOther, "/settings")
 		})
+		authRoutes.POST("/settings/adjust", setManualAdjustment)
 
 		// Resets
 		authRoutes.GET("/reset", viewResets)

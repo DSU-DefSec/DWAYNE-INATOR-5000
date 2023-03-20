@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	GlobalTimeout, _ = time.ParseDuration("20s")
-	Creds            map[uint]map[string]map[string]string
+	GlobalTimeout time.Duration
+	Creds         map[uint]map[string]map[string]string
 
 	// Global list of all current CredData
 	CredLists []CredData

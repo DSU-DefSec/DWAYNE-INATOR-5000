@@ -72,8 +72,9 @@ type Persist struct {
 }
 
 type SLA struct {
+	Time       time.Time
 	TeamID     uint   `gorm:"primaryKey"`
-	CheckName  string `gorm:"primaryKey"`
+	Reason     string `gorm:"primaryKey"`
 	Counter    int
 	Violations int
 }

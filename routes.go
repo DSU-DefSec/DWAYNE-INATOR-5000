@@ -20,8 +20,16 @@ import (
 var (
 	cachedStatus []TeamRecord
 	cachedRound  int
+
 	// In-memory cache of persists for this round. map[team.ID][box.Name][]offender.ID
 	persistHits map[uint]map[string][]uint
+
+	// Uptime agent hits
+	agentHits map[uint]map[string]time.Time
+	uptimeSLA time.Duration
+
+	// Adjustments to process
+	manualAdjustments map[uint]int
 )
 
 func viewStatus(c *gin.Context) {
@@ -68,7 +76,7 @@ func viewStatus(c *gin.Context) {
 
 	team := getUserOptional(c)
 	ip := c.ClientIP()
-	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "team": team, "ip": ip, "round": roundNumber, "pauseTime": pauseTime, "configErrors": configErrors}))
+	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "persists": persistHits, "team": team, "ip": ip, "round": roundNumber, "pauseTime": pauseTime, "configErrors": configErrors}))
 }
 
 func viewTeam(c *gin.Context) {
@@ -101,7 +109,14 @@ func viewTeam(c *gin.Context) {
 		}
 	}
 
-	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "records": records}))
+	var slaViolations []SLA
+	res = db.Order("time desc").Find(&slaViolations, "team_id = ?", team.ID)
+	if res.Error != nil {
+		errorOutGraceful(c, res.Error)
+		return
+	}
+
+	c.HTML(http.StatusOK, "team.html", pageData(c, "Scoreboard", gin.H{"team": team, "sla": slaViolations, "records": records}))
 }
 
 func viewCheck(c *gin.Context) {
@@ -118,7 +133,7 @@ func viewCheck(c *gin.Context) {
 	}
 
 	var sla SLA
-	res := db.Limit(1).Find(&sla, "team_id = ? and check_name = ?", team.ID, check.FetchName())
+	res := db.Limit(1).Find(&sla, "team_id = ? and reason = ?", team.ID, check.FetchName())
 	if res.Error != nil {
 		errorOutGraceful(c, res.Error)
 		return
@@ -203,10 +218,42 @@ func submitPCR(c *gin.Context) {
 	c.Redirect(http.StatusSeeOther, "/pcr")
 }
 
+func setManualAdjustment(c *gin.Context) {
+	selectedTeam := c.PostForm("team")
+	adjustment := c.PostForm("adjustment")
+
+	id, err := strconv.Atoi(selectedTeam)
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid team id: "+selectedTeam))
+		return
+	}
+	validateTeam(c, uint(id))
+	teamID := uint(id)
+
+	adjustmentVal, err := strconv.Atoi(adjustment)
+	if err != nil {
+		errorOutAnnoying(c, errors.New("invalid adjustment: "+adjustment))
+		return
+	}
+
+	adjustmentMutex.Lock()
+	defer adjustmentMutex.Unlock()
+
+	// Add to manual adjustments to process
+	if val, ok := manualAdjustments[teamID]; ok {
+		manualAdjustments[teamID] = val + adjustmentVal
+	} else {
+		manualAdjustments[teamID] = adjustmentVal
+	}
+
+	c.Redirect(http.StatusSeeOther, "/settings")
+}
+
 func viewPersist(c *gin.Context) {
 	// previous rounds from db
 	var previous []Persist
-	db.Preload(clause.Associations).Find(&previous)
+	db.Preload(clause.Associations).Order("round desc").Find(&previous)
+	// Sort by round descending
 	c.HTML(http.StatusOK, "persists.html", pageData(c, "Persists", gin.H{"current": persistHits, "previous": previous}))
 }
 
@@ -249,9 +296,26 @@ func scorePersist(c *gin.Context) {
 	// Append offender ID
 	persistHits[team.ID][boxName] = append(persistHits[team.ID][boxName], offender.ID)
 	c.JSON(http.StatusOK, "OK")
-
 }
 
+func scoreAgent(c *gin.Context) {
+	teamMutex.Lock()
+	defer teamMutex.Unlock()
+
+	// Identify box (team and check)
+	remoteIP := c.RemoteIP()
+	team, boxName, err := boxFromIP(remoteIP)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "your IP is not a valid box"})
+		return
+	}
+
+	// Insert last seen time
+	agentHits[team.ID][boxName] = time.Now()
+	c.JSON(http.StatusOK, "OK")
+}
+
+/*
 func viewRed(c *gin.Context) {
 	// yeet
 }
@@ -259,6 +323,7 @@ func viewRed(c *gin.Context) {
 func submitRed(c *gin.Context) {
 	// yeet
 }
+*/
 
 func viewResets(c *gin.Context) {
 	// yeet
@@ -627,8 +692,11 @@ func viewSettings(c *gin.Context) {
 	buf := new(bytes.Buffer)
 	if err := toml.NewEncoder(buf).Encode(dwConf); err != nil {
 		c.HTML(http.StatusInternalServerError, "settings.html", pageData(c, "Settings", gin.H{"error": err}))
+		return
 	}
-	c.HTML(http.StatusOK, "settings.html", pageData(c, "Settings", gin.H{"config": buf.String()}))
+	adjustmentMutex.Lock()
+	defer adjustmentMutex.Unlock()
+	c.HTML(http.StatusOK, "settings.html", pageData(c, "Settings", gin.H{"config": buf.String(), "adjustments": manualAdjustments}))
 }
 
 func pageData(c *gin.Context, title string, ginMap gin.H) gin.H {

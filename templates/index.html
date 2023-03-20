@@ -3,6 +3,7 @@
 {{ $m := .m }}
 {{ $team := .user }}
 {{ $records := .statusRecords }}
+{{ $persists := .persists }}
 
 {{ template "refresh.html" }}
 
@@ -56,23 +57,20 @@
         </td>
 
         {{ range $box := $m.Box }}
+
         {{ range .CheckList }}
 
-        {{ $check := index $record.ResultsMap .Name }}
+	        {{ $check := index $record.ResultsMap .Name }}
 
-            <!-- Persist calculations -->
-            {{ $isPersisted := false }}
-            {{ if $record.Persists }}
-                {{ range $i := $record.Persists }}
-                    {{ if eq $check.Box .Box }}
-                        {{ $isPersisted = true }}
-                    {{ end }}
-                {{ end }}
-                {{ if $isPersisted }}
-                    {{ template "persist.html" $record.Persists }}
+            <!-- Display persists -->
+            {{ $persistTeam := index $persists $record.Team.ID }}
+            {{ if $persistTeam }}
+                {{ $persistBox := index $persistTeam $box.Name }}
+                {{ if $persistBox }}
+                    {{ template "persist.html" $persistBox }}
                 {{ else }}
                 <td>
-                {{ end }}
+               {{ end }}
             {{ else }}
                 <td>
             {{ end }}
@@ -206,13 +204,11 @@
     <!--<th>Red Team</th>-->
     {{ end }}
     {{ if $m.Persists }}
-    <th>Lost Points (Stolen From You)</th>
-    <th>Gained Points (You've Stolen)</th>
-    <th>Bonus Hack Points</th>
+    <th>Stolen From You</th>
+    <th>You've Stolen</th>
+    <th>Hack Points</th>
     {{ end }}
-    {{ if not $m.NoPasswords }}
-    <th>Reset Penalties</th>
-    {{ end }}
+    <th>Adjustment</th>
     <th>Total</th>
 
     {{ range $index, $record := .records }}
@@ -246,9 +242,7 @@
         <td>{{ $record.PointsStolen }}</td>
         <td>{{ $record.PersistPoints }}</td>
         {{ end  }}
-        {{ if not $m.NoPasswords }}
         <td>{{ $record.ManualAdjustment }}</td>
-        {{ end }}
         <td><b>{{ $record.Total }}</b></td>
     </tr>
     {{ end }}

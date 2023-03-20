@@ -52,11 +52,13 @@ nopasswords = false      # disables password change requests (like CyberPatriot 
                              # note: some checks do not support being anonymous.
                              # for example, anonymous ssh wouldn't test anything.
                              # so, you can use a tcp check and just name it 'ssh'.
-                             # this also will turn off reset penalties.
 easypcr = true           # allow easy password changes
 disableinfopage = true   # disable the "info" page on the nav header
 persists = false         # run in cyberconquest mode (purple team events)
 
+uptime = false           # add client uptime checking (clients must hit /update)
+uptimesla = 10           # if uptime, how many minutes can a machine be down before SLA penalty
+                             # this SLA value stacks, for example, twenty minutes down is two SLAs
 
 # Admins have access to all records and information.
 # You need at least one admin.
@@ -112,7 +114,8 @@ ip = "10.20.x.2"
     # Run command with sh, compare output against regex.
     # Command must return exit code 0 to pass.
     [[box.cmd]]
-    command = "python3 ./test.py"
+    # BOXIP and USERNAME and PASSWORD are replaced with their values when run
+    command = "python3 ./test.py BOXIP USERNAME PASSWORD" # Keywords not required
     regex = "success"
 
     # If you omit a value, it is set to the default
@@ -252,10 +255,12 @@ ip = "10.20.x.2"
         output = "business as usual in the kingdom!"
 ```
 
+Note that for both the `uptime` and `persist` feature, the boxes are required to access the scoring engine at their config-assigned IP. For example, `persist` won't work if you're accessing the scoring engine through a reverse proxy and it can't tell what the real local source IP is.
+
 Injects
 -------
 
-Put your injects into  `injects.conf`. Note that the engine will only load inject from this file if you don't have any injects.
+Put your injects into  `injects.conf`. Note that the engine will only load injects from this file if you don't already have any injects loaded into the database (e.g., from a previous run of the engine). If you do and you want to re-load these injects, you need to delete your existing injects, either through the web interface or by deleting the entire database.
 
 Place PDFs or anything you link as `file = ` into the `./injects` folder. 
 
@@ -308,6 +313,19 @@ time = 00:00:20
     cmd = "ls -Ral"
 ```
 
+
+Purple Team "Perist Mode" Scoring Algorithm
+-------------------------------------------
+
+In persist mode, like normal, a box receives points for successfully completing a service check. However, those points are distributed equally between the owner of the box and all those who persisted on it.
+
+For example:
+
+1. Castle (6 from castle-ssh and 6 from castle-ftp) receives 12 points for uptime (configurable values).
+2. There are two teams who had persistence on that machine in that check.
+3. Each team receives 4 (12 divided by 3) points.
+
+It is thus impossible to get points if all a box's services are down. This is mean to disincentivize nuking boxes and services, and incentivize careful securing of services from the defender's perspective (since they still get points if it's green and persisted, but not if it's offline).
 
 Notes
 ---------------

@@ -32,6 +32,35 @@
 </form>
 <br>
 
+<h3>Manual Point Adjustments</h3>
+<form method="POST" action="/settings/adjust" style="text-align: center">
+    <label>Team:
+        <select name="team">
+            {{ range $team := .m.Team }}
+            <option value="{{ .ID }}">{{ .Name }}</option>
+            {{ end }}
+        </select>
+    </label>
+    <input name="adjustment" type="number"></textarea>
+    <input style="display: block; margin: 0 auto;" type="submit" value="Submit Adjustment"/>
+    <br>
+</form>
+
+{{ if .adjustments }}
+<h3>Current Adjustment Values</h3>
+<table>
+<th>Team</th>
+<th>Adjustment Value</th>
+{{ range $teamID, $adjustmentVal := .adjustments }}
+<tr>
+	<td>{{ $teamID }}</td>
+	<td>{{ $adjustmentVal }}</td>
+</tr>
+{{ end }}
+</table>
+<br>
+{{ end }}
+
 <h3>Config Dump</h3>
 
 <pre>

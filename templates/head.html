@@ -37,6 +37,9 @@
                 {{- if .m.Persists -}}
                 <a href="/persist">persists</a>
                 {{- end -}}
+                {{- if .m.Uptime -}}
+                <a href="/agents">agents</a>
+                {{- end -}}
                 {{ if .user.IsAdmin -}}
                 <a href="/settings">settings</a>
                 {{ end -}}

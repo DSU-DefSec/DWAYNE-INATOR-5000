@@ -1,0 +1,73 @@
+{{ template "head.html" . }}
+
+{{ $m := .m }}
+{{ $team := .user }}
+{{ $now := .now }}
+{{ $uptimeSLA := .uptimeSLA }}
+{{ $agentHits := .agentHits }}
+
+{{ template "refresh.html" }}
+
+<br>
+<h2>Agent Uptime</h2>
+
+<table class="uptime">
+    <tr>
+        <th style="border: none"></th>
+        {{ range $box := .m.Box }}
+        <th colspan="{{ len .CheckList }}"><i>{{ .Name }}</i></th>
+        {{ end }}
+    </tr>
+
+    {{ range $recTeam := $m.Team }}
+    <tr>
+        <td class="teamname">
+            {{ if $team }}
+                {{ if $m.IsValid $team .Name }}
+                <a href="/team/{{ .ID }}">
+                {{ end }}
+            {{ end }}
+            {{ .Name }}
+            {{ if $team }}
+                {{ if $m.IsValid $team .Name }}
+                    </a>
+                {{ end }}
+            {{ end }}
+        </td>
+        {{ $lastSeenMap := index $agentHits .ID }}
+        {{ range $box := $m.Box }}
+	        {{ $lastSeen := index $lastSeenMap .Name }}
+            {{ $cutoff := $lastSeen.Add $uptimeSLA }}
+            <td colspan="{{ len .CheckList }}"
+            style="{{ if $now.After $cutoff }}
+            background-color: var(--redt);
+            {{ else }}
+            background-color: var(--greent);
+            {{ end }}"
+            >
+            {{ if $team }}
+                {{ if $m.IsValid $team $recTeam.Name }}
+                <a style="text-decoration: none; color: var(--black);" href="/team/{{ $recTeam.ID }}">
+                {{ end }}
+            {{ end }}
+            {{ $lastSeen.Format "03:04:05 PM" }}<br>
+            (until {{ $cutoff.Format "03:04:05 PM" }})
+            {{ if $team }}
+                {{ if $m.IsValid $team $recTeam.Name }}
+                </a>
+                {{ end }}
+            {{ end }}
+            </td>
+        {{ end }}
+    </tr>
+    {{ end }}
+</table>
+
+<br>
+<p style="text-align: center">
+⏱️ Time is currently <b>{{ ($now.In .loc).Format "03:04:05 PM" }}</b>.
+<br><br>
+<i>If your box agent does not report to the engine within every {{ $uptimeSLA }} period, it will receive an SLA.</i>
+</p>
+
+{{ template "feet.html" }}

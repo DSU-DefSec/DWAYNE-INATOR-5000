@@ -4,7 +4,7 @@
 {{- $loc := .loc -}}
 {{- $team := .team }}
 
-        {{ template "refresh.html" }}
+{{ template "refresh.html" }}
 
 <br>
 <h2>{{ .team.Name }}</h2>
@@ -155,6 +155,38 @@ Your team doesn't have any completed checks yet :(
     </tr>
 
 </table>
+
+
+<br>
+<h3>SLAs</h3>
+
+{{ $displayedSLA := false }}
+<table>
+    <th><b>Latest Time</b></th>
+    <th><b>Reason</b></th>
+    <th><b>Count</b></th>
+    {{ range $violation := .sla }}
+        {{ if not .Time.IsZero }}
+        {{ $displayedSLA = true }}
+         <tr>
+            <td>
+            {{ (.Time.In $loc).Format "03:04 PM" }}
+            </td>
+            <td>
+                {{ .Reason }}
+            </td>
+            <td>
+                {{ .Violations }}
+            </td>
+        </tr>
+        {{ end }}
+    {{ end }}
+</table>
+{{ if not $displayedSLA }}
+<p style="text-align: center">
+No SLAs. Nice work!
+</p>
+{{ end }}
 
 {{ if .records }}
 {{ $record := index .records 0 }}

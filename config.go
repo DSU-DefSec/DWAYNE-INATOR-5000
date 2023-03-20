@@ -29,6 +29,9 @@ type config struct {
 	DisableInfoPage bool
 	Timezone        string
 
+	Uptime    bool // Score agent callback uptime (like CCS uptime)
+	UptimeSLA int  // Number in minutes
+
 	Persists     bool // Score persistence or not (for purple team comps)
 	Delay        int
 	Jitter       int
@@ -192,6 +195,16 @@ func checkConfig(conf *config) error {
 		checks.GlobalTimeout = time.Second * 30
 	}
 
+	if conf.UptimeSLA != 0 {
+		dur, err := time.ParseDuration(strconv.Itoa(conf.UptimeSLA) + "m")
+		if err != nil {
+			return errors.New("illegal config: invalid value for uptime SLA: " + err.Error())
+		}
+		uptimeSLA = dur
+	} else {
+		uptimeSLA = time.Minute * 10
+	}
+
 	for _, admin := range conf.Admin {
 		if admin.Name == "" || admin.Pw == "" {
 			return errors.New("admin " + admin.Name + " missing required property")
@@ -224,6 +237,14 @@ func checkConfig(conf *config) error {
 	sort.SliceStable(conf.Box, func(i, j int) bool {
 		return conf.Box[i].IP < conf.Box[j].IP
 	})
+
+	// check for duplicate boxes
+	dupeBoxMap := make(map[string]bool)
+	for _, b := range conf.Box {
+		if _, ok := dupeBoxMap[b.Name]; ok {
+			return errors.New("duplicate box name found: " + b.Name)
+		}
+	}
 
 	// credential list checking
 	usernameList := []string{}

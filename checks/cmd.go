@@ -4,6 +4,8 @@ import (
 	"os/exec"
 	"regexp"
 	"strings"
+
+	"github.com/alessio/shellescape"
 )
 
 type Cmd struct {
@@ -13,6 +15,7 @@ type Cmd struct {
 }
 
 func commandOutput(cmd string) (string, error) {
+
 	out, err := exec.Command("/bin/sh", "-c", cmd).Output()
 	if err != nil {
 		return "", err
@@ -30,7 +33,16 @@ func (c Cmd) Run(teamID uint, boxIp string, res chan Result) {
 		return
 	}
 
-	out, err := commandOutput(strings.Replace(c.Command, "BOXIP", boxIp, -1))
+	username, password := getCreds(teamID, c.CredLists, c.Name)
+
+	// Replace command input keywords
+	formedCommand := strings.Replace(c.Command, "BOXIP", boxIp, -1)
+
+	// We shell escape username and password, who knows what format they are
+	formedCommand = strings.Replace(formedCommand, "USERNAME", shellescape.Quote(username), -1)
+	formedCommand = strings.Replace(formedCommand, "PASSWORD", shellescape.Quote(password), -1)
+
+	out, err := commandOutput(formedCommand)
 	if err != nil {
 		res <- Result{
 			Error: "command returned error",
@@ -50,5 +62,6 @@ func (c Cmd) Run(teamID uint, boxIp string, res chan Result) {
 
 	res <- Result{
 		Status: true,
+		Debug:  out,
 	}
 }

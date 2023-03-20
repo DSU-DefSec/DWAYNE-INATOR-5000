@@ -1,1 +1,5 @@
 <td class="persisted">
+	{{ if gt (len .) 1 }}
+	<p class="floating-text">x{{ len . }}!</p>
+	{{ end }}
+
