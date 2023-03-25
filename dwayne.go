@@ -367,5 +367,5 @@ func main() {
 
 	dwConf.Running = true
 	go Score(dwConf)
-	r.Run(":" + fmt.Sprint(dwConf.Port))
+	log.Fatal(r.Run(":" + fmt.Sprint(dwConf.Port)))
 }

@@ -222,7 +222,7 @@ func checkConfig(conf *config) error {
 	}
 
 	if conf.ServicePoints == 0 {
-		conf.ServicePoints = 1
+		conf.ServicePoints = 3
 	}
 
 	if conf.SlaThreshold == 0 {

@@ -271,7 +271,7 @@ func scorePersist(c *gin.Context) {
 
 	offender, err := tokenToTeam(c.Param("token"))
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err})
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
