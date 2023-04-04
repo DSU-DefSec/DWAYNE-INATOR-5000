@@ -293,9 +293,10 @@ func checkConfig(conf *config) error {
 
 	// if persists, make sure they have tokens
 	if conf.Persists {
-		for _, team := range conf.Team {
+		for i, team := range conf.Team {
 			if team.Token == "" {
-				return errors.New("illegal config: team " + team.Name + " missing persist token")
+				conf.Team[i].Token = team.Name
+				log.Println("[INFO] Persist token for " + team.Name + " not found, setting to team name (" + team.Name + ")")
 			}
 		}
 
@@ -357,7 +358,7 @@ func validateChecks(boxList []Box) error {
 				if ck.Name == "" {
 					ck.Name = b.Name + "-" + ck.Display
 				}
-				if len(ck.CredLists) < 1 {
+				if len(ck.CredLists) < 1 && !strings.Contains(ck.Command, "USERNAME") && !strings.Contains(ck.Command, "PASSWORD") {
 					ck.Anonymous = true
 				}
 				boxList[i].CheckList[j] = ck

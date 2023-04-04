@@ -195,5 +195,5 @@ func (m *config) GetTeam(teamID uint) (TeamData, error) {
 }
 
 func oneOfN(points, parties int) int {
-	return int(float64(points) / float64(parties)+0.5)
+	return int(float64(points)/float64(parties) + 0.5)
 }
