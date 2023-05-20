@@ -26,6 +26,9 @@ type config struct {
 	NoPasswords     bool
 	EasyPCR         bool
 	Port            int
+	Https           bool
+	Cert            string
+	Key             string
 	DisableInfoPage bool
 	Timezone        string
 

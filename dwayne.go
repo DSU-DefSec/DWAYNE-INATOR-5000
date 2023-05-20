@@ -367,5 +367,9 @@ func main() {
 
 	dwConf.Running = true
 	go Score(dwConf)
-	log.Fatal(r.Run(":" + fmt.Sprint(dwConf.Port)))
+	if dwConf.Https {
+		log.Fatal(r.RunTLS(":" + fmt.Sprint(dwConf.Port), dwConf.Cert, dwConf.Key))
+	} else {
+		log.Fatal(r.Run(":" + fmt.Sprint(dwConf.Port)))
+	}
 }
