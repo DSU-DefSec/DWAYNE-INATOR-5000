@@ -167,8 +167,18 @@ func checkConfig(conf *config) error {
 		conf.Jitter = 30
 	}
 
+	if conf.Https == true {
+		if conf.Cert == "" || conf.Key == "" {
+			return errors.New("illegal config: https requires a cert and key pair")
+		}
+	}
+
 	if conf.Port == 0 {
-		conf.Port = 80
+		if conf.Https == false {
+			conf.Port = 80
+		} else {
+			conf.Port = 443
+		}
 	}
 
 	if conf.DBPath == "" {
