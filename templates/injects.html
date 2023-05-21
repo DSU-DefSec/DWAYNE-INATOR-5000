@@ -77,7 +77,7 @@ Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
         </td>
         {{ else }}
         <td>
-            <a style="color: var(--darkred)";  href="/injects/delete/{{ .ID }}">
+            <a style="color: var(--darkred)" onclick="return confirm('Are you sure? You will not be able to recover this inject!')" href="/injects/delete/{{ .ID }}">
 	            Delete!
             </a>
         </td>
@@ -145,7 +145,7 @@ These injects have not yet been posted:
             {{ end }}
         </td>
         <td>
-            <a style="color: var(--darkred)";  href="/injects/delete/{{ .ID }}">
+            <a style="color: var(--darkred)" onclick="return confirm('Are you sure? You will not be able to recover this inject!')" href="/injects/delete/{{ .ID }}">
 	            Delete!
             </a>
         </td>
