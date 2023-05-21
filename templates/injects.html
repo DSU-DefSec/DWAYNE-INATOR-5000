@@ -34,12 +34,12 @@ Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
     {{ if $time.After .OpenTime }}
     {{ $posted = true }}
     <tr 
-       {{ if .Due.IsZero }}
-           style="background-color: var(--green)"
-       {{ else if not ($time.After .DueTime )}}
-           style="background-color: var(--green)"
-       {{ else }}
+       {{ if $time.After .CloseTime }}
+           style="background-color: var(--red)"
+       {{ else if ($time.After .DueTime )}}
            style="background-color: var(--orange)"
+       {{ else if or (.Due.IsZero) ($time.Before .DueTime) }}
+           style="background-color: var(--green)"
        {{ end }}
     >
         <td style="font-weight: normal">
@@ -47,7 +47,7 @@ Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
         </td>
         <td>
             <a href="/injects/view/{{ .ID }}">
-                {{ $inject.Title }}
+	        {{ $inject.Title }}
             </a>
         </td>
         <td>
