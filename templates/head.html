@@ -4,6 +4,7 @@
     <!-- Metadata and resources
     –––––––––––––––––––––––––––––––––––––––––––––––––– -->
     <title>{{ .event }} {{ .title }}</title>
+    <link rel="stylesheet" href="/assets/pico.min.css">
     <link rel="stylesheet" href="/assets/style.css">
     <link rel="icon" type="image/ico" href="/assets/favicon.ico"/>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
@@ -11,43 +12,54 @@
 </head>
 
 <body>
-    <div class="container">
-        <div class="nav">
-            <a href="/">
-                <h1 style="font-weight: normal; font-size: 1rem; line-height: 0;"><b>{{ .event }}</b> Scoring Engine</h1>
-            </a>
-            <div>
-                {{- if not .m.DisableInfoPage -}}
-                <a href="/info">info</a>
-                {{- end }}
-                <a href="/">status</a>
-                {{ if .user.IsValid -}}
-                    {{ if and (not .user.IsAdmin) (not .user.IsRed) }}
-                    <a href="/team/{{ .user.ID }}">team</a>
-                    {{ end -}}
-                    {{- if .user.IsRed -}}
-                    <a href="/red">red</a>
-                    {{ else -}}
-                    {{- if and .m.EasyPCR (not .m.NoPasswords) -}}
-                    <a href="/pcr">passwords</a>
-                    {{ end -}}
-                    <a href="/injects">injects</a>
-                    {{- end }}
+    <nav>
+        <ul>
+            <li>
+                <a href="/">
+                    <b>{{ .event }}</b> Scoring Engine
+                </a>
+            </li>
+        </ul>
+        <ul>
+            {{- if not .m.DisableInfoPage -}}
+                <li><a href="/info">info</a></li>
+            {{- end }}
+            <li><a href="/">status</a></li>
+            {{ if .user.IsValid -}}
+                {{ if and (not .user.IsAdmin) (not .user.IsRed) }}
+                <li><a href="/team/{{ .user.ID }}">team</a></li>
                 {{ end -}}
-                {{- if .m.Persists -}}
-                <a href="/persist">persists</a>
-                {{- end -}}
-                {{- if .m.Uptime -}}
-                <a href="/agents">agents</a>
-                {{- end -}}
-                {{ if .user.IsAdmin -}}
-                <a href="/settings">settings</a>
+                {{- if .user.IsRed -}}
+                <li><a href="/red">red</a></li>
+                {{ else -}}
+                {{- if and .m.EasyPCR (not .m.NoPasswords) -}}
+                <li><a href="/pcr">passwords</a></li>
                 {{ end -}}
-                {{- if .user.IsValid -}}
-                <a href="/logout">logout</a>
-                {{- else }}
-                <a href="/login">login</a>
+                <li><a href="/injects">injects</a></li>
                 {{- end }}
-            </div>
-        </div>
-        <hr>
+            {{ end -}}
+            {{- if .m.Persists -}}
+            <li><a href="/persist">persists</a></li>
+            {{- end -}}
+            {{- if .m.Uptime -}}
+            <li><a href="/agents">agents</a></li>
+            {{- end -}}
+            {{ if .user.IsAdmin -}}
+            <li>
+                <details role="list" dir="rtl">
+                    <summary aria-haspopup="listbox" role="link">admin panel</summary>
+                    <ul>
+                        <li><a href="/settings">control panel</a></li>
+                        <li><a href="/injects/feed">injects feed</a></li>
+                    </ul>
+                </details>
+            </li>
+            {{ end -}}
+            {{- if .user.IsValid -}}
+                <li><a href="/logout">{{ .user.Name }} (logout)</a></li>
+            {{- else }}
+                <li><a href="/login">login</a></li>
+            {{- end }}
+        </ul>
+    </nav>
+<hr>

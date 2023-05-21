@@ -1,7 +1,10 @@
 {{ template "head.html" . }}
 
 <br>
-<h2>Settings</h2>
+<hgroup>
+<h2>Control Panel</h2>
+<h3>Control the competition from here.</h3>
+</hgroup>
 
 {{ $loc := .loc }}
 {{ $time := .time }}
@@ -11,28 +14,33 @@
 {{.error}}
 {{ end }}
 
+<hgroup>
+<h2>Start/Stop Scoring</h2>
+<h3 style="text-align: center">Toggle the scoring engine on or off, all while keeping this portal running.</h3>
+</hgroup>
 {{ if .m.Running }}
-<p style="text-align: center">Pause scoring:</p>
 <form method="POST" action="/settings/stop">
-	    <input type="submit" style="color: red; display: block; padding: 0.5rem; margin: 0 auto; font-size: 150%" value="Pause Scoring"></input>
+	    <input type="submit" role="button" value="Pause Scoring"></input>
 </form>
 {{ else }}
-<p style="text-align: center">Start scoring:</p>
 <form method="POST" action="/settings/start">
-	    <input type="submit" style="color: green; display: block; padding: 0.5rem; margin: 0 auto; font-size: 150%" value="Start Scoring"></input>
+	    <input type="submit" role="button" value="Start Scoring"></input>
 </form>
 {{ end }}
-<br>
 
-
-<h3>Big Reset Button</h3>
-<p style="text-align: center">Reset event. This deletes inject submissions, but not injects themselves.</p>
+<hgroup>
+<h2>Big Reset Button</h2>
+<h3 style="text-align: center">Reset event. This deletes inject submissions, but not injects themselves.</h3>
+</hgroup>
 <form method="POST" action="/settings/reset">
-	    <input type="submit" style="color: red; display: block; padding: 0.5rem; margin: 0 auto; font-size: 150%" value="Reset Scoring Data"></input>
+	    <input type="submit" role="button" value="Reset Scoring Data"></input>
 </form>
-<br>
 
+
+<hgroup>
+<h2>Manual Point Adjustments</h2>
 <h3>Manual Point Adjustments</h3>
+</hgroup>
 <form method="POST" action="/settings/adjust" style="text-align: center">
     <label>Team:
         <select name="team">
@@ -47,7 +55,10 @@
 </form>
 
 {{ if .adjustments }}
-<h3>Current Adjustment Values</h3>
+<hgroup>
+<h2>Current Adjustment Values</h2>
+<h3>Adjusted points.</h3>
+</hgroup>
 <table>
 <th>Team</th>
 <th>Adjustment Value</th>
@@ -58,13 +69,15 @@
 </tr>
 {{ end }}
 </table>
-<br>
 {{ end }}
 
+<hgroup>
+<h2>Config Dump</h2>
 <h3>Config Dump</h3>
+</hgroup>
 
-<pre>
-{{ .config }}
-</pre>
+    <pre>
+        <code>{{ .config }}</code>
+    </pre>
 
 {{ template "feet.html" }}

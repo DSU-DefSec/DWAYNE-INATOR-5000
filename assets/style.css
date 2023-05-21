@@ -74,7 +74,6 @@ html {
 }
 
 body {
-	font-family: Helvetica, Noto Sans, sans-serif;
 	font-size: 105%;
 	max-width: 55rem;
 	width: 80%;
@@ -115,12 +114,11 @@ p {
     margin-top: 0.8rem;
 }
 
-a {
-	color: var(--darkblue);
+a, summary {
+	color: var(--darkblue) !important;
 }
 
 code {
-    font-size: 120%;
 }
 
 hr {
@@ -193,13 +191,13 @@ table a {
     text-align: center;
 }
 
+table td {
+    text-align: center;
+}
+
 tbody {
     flex-grow: 1;
     display: table;
-}
-
-th {
-    font-weight: bold;
 }
 
 td, th {
@@ -207,26 +205,30 @@ td, th {
     padding: 0.4rem;
 }
 
-td a {
-    padding: 0.2rem;
+th {
+    font-weight: bold;
+    text-align: center;
 }
 
-.status {
-    text-align: center;
+td a {
+    padding: 0.2rem;
 }
 
 th {
     border-bottom: 3px solid var(--darkgray);
 }
 
-.checks tr td:first-child {
+.teamname {
     font-weight: normal;
 }
 
-.teamname, .teamname a {
-    justify-content: right;
-    padding-right: 0.5rem;
-    font-weight: normal;
+tr td:first-child.teamname {
+    text-align: right;
+    padding-right: 1rem;
+}
+tr td:first-child.teamname > * {
+    text-align: right;
+    padding: 0;
 }
 
 th:nth-child(n+2){
@@ -235,10 +237,6 @@ th:nth-child(n+2){
 
 tr td:nth-child(n+2){
     border-left: 3px solid var(--darkgray);
-}
-
-tr td:first-child {
-    font-weight: bold;
 }
 
 tr td {
@@ -313,6 +311,10 @@ textarea {
     width: 100%;
     padding: 0.5em;
     border-radius: 0.3em;
+}
+
+pre {
+    padding: 1.5rem;
 }
 
 /* visibility trick
