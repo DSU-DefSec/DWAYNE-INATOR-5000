@@ -31,6 +31,7 @@ type config struct {
 	Key             string
 	DisableInfoPage bool
 	Timezone        string
+    HeadToHead      bool
 
 	Uptime    bool // Score agent callback uptime (like CCS uptime)
 	UptimeSLA int  // Number in minutes
@@ -154,7 +155,7 @@ func readConfig(conf *config) {
 }
 
 func checkConfig(conf *config) error {
-	// general error checking
+	// general error checking and set defaults
 	if conf.Event == "" {
 		return errors.New("event title blank or not specified")
 	}

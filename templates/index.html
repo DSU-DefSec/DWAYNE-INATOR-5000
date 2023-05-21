@@ -109,6 +109,7 @@
 
 
 <br>
+{{ if or (.headToHead) (.user.IsAdmin) }}
 <h2>Uptime</h2>
 
 <table class="uptime">
@@ -178,6 +179,7 @@
 
 <br>
 <br>
+
 <h2>Scores Over Time</h2>
 
 <br>
@@ -248,7 +250,7 @@
     {{ end }}
 </table>
 <br>
-
+{{ end }}
 {{ else }}
 
 {{ if .m.Running }}
