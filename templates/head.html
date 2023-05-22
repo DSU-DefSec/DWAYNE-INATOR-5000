@@ -24,7 +24,7 @@
             {{- if not .m.DisableInfoPage -}}
                 <li><a href="/info">info</a></li>
             {{- end }}
-            <li><a href="/">status</a></li>
+            <li><a href="/">scoreboard</a></li>
             {{ if .user.IsValid -}}
                 {{ if and (not .user.IsAdmin) (not .user.IsRed) }}
                 <li><a href="/team/{{ .user.ID }}">team</a></li>

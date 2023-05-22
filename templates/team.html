@@ -6,27 +6,21 @@
 
 {{ template "refresh.html" }}
 
-<br>
 <h2>{{ .team.Name }}</h2>
 
 {{ if .records -}}
 
-<h3>Uptime</h3>
+<h3>Service Uptime</h3>
 
 <table class="uptime">
     <tr>
-        <th style="border: none"></th>
         {{ range $box := .m.Box }}
         <th colspan="{{ len .CheckList }}"><i>{{ .Name }}</i></th>
         {{ end }}
     </tr>
-    <th></th>
     {{- template "boxlist.html" .m -}}
     {{- $record := index .records 0 -}}
     <tr>
-        <td style="font-weight: normal">
-            Uptime (Round {{ $record.Round }})
-        </td>
         {{ range $box := $m.Box -}}
         {{- range .CheckList -}}
         {{- $check := index $record.ResultsMap .Name -}}
@@ -56,7 +50,6 @@
         {{ end }}
     </tr>
 </table>
-<br>
 
 
 <h3>Service Status {{ if gt (len .records) 9 }} (last ten rounds) {{ end }} </h3>
@@ -109,7 +102,6 @@
 </table>
 {{ else }}
 
-<br>
 <p style="text-align: center">
 Your team doesn't have any completed checks yet :(
 </p>
@@ -117,14 +109,12 @@ Your team doesn't have any completed checks yet :(
 {{ end }}
 
 <!--
-<br>
 <h3>Check Service Uptime</h3>
 <p style="text-align: center">
     <a href="/uptime/{{ $team.ID }}">Visit service uptime.</a>
 </p>
 -->
 
-<br>
 <h3>External IPs and Ports</h3>
 <table class="checks">
     <tr>
@@ -156,8 +146,6 @@ Your team doesn't have any completed checks yet :(
 
 </table>
 
-
-<br>
 <h3>SLAs</h3>
 
 {{ $displayedSLA := false }}
@@ -190,8 +178,6 @@ No SLAs. Nice work!
 
 {{ if .records }}
 {{ $record := index .records 0 }}
-<br>
-<br>
 <fieldset>
 <p>
     Service points: {{ mul $record.ServicePoints $m.ServicePoints }}

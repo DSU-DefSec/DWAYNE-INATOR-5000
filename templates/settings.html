@@ -1,6 +1,5 @@
 {{ template "head.html" . }}
 
-<br>
 <hgroup>
 <h2>Control Panel</h2>
 <h3>Control the competition from here.</h3>
@@ -14,44 +13,41 @@
 {{.error}}
 {{ end }}
 
-<hgroup>
-<h2>Start/Stop Scoring</h2>
-<h3 style="text-align: center">Toggle the scoring engine on or off, all while keeping this portal running.</h3>
-</hgroup>
+<article>
 {{ if .m.Running }}
 <form method="POST" action="/settings/stop">
-	    <input type="submit" role="button" value="Pause Scoring"></input>
+    <hgroup>
+    <h2>Start/Stop Scoring</h2>
+    <h3>Toggle the scoring engine on or off, all while keeping this portal running.</h3>
+    </hgroup>
+    <input type="submit" role="button" value="Pause Scoring"></input>
 </form>
 {{ else }}
 <form method="POST" action="/settings/start">
-	    <input type="submit" role="button" value="Start Scoring"></input>
+    <hgroup>
+    <h2>Start/Stop Scoring</h2>
+    <h3>Toggle the scoring engine on or off, all while keeping this portal running.</h3>
+    </hgroup>
+    <input type="submit" role="button" value="Start Scoring"></input>
 </form>
 {{ end }}
 
-<hgroup>
-<h2>Big Reset Button</h2>
-<h3 style="text-align: center">Reset event. This deletes inject submissions, but not injects themselves.</h3>
-</hgroup>
-<form method="POST" action="/settings/reset">
-	    <input type="submit" role="button" value="Reset Scoring Data"></input>
-</form>
-
+<hr>
 
 <hgroup>
 <h2>Manual Point Adjustments</h2>
 <h3>Manual Point Adjustments</h3>
 </hgroup>
 <form method="POST" action="/settings/adjust" style="text-align: center">
-    <label>Team:
-        <select name="team">
-            {{ range $team := .m.Team }}
-            <option value="{{ .ID }}">{{ .Name }}</option>
-            {{ end }}
-        </select>
-    </label>
-    <input name="adjustment" type="number"></textarea>
-    <input style="display: block; margin: 0 auto;" type="submit" value="Submit Adjustment"/>
-    <br>
+    <div class="grid">
+    <select name="team">
+        {{ range $team := .m.Team }}
+        <option value="{{ .ID }}">{{ .Name }}</option>
+        {{ end }}
+    </select>
+    <input name="adjustment" type="number" placeholder="Adjust by how many points?"/>
+    <input type="submit" value="Submit Adjustment"/>
+    </div>
 </form>
 
 {{ if .adjustments }}
@@ -64,16 +60,28 @@
 <th>Adjustment Value</th>
 {{ range $teamID, $adjustmentVal := .adjustments }}
 <tr>
-	<td>{{ $teamID }}</td>
+    {{ $team := index .m.Team $teamID }}
+	<td>{{ $team.Name }}</td>
 	<td>{{ $adjustmentVal }}</td>
 </tr>
 {{ end }}
 </table>
 {{ end }}
 
+<hr>
+
+<hgroup>
+<h2>Big Reset Button</h2>
+<h3>Reset event. This deletes inject submissions, but not injects themselves.</h3>
+</hgroup>
+<form method="POST" action="/settings/reset">
+        <input type="submit" class="red" role="button" value="Reset Scoring Data"></input>
+</form>
+</article>
+
 <hgroup>
 <h2>Config Dump</h2>
-<h3>Config Dump</h3>
+<h3>See what's running under the hood.</h3>
 </hgroup>
 
     <pre>

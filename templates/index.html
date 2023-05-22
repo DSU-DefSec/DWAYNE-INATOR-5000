@@ -9,7 +9,6 @@
 
 {{ if .user.IsAdmin }}
 {{ if .configErrors }}
-	<br>
     <p style="background-color: var(--red); padding: 1rem; text-align: center">
 	    {{ range $err := .configErrors }}
 	    {{ . }}<br>
@@ -19,14 +18,12 @@
 {{ end }}
 
 {{ if $records }}
-<br>
 <h2>Status</h2>
 
 {{ if not .m.Running }}
 <p style="text-align: center">
 🧊 Scoring paused at {{ (.pauseTime.In .loc).Format "03:04:05 PM" }}.
 </p>
-<br>
 {{ end }}
 
 <table class="checks">
@@ -102,14 +99,10 @@
     </tr>
     {{ end }}
 </table>
-<br>
 <p style="text-align: center">
 ⏱️ Round {{ .round }}. Checks last ran at <b>{{ ((index .statusRecords 0).Time.In .loc).Format "03:04:05 PM" }}</b>.{{ if $m.Running }} Event has been running for <b>{{ .runtime }}</b>.{{ end }}
 </p>
-
-
-<br>
-{{ if or (.headToHead) (.user.IsAdmin) }}
+{{ if or (.m.HeadToHead) (.user.IsAdmin) }}
 <h2>Uptime</h2>
 
 <table class="uptime">
@@ -177,25 +170,17 @@
     {{ end }}
 </table>
 
-<br>
-<br>
 
 <h2>Scores Over Time</h2>
 
-<br>
 <img class="graph graph-light" src="assets/points.png"/>
 <img class="graph graph-dark" src="assets/points-dark.png"/>
 
-
-<br>
 <p style="text-align: center">
     📈 Scores calculated at <b>{{ ((index .records 0).Time.In .loc).Format "03:04:05 PM" }}</b>.
 </p>
 
-
-<br>
 <h2>Standings</h2>
-<br>
 <table>
     <th>Rank</th>
     <th>Team</th>
@@ -249,17 +234,15 @@
     </tr>
     {{ end }}
 </table>
-<br>
 {{ end }}
 {{ else }}
 
 {{ if .m.Running }}
-<br>
 <p style="text-align: center">
 First round of checks are currently running. Good luck! 🍀
 </p>
+<progress></progress>
 {{ else }}
-<br>
 <p style="text-align: center">
 ⏳ Competition organizers haven't started scoring yet.
 </p>

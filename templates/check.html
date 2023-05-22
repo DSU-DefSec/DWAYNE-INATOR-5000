@@ -5,7 +5,6 @@
 
 {{ template "refresh.html" }}
 
-<br>
 <h2>{{ .team.Name }}</h2>
 <p style="text-align: center; font-size: 110%"><i>{{ .check.Name }}</i></p>
 
@@ -22,12 +21,10 @@
         Current SLA Counter: {{ .sla.Counter }}
     </p>
     </fieldset>
-    <br>
     {{ end }}
 {{ end }}
 
 
-<br>
 <table class="checks">
     <th>Round</th>
     <th>Time</th>

@@ -1,6 +1,5 @@
 {{ template "head.html" . }}
 
-<br>
 <h2>Password Change Requests</h2>
 
 {{ $m := .m }}
@@ -13,7 +12,6 @@
 
 {{ if .m.EasyPCR }}
 <h3>PCR Tutorial</h3>
-<br>
 
 This is where you can change the passwords that the engine uses to log into your services. If I wanted to change <b>joe</b> and <b>charlie</b>'s passswords for whichever service is currently selected, I would input something like:
 
@@ -32,9 +30,7 @@ Any new passwords input will overwrite previous passwords for a service. Newline
 
 <b>Your submissions will show up at the bottom of this page once the current check round concludes.</b>
 
-You can see your PCR submissions and their status at the <a href="/injects/1">injects portal</a>.
-<br>
-<br>
+You can see your PCR submissions and their status at the <a href="/injects/view/1">injects portal</a>.
 
 <form style="width: 100%;" method="POST">
     {{ if .user.IsAdmin }}
@@ -57,11 +53,9 @@ You can see your PCR submissions and their status at the <a href="/injects/1">in
             {{ end }}
         </select>
     </label>
-    <br><br>
     <textarea name="pcr" placeholder="username,password"></textarea>
     <input style="display: block; margin: 0 auto;" type="submit" value="Submit PCR"/>
 </form>
-<br>
 {{ end }}
 
 <h3>Credential State</h3>
@@ -92,7 +86,6 @@ You can see your PCR submissions and their status at the <a href="/injects/1">in
                 <td>
                     {{ range $user, $pass := $creds }}
                         {{ $user }},{{ $pass }}
-                        <br>
                     {{ end }}
                 </td>
             </tr>
@@ -106,14 +99,12 @@ No valid PCRs processed yet :(
 </p>
 {{ end }}
 
-<br>
 <h3>Submissions</h3>
 
 <p style="text-align: center; margin: 1rem 5rem; font-size: 90%">
 <i>These are your inject submissions that contribute to the credential table. If you submitted an improperly formatted submission, it is not included here. This list DOES include invalid users, if you specified any.</i>
 </p>
 {{ if .submissions }}
-<br>
 <table>
     {{ if .user.IsAdmin }}
     <th>Team</th>

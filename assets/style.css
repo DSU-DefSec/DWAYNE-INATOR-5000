@@ -123,7 +123,7 @@ code {
 
 hr {
     color: var(--lightgray);
-    margin: 1rem 0;
+    margin: 1rem 0 2rem 0;
 }
 
 
@@ -167,7 +167,7 @@ hr {
 –––––––––––––––––––––––––––––––––––––––––– */
 
 table {
-    margin: 0 auto;
+    margin: 0 auto 1rem auto;
     padding: 0 0.5rem;
     text-align: center;
     border-spacing: 0;
@@ -185,6 +185,9 @@ table {
     background-size: 8rem;
 }
 
+table, .graph {
+    background-repeat: repeat;
+}
 table a {
     display: block;
     text-decoration: none;
@@ -293,6 +296,7 @@ input, select {
     padding: 0.2rem 0.4rem;
     margin: 0.1rem auto;
 	border-radius: 0.2rem;
+    white-space: normal;
 }
 
 textarea {
@@ -315,6 +319,27 @@ textarea {
 
 pre {
     padding: 1.5rem;
+}
+
+hgroup h2, hgroup h3 {
+    text-align: left;
+}
+
+details[role=list] summary::after, li[role=list]>a::after {
+    min-width: 18px;
+}
+
+.grid > * {
+    height: calc(1rem * var(--line-height) + var(--form-element-spacing-vertical) * 2 + var(--border-width) * 2);
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+input.red {
+	background-color: var(--red);
+	border-color: var(--red);
 }
 
 /* visibility trick
