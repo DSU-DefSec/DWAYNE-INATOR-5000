@@ -21,17 +21,19 @@ var (
 )
 
 type config struct {
-	Event           string
-	Verbose         bool
-	NoPasswords     bool
-	EasyPCR         bool
-	Port            int
-	Https           bool
-	Cert            string
-	Key             string
-	DisableInfoPage bool
-	Timezone        string
-    HeadToHead      bool
+	Event                string
+	Verbose              bool
+	NoPasswords          bool
+	EasyPCR              bool
+	Port                 int
+	Https                bool
+	Cert                 string
+	Key                  string
+	Timezone             string
+	StartPaused          bool
+	DisableInfoPage      bool
+	DisableHeadToHead    bool
+	DisableExternalPorts bool
 
 	Uptime    bool // Score agent callback uptime (like CCS uptime)
 	UptimeSLA int  // Number in minutes

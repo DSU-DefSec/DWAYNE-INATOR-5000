@@ -1,0 +1,63 @@
+<html lang="en">
+<head>
+    <!-- Metadata and resources
+    –––––––––––––––––––––––––––––––––––––––––––––––––– -->
+    <title>{{ .event }} {{ .title }}</title>
+    <link rel="stylesheet" href="/assets/pico.min.css">
+    <link rel="stylesheet" href="/assets/style.css">
+    <link rel="icon" type="image/ico" href="/assets/favicon.ico"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="width:100%; margin: 0;">
+{{ $m := .m }}
+{{ $team := .user }}
+{{ $records := .statusRecords }}
+{{ $persists := .persists }}
+
+{{ template "refresh.html" }}
+
+{{ if $records }}
+
+{{ if not .m.Running }}
+<p style="text-align: center">
+🧊 Scoring paused at {{ (.pauseTime.In .loc).Format "03:04:05 PM" }}.
+</p>
+{{ end }}
+    <table class="checks">
+        <tr>
+        <th class="teamname"></th>
+        {{ template "boxlist.html" $m }}
+        </tr>
+        {{ range $index, $record := $records }}
+        <tr>
+            <td class="teamname">
+                <div>
+                {{ .Team.Name }}
+                </div>
+            </td>
+
+            {{ range $box := $m.Box }}
+
+                {{ range .CheckList }}
+
+                    {{ $check := index $record.ResultsMap .Name }}
+
+                    <td>
+
+                    {{ if ne $check.Name "" }}
+
+                        {{ template "bool.html" $check.Status }}
+
+                    {{ else }}
+                        <img src="/assets/pending.png"/>
+                    {{ end }}
+                    </td>
+              {{ else }}
+            {{ end }}
+        {{ end }}
+    </tr>
+    {{ end }}
+</table>
+{{ end }}
+{{ template "feet.html" . }}

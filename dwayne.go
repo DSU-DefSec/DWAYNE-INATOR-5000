@@ -331,7 +331,11 @@ func main() {
 		})
 	}
 
-	dwConf.Running = true
+	if !dwConf.StartPaused {
+		dwConf.Running = true
+	} else {
+		pauseTime = time.Now()
+	}
 	go Score(dwConf)
 	if dwConf.Https {
 		log.Fatal(r.RunTLS(":"+fmt.Sprint(dwConf.Port), dwConf.Cert, dwConf.Key))

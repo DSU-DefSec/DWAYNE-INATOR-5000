@@ -172,7 +172,7 @@ func constructPCRState() {
 			submission.Invalid = true
 		}
 
-		fileName := strings.Split(submission.FileName, "_")
+		fileName := strings.Split(submission.FileName, "_pcr_")
 		if len(fileName) != 4 {
 			submission.Feedback = "file name is improperly formatted"
 			db.Save(&submission)

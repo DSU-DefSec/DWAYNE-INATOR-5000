@@ -74,9 +74,54 @@ func viewStatus(c *gin.Context) {
 	graphScores(sortedRecords, true)
 	graphScores(sortedRecords, false)
 
+	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "persists": persistHits, "round": roundNumber, "pauseTime": pauseTime}))
+}
+
+func viewScoreboard(c *gin.Context) {
+	if roundNumber != cachedRound {
+		var statusRecords []TeamRecord
+		res := db.Limit(len(dwConf.Team)).Preload(clause.Associations).Order("time desc").Find(&statusRecords)
+		if res.Error != nil {
+			errorOutGraceful(c, res.Error)
+		}
+
+		// Build results map
+		for i, rec := range statusRecords {
+			for j, res := range statusRecords[i].Results {
+				statusRecords[i].Results[j].Uptime = int((float64(res.Points) / float64(res.RoundCount)) * 100)
+			}
+			statusRecords[i].Total = calculateScoreTotal(rec)
+			statusRecords[i].ResultsMap = makeResultsMap(rec.Results)
+		}
+
+		// Sort by team ID.
+		sort.SliceStable(statusRecords, func(i, j int) bool {
+			return statusRecords[i].TeamID < statusRecords[j].TeamID
+		})
+
+		cachedStatus = statusRecords
+		cachedRound = roundNumber
+
+	}
+
+	// TODO fix this, horrendous
+	teamMutex.Lock()
+	sortedRecords := make([]TeamRecord, len(dwConf.Team))
+	copy(sortedRecords, cachedStatus)
+	teamMutex.Unlock()
+
+	// Sort by total score.
+	sort.SliceStable(sortedRecords, func(i, j int) bool {
+		return sortedRecords[i].Total > sortedRecords[j].Total
+	})
+
+	// Get graphs for both color schemes
+	graphScores(sortedRecords, true)
+	graphScores(sortedRecords, false)
+
 	team := getUserOptional(c)
 	ip := c.ClientIP()
-	c.HTML(http.StatusOK, "index.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "persists": persistHits, "team": team, "ip": ip, "round": roundNumber, "pauseTime": pauseTime, "configErrors": configErrors}))
+	c.HTML(http.StatusOK, "scoreboard.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "persists": persistHits, "team": team, "ip": ip, "round": roundNumber, "pauseTime": pauseTime, "configErrors": configErrors}))
 }
 
 func viewTeam(c *gin.Context) {
@@ -199,7 +244,7 @@ func submitPCR(c *gin.Context) {
 		Updated:  time.Now(),
 		TeamID:   team.ID,
 		InjectID: 1,
-		FileName: team.Name + "_" + c.Request.Form.Get("check") + "_PWD_1.txt",
+		FileName: fmt.Sprintf("%s_pcr_%s_pcr_PWD_pcr_1.txt", team.Name, c.Request.Form.Get("check")),
 		DiskFile: uuid.New().String(),
 	}
 
@@ -526,6 +571,10 @@ func submitInject(c *gin.Context) {
 			DiskFile: uuid.New().String(),
 		}
 
+		if newSubmission.Time.After(inject.Closes) {
+			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "inject is no longer accepting submissions", "inject": inject}))
+			return
+		}
 		if err := c.SaveUploadedFile(file, "submissions/"+newSubmission.DiskFile); err != nil {
 			c.HTML(http.StatusOK, "inject.html", pageData(c, "Injects", gin.H{"error": "unable to save file", "inject": inject}))
 			return

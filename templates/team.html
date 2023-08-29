@@ -12,94 +12,85 @@
 
 <h3>Service Uptime</h3>
 
-<table class="uptime">
-    <tr>
-        {{ range $box := .m.Box }}
-        <th colspan="{{ len .CheckList }}"><i>{{ .Name }}</i></th>
-        {{ end }}
-    </tr>
-    {{- template "boxlist.html" .m -}}
-    {{- $record := index .records 0 -}}
-    <tr>
-        {{ range $box := $m.Box -}}
-        {{- range .CheckList -}}
-        {{- $check := index $record.ResultsMap .Name -}}
-            {{ if eq $check.Name "" }}
-            <td style="background-color: var(--grayt);">
-            {{ else }}
-            <td style="{{ if gt $check.Uptime 89 }}
-            background-color: var(--greent);
-            {{ else if gt $check.Uptime 59 }}
-            background-color: var(--yellowt);
-            {{ else if gt $check.Uptime 39 }}
-            background-color: var(--oranget);
-            {{ else }}
-            background-color: var(--redt);
-            {{ end }}"
-            >
+<figure>
+    <table class="uptime">
+        {{- template "boxlist.html" .m -}}
+        {{- $record := index .records 0 -}}
+        <tr>
+            {{ range $box := $m.Box -}}
+            {{- range .CheckList -}}
+            {{- $check := index $record.ResultsMap .Name -}}
+                {{ if eq $check.Name "" }}
+                <td style="background-color: var(--grayt);">
+                {{ else }}
+                <td style="{{ if gt $check.Uptime 89 }}
+                background-color: var(--greent);
+                {{ else if gt $check.Uptime 59 }}
+                background-color: var(--yellowt);
+                {{ else if gt $check.Uptime 39 }}
+                background-color: var(--oranget);
+                {{ else }}
+                background-color: var(--redt);
+                {{ end }}"
+                >
+                {{ end }}
+                <a style="text-decoration: none; color: var(--black);" href="/team/{{ $team.ID }}/{{ $check.Name }}">
+                    {{ if eq $check.Name "" }}
+                    N/A
+                    {{ else }}
+                    {{ $check.Uptime }}%
+                    {{ end }}
+                </a>
+                </td>
+                {{ end }}
             {{ end }}
-            <a style="text-decoration: none; color: var(--black);" href="/team/{{ $team.ID }}/{{ $check.Name }}">
-	            {{ if eq $check.Name "" }}
-	            N/A
-	            {{ else }}
-	            {{ $check.Uptime }}%
-	            {{ end }}
-            </a>
-            </td>
-            {{ end }}
-        {{ end }}
-    </tr>
-</table>
-
+        </tr>
+    </table>
+</figure>
 
 <h3>Service Status {{ if gt (len .records) 9 }} (last ten rounds) {{ end }} </h3>
 
-<table class="checks">
-    <tr>
-        <th style="border: none"></th>
-        <th style="border: none"></th>
-        {{ range $box := .m.Box }}
-        <th colspan="{{ len .CheckList }}"><i>{{ .Name }}</i></th>
-        {{ end }}
-    </tr>
-    <th>#</th>
-    <th>Time</th>
-    {{ template "boxlist.html" .m -}}
-    {{- range $index, $record := .records -}}
-    <tr>
-        <td>
-            {{ if eq $index 0 -}}
-                <b>Current</b>
-            {{- else -}}
-                {{ .Round }}
-            {{- end -}}
-        </td>
-        <td>
-            {{ (.Time.In $loc).Format "03:04:05 PM" }}
-        </td>
+<figure>
+    <table class="checks">
+        <th>#</th>
+        <th>Time</th>
+        {{ template "boxlist.html" .m -}}
+        {{- range $index, $record := .records -}}
+        <tr>
+            <td>
+                {{ if eq $index 0 -}}
+                    <b>Current</b>
+                {{- else -}}
+                    {{ .Round }}
+                {{- end -}}
+            </td>
+            <td>
+                {{ (.Time.In $loc).Format "03:04:05 PM" }}
+            </td>
 
-    {{ range $box := $m.Box -}}
-    {{- range .CheckList -}}
+        {{ range $box := $m.Box -}}
+        {{- range .CheckList -}}
 
-        {{- $check := index $record.ResultsMap .Name -}}
+            {{- $check := index $record.ResultsMap .Name -}}
 
-        <td>
-        {{ if ne $check.Name "" }}
-            <a href="/team/{{ $check.TeamID }}/{{ $check.Name }}">
-            {{ template "bool.html" $check.Status }}
-            </a>
-        {{ else }}
-            <a>
-	            <img src="/assets/pending.png"/>
-            </a>
-	    {{ end }}
-        </td>
+            <td>
+            {{ if ne $check.Name "" }}
+                <a href="/team/{{ $check.TeamID }}/{{ $check.Name }}">
+                {{ template "bool.html" $check.Status }}
+                </a>
+            {{ else }}
+                <a>
+                    <img src="/assets/pending.png"/>
+                </a>
+            {{ end }}
+            </td>
 
-    {{- end -}}
-    {{- end -}}
-    </tr>
-    {{- end -}}
-</table>
+        {{- end -}}
+        {{- end -}}
+        </tr>
+        {{- end -}}
+    </table>
+</figure>
 {{ else }}
 
 <p style="text-align: center">
@@ -114,62 +105,60 @@ Your team doesn't have any completed checks yet :(
     <a href="/uptime/{{ $team.ID }}">Visit service uptime.</a>
 </p>
 -->
-
+{{ if or (not .m.DisableExternalPorts) (.user.IsAdmin) }}
 <h3>External IPs and Ports</h3>
-<table class="checks">
-    <tr>
-        {{ range $box := .m.Box }}
-        <th colspan="{{ len .CheckList }}"> {{ .Name }}</th>
-        {{ end }}
-    </tr>
-    <tr>
-        {{ range $box := .m.Box }}
-        <td style="text-align: center" colspan="{{ len .CheckList }}">
-            <i>{{ $m.GetFullIP .IP $team.IP }}</i>
-        </td>
-        {{ end }}
-    </tr>
+<figure>
+    <table class="checks">
 
-    {{ template "boxlist.html" .m }}
+        {{ template "boxlist.html" .m }}
 
-    <tr>
-    {{ range $box := $m.Box }}
-        {{ range $check := .CheckList }}
-            {{ if eq .Port 0 }}
-            <td>N/A</td>
-            {{ else }}
-            <td><b>{{ .Port }}</b></td>
+        <tr>
+        {{ range $box := $m.Box }}
+            {{ range $check := .CheckList }}
+                {{ if eq .Port 0 }}
+                <td>N/A</td>
+                {{ else }}
+                <td><b>{{ .Port }}</b></td>
+                {{ end }}
             {{ end }}
         {{ end }}
-    {{ end }}
-    </tr>
+        </tr>
+        <tr>
+            {{ range $box := .m.Box }}
+            <td style="text-align: center" colspan="{{ len .CheckList }}">
+                <i>{{ $m.GetFullIP .IP $team.IP }}</i>
+            </td>
+            {{ end }}
+        </tr>
 
-</table>
+    </table>
+</figure>
+{{ end }}
 
 <h3>SLAs</h3>
 
 {{ $displayedSLA := false }}
-<table>
-    <th><b>Latest Time</b></th>
-    <th><b>Reason</b></th>
-    <th><b>Count</b></th>
-    {{ range $violation := .sla }}
-        {{ if not .Time.IsZero }}
-        {{ $displayedSLA = true }}
-         <tr>
-            <td>
-            {{ (.Time.In $loc).Format "03:04 PM" }}
-            </td>
-            <td>
-                {{ .Reason }}
-            </td>
-            <td>
-                {{ .Violations }}
-            </td>
-        </tr>
+    <table>
+        <th><b>Most Recent SLA Time</b></th>
+        <th><b>Service</b></th>
+        <th><b>Total SLA Count</b></th>
+        {{ range $violation := .sla }}
+            {{ if not .Time.IsZero }}
+            {{ $displayedSLA = true }}
+             <tr>
+                <td>
+                {{ (.Time.In $loc).Format "03:04 PM" }}
+                </td>
+                <td>
+                    {{ .Reason }}
+                </td>
+                <td>
+                    {{ .Violations }}
+                </td>
+            </tr>
+            {{ end }}
         {{ end }}
-    {{ end }}
-</table>
+    </table>
 {{ if not $displayedSLA }}
 <p style="text-align: center">
 No SLAs. Nice work!

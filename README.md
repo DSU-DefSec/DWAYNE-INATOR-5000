@@ -36,11 +36,12 @@ verbose = true
 timezone = "America/Rainy_River"   # Timezone you want to use
 dbpath = ""                        # Path to sqlite3 database (default "dwayne.db")
 injectapikey = "superSecretKey1!"  # API key for remotely adding injects
-https = true                       # Enable HTTPS
-port = 443                         # Port to listen on
-cert = "/root/cert.pem"            # Path to cert file
-key = "/root/key.pem"              # Path to key file
-headtohead = true                  # Show head to head stats other than current service status between competitors
+# https = true                       # Enable HTTPS
+# port = 443                         # Port to listen on
+# cert = "/root/cert.pem"            # Path to cert file
+# key = "/root/key.pem"              # Path to key file
+# disableheadtohead = true           # Hide head to head stats (other than current service status) between competitors
+# startpaused = true                 # Start the competition paused
 
 # Timing settings
 delay = 20               # delay (seconds) between checks (>0) (default 60)
@@ -205,6 +206,7 @@ ip = "10.20.x.2"
         output = "Toby Turtle" # Must match exactly
 
         [[box.sql.query]]
+        contains = true
         output = "wordpress" # if the other fields are not specified, you can also verify if a database simply exists
 
     [[box.ssh]]
