@@ -206,8 +206,8 @@ ip = "10.20.x.2"
         output = "Toby Turtle" # Must match exactly
 
         [[box.sql.query]]
-        contains = true
-        output = "wordpress" # if the other fields are not specified, you can also verify if a database simply exists
+        database = "wordpress"
+        databaseexists = true # simply checks if database exists with "show databases;"
 
     [[box.ssh]]
     display = "remote"         # you can set the display name for any check
