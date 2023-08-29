@@ -18,12 +18,13 @@ type Sql struct {
 }
 
 type queryData struct {
-	UseRegex bool
-	Contains bool
-	Database string
-	Table    string
-	Column   string
-	Output   string
+	UseRegex       bool
+	Contains       bool
+	DatabaseExists bool
+	Database       string
+	Table          string
+	Column         string
+	Output         string
 }
 
 func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
@@ -55,8 +56,7 @@ func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
 	// Query the DB
 	// TODO: This is SQL injectable. Figure out Paramerterized queries. not that it really matters...
 	var rows *sql.Rows
-	just_database := q.Database == "" || q.Column == "" || q.Table == "" 
-	if just_database {
+	if q.DatabaseExists {
 		rows, err = db.QueryContext(context.TODO(), fmt.Sprint("SHOW DATABASES;"))
 		if err != nil {
 			res <- Result{
@@ -66,6 +66,9 @@ func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
 			return
 		}
 		defer rows.Close()
+
+		q.Contains = true
+		q.Output = q.Database
 	} else {
 		rows, err = db.QueryContext(context.TODO(), fmt.Sprintf("SELECT %s FROM %s;", q.Column, q.Table))
 		if err != nil {
@@ -122,14 +125,14 @@ func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
 		}
 		if !foundSwitch {
 			var debug string
-			if just_database {
+			if q.DatabaseExists {
 				debug = "database server didn't contain database " + q.Output
 			} else {
 				debug = "database " + q.Database + " table " + q.Table + " column " + q.Column + " didn't contain " + q.Output
 			}
 			res <- Result{
 				Error: "query output didn't contain value",
-				Debug: debug			}
+				Debug: debug}
 			return
 		}
 		// Check for error in the rows

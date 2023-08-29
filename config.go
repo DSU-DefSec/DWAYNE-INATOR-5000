@@ -511,6 +511,12 @@ func validateChecks(boxList []Box) error {
 					ck.Port = 3306
 				}
 				for _, q := range ck.Query {
+					if q.DatabaseExists && (q.Column != "" || q.Table != "" || q.Output != "") {
+						return errors.New("cannot use both database exists check and row check")
+					}
+					if q.DatabaseExists && q.Database == "" {
+						return errors.New("must specify database for database exists check")
+					}
 					if q.UseRegex {
 						regexp.MustCompile(q.Output)
 					}
