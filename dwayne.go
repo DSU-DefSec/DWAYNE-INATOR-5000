@@ -160,6 +160,7 @@ func main() {
 	routes := r.Group("/")
 	{
 		routes.GET("/", viewStatus)
+		routes.GET("/scoreboard", viewScoreboard)
 		routes.GET("/info", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "info.html", pageData(c, "Information", nil))
 		})
@@ -234,32 +235,7 @@ func main() {
 
 		// Settings
 		authRoutes.GET("/settings", viewSettings)
-		authRoutes.POST("/settings/reset", func(c *gin.Context) {
-			team := getUser(c)
-			if !team.IsAdmin() {
-				errorOutAnnoying(c, errors.New("non-admin tried to issue a scoring engine reset: "+c.Param("team")))
-				return
-			}
-
-			teamMutex.Lock()
-			resetIssued = true
-
-			db.Exec("DELETE FROM result_entries")
-			db.Exec("DELETE FROM team_records")
-			db.Exec("DELETE FROM inject_submissions")
-			db.Exec("DELETE FROM slas")
-			db.Exec("DELETE FROM persists")
-
-			// Deal with cache
-			cachedStatus = []TeamRecord{}
-			cachedRound = 0
-			roundNumber = 0
-			startTime = time.Now().In(loc)
-			persistHits = make(map[uint]map[string][]uint)
-			teamMutex.Unlock()
-
-			c.Redirect(http.StatusSeeOther, "/")
-		})
+		authRoutes.POST("/settings/reset", resetEvent)
 		authRoutes.POST("/settings/start", func(c *gin.Context) {
 			team := getUser(c)
 			if !team.IsAdmin() {
@@ -269,17 +245,7 @@ func main() {
 			dwConf.Running = true
 			c.Redirect(http.StatusSeeOther, "/settings")
 		})
-		authRoutes.POST("/settings/stop", func(c *gin.Context) {
-			team := getUser(c)
-			if !team.IsAdmin() {
-				errorOutAnnoying(c, errors.New("non-admin tried to start scoring: "+c.Param("team")))
-				return
-			}
-			dwConf.Running = false
-			resetIssued = true
-			pauseTime = time.Now()
-			c.Redirect(http.StatusSeeOther, "/settings")
-		})
+		authRoutes.POST("/settings/stop", pauseEvent)
 		authRoutes.POST("/settings/adjust", setManualAdjustment)
 
 		// Resets
@@ -368,7 +334,7 @@ func main() {
 	dwConf.Running = true
 	go Score(dwConf)
 	if dwConf.Https {
-		log.Fatal(r.RunTLS(":" + fmt.Sprint(dwConf.Port), dwConf.Cert, dwConf.Key))
+		log.Fatal(r.RunTLS(":"+fmt.Sprint(dwConf.Port), dwConf.Cert, dwConf.Key))
 	} else {
 		log.Fatal(r.Run(":" + fmt.Sprint(dwConf.Port)))
 	}
