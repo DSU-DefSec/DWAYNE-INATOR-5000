@@ -1,5 +1,16 @@
     {{ range $box := .Box }}
     {{ range $check := .CheckList }}
-    <th class="boxname">{{ $check.Display }}</th>
+    <th class="checkname"><div><p>{{ $box.Name }}-{{ $check.Display }}</p></div></th>
     {{ end }}
     {{ end }}
+<script>
+  window.addEventListener("load", function() {
+    const thElements = document.querySelectorAll(".checkname");
+    
+    thElements.forEach(th => {
+      const rotatedText = th.querySelector("p");
+      const textHeight = rotatedText.getBoundingClientRect().height;
+      th.style.height = textHeight + "px";
+    });
+  });
+</script>

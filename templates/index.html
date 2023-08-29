@@ -25,152 +25,143 @@
 🧊 Scoring paused at {{ (.pauseTime.In .loc).Format "03:04:05 PM" }}.
 </p>
 {{ end }}
+<figure>
+    <table class="checks">
+        <tr>
+        <th class="teamname"></th>
+        {{ template "boxlist.html" $m }}
+        </tr>
+        {{ range $index, $record := $records }}
+            <tr>
+                <td class="teamname">
+                    <div>
+                    {{ if $team }}
+                        {{ if $m.IsValid $team .Team.Name }}
+                            <a href="/team/{{ .Team.ID }}">
+                        {{ end }}
+                    {{ end }}
+                    {{ .Team.Name }}
+                    {{ if $team }}
+                        {{ if $m.IsValid $team .Team.Name }}
+                            </a>
+                        {{ end }}
+                    {{ end }}
+                    </div>
+                </td>
 
-<table class="checks">
-    <tr>
-        <th style="border-bottom: none"></th>
-        {{ range $box := .m.Box }}
-        <th colspan="{{ len .CheckList }}"> {{ .Name }}</th>
-        {{ end }}
-    </tr>
-    <tr>
-    <th></th>
-    {{ template "boxlist.html" $m }}
-    </tr>
-    {{ range $index, $record := $records }}
-    <tr>
-        <td class="teamname">
-            {{ if $team }}
-                {{ if $m.IsValid $team .Team.Name }}
-                <a href="/team/{{ .Team.ID }}">
-                {{ end }}
-            {{ end }}
-            {{ .Team.Name }}
-            {{ if $team }}
-                {{ if $m.IsValid $team .Team.Name }}
-                    </a>
-                {{ end }}
-            {{ end }}
-        </td>
+                {{ range $box := $m.Box }}
 
-        {{ range $box := $m.Box }}
+                    {{ range .CheckList }}
 
-        {{ range .CheckList }}
+                        {{ $check := index $record.ResultsMap .Name }}
 
-	        {{ $check := index $record.ResultsMap .Name }}
+                        <!-- Display persists -->
+                        {{ $persistTeam := index $persists $record.Team.ID }}
+                        {{ if $persistTeam }}
+                            {{ $persistBox := index $persistTeam $box.Name }}
+                            {{ if $persistBox }}
+                                {{ template "persist.html" $persistBox }}
+                            {{ else }}
+                            <td>
+                           {{ end }}
+                        {{ else }}
+                            <td>
+                        {{ end }}
 
-            <!-- Display persists -->
-            {{ $persistTeam := index $persists $record.Team.ID }}
-            {{ if $persistTeam }}
-                {{ $persistBox := index $persistTeam $box.Name }}
-                {{ if $persistBox }}
-                    {{ template "persist.html" $persistBox }}
-                {{ else }}
-                <td>
-               {{ end }}
-            {{ else }}
-                <td>
-            {{ end }}
+                        {{ if ne $check.Name "" }}
 
-            {{ if ne $check.Name "" }}
+                            {{ if $team }}
+                                {{ if $m.IsValid $team $record.Team.Name }}
+                                <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
+                                {{ end }}
+                            {{ end }}
+                            {{ template "bool.html" $check.Status }}
 
-                {{ if $team }}
-                    {{ if $m.IsValid $team $record.Team.Name }}
-                    <a href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
+                        {{ else }}
+                            <a>
+                            <img src="/assets/pending.png"/>
+                        {{ end }}
+
+                        {{ if $team }}
+                            {{ if $m.IsValid $team $record.Team.Name }}
+                            </a>
+                            {{ end }}
+                        {{ end }}
+                        </td>
                     {{ end }}
                 {{ end }}
-                {{ template "bool.html" $check.Status }}
-
-            {{ else }}
-            	<a>
-                <img src="/assets/pending.png"/>
-            {{ end }}
-
-            {{ if $team }}
-                {{ if $m.IsValid $team $record.Team.Name }}
-                </a>
-                {{ end }}
-            {{ end }}
-
-          {{ else }}
-        </td>
+            </tr>
         {{ end }}
-        {{ end }}
-    </tr>
-    {{ end }}
-</table>
+    </table>
+</figure>
+
 <p style="text-align: center">
 ⏱️ Round {{ .round }}. Checks last ran at <b>{{ ((index .statusRecords 0).Time.In .loc).Format "03:04:05 PM" }}</b>.{{ if $m.Running }} Event has been running for <b>{{ .runtime }}</b>.{{ end }}
 </p>
-{{ if or (.m.HeadToHead) (.user.IsAdmin) }}
+{{ if or (not .m.DisableHeadToHead) (.user.IsAdmin) }}
 <h2>Uptime</h2>
+<figure>
+    <table class="uptime">
+        <th class="teamname"></th>
+        {{ template "boxlist.html" .m }}
 
-<table class="uptime">
-    <tr>
-        <th style="border: none"></th>
-        {{ range $box := .m.Box }}
-        <th colspan="{{ len .CheckList }}"><i>{{ .Name }}</i></th>
-        {{ end }}
-    </tr>
-    <th></th>
-    {{ template "boxlist.html" .m }}
-
-    {{ range $index, $record := $records }}
-    <tr>
-        <td class="teamname">
-            {{ if $team }}
-                {{ if $m.IsValid $team .Team.Name }}
-                <a href="/team/{{ .Team.ID }}">
+        {{ range $index, $record := $records }}
+        <tr>
+            <td class="teamname">
+                <div>
+                {{ if $team }}
+                    {{ if $m.IsValid $team .Team.Name }}
+                    <a href="/team/{{ .Team.ID }}">
+                    {{ end }}
                 {{ end }}
-            {{ end }}
-            {{ .Team.Name }}
-            {{ if $team }}
-                {{ if $m.IsValid $team .Team.Name }}
-                    </a>
+                {{ .Team.Name }}
+                {{ if $team }}
+                    {{ if $m.IsValid $team .Team.Name }}
+                        </a>
+                    {{ end }}
                 {{ end }}
-            {{ end }}
-        </td>
-        {{ range $box := $m.Box }}
-        {{ range .CheckList }}
-
-        {{ $check := index $record.ResultsMap .Name }}
-            {{ if eq $check.Name "" }}
-            <td style="background-color: var(--grayt);">
-            {{ else }}
-            <td style="{{ if gt $check.Uptime 89 }}
-            background-color: var(--greent);
-            {{ else if gt $check.Uptime 59 }}
-            background-color: var(--yellowt);
-            {{ else if gt $check.Uptime 39 }}
-            background-color: var(--oranget);
-            {{ else }}
-            background-color: var(--redt);
-            {{ end }}"
-            >
-            {{ end }}
-            {{ if $team }}
-                {{ if $m.IsValid $team $record.Team.Name }}
-                <a style="text-decoration: none; color: var(--black);" href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
-                {{ end }}
-            {{ end }}
-            {{ if eq $check.Name "" }}
-            N/A
-            {{ else }}
-            {{ $check.Uptime }}%
-            {{ end }}
-            {{ if $team }}
-                {{ if $m.IsValid $team $record.Team.Name }}
-                </a>
-                {{ end }}
-            {{ end }}
+                </div>
             </td>
-        {{ end }}
-        {{ end }}
-    </tr>
-    {{ end }}
-</table>
+            {{ range $box := $m.Box }}
+            {{ range .CheckList }}
 
-
+            {{ $check := index $record.ResultsMap .Name }}
+                {{ if eq $check.Name "" }}
+                <td style="background-color: var(--grayt);">
+                {{ else }}
+                <td style="{{ if gt $check.Uptime 89 }}
+                background-color: var(--greent);
+                {{ else if gt $check.Uptime 59 }}
+                background-color: var(--yellowt);
+                {{ else if gt $check.Uptime 39 }}
+                background-color: var(--oranget);
+                {{ else }}
+                background-color: var(--redt);
+                {{ end }}"
+                >
+                {{ end }}
+                {{ if $team }}
+                    {{ if $m.IsValid $team $record.Team.Name }}
+                    <a style="text-decoration: none; color: var(--black);" href="/team/{{ $record.Team.ID }}/{{ $check.Name }}">
+                    {{ end }}
+                {{ end }}
+                {{ if eq $check.Name "" }}
+                N/A
+                {{ else }}
+                {{ $check.Uptime }}%
+                {{ end }}
+                {{ if $team }}
+                    {{ if $m.IsValid $team $record.Team.Name }}
+                    </a>
+                    {{ end }}
+                {{ end }}
+                </td>
+            {{ end }}
+            {{ end }}
+        </tr>
+        {{ end }}
+    </table>
+</figure>
 <h2>Scores Over Time</h2>
 
 <img class="graph graph-light" src="assets/points.png"/>
@@ -181,59 +172,62 @@
 </p>
 
 <h2>Standings</h2>
-<table>
-    <th>Rank</th>
-    <th>Team</th>
-    <th>Service</th>
-    <th>SLA</th>
-    <th>Injects</th>
-    {{ if $m.Red }}
-    <!--<th>Red Team</th>-->
-    {{ end }}
-    {{ if $m.Persists }}
-    <th>Stolen From You</th>
-    <th>You've Stolen</th>
-    <th>Hack Points</th>
-    {{ end }}
-    <th>Adjustment</th>
-    <th>Total</th>
 
-    {{ range $index, $record := .records }}
-    <tr>
-        <td>{{ $index | increment }}</td>
-        {{ if eq $record.TeamID $team.ID }}
-            <td class="teamname">
-                <a style="text-align: center" href="/team/{{ $team.ID }}">
-                    {{ $record.Team.Name }}
-                </a>
-            </td>
-        {{ else }}
-            <td>{{ $record.Team.Name }}</td>
-        {{ end }}
-        <td>{{ mul $record.ServicePoints $m.ServicePoints }}</td>
-        <td>{{ $record.SlaViolations }}</td>
-        {{ if eq $record.TeamID $team.ID }}
-            <td>
-                <a style="text-align: center" href="/injects">
-                    {{ $record.InjectPoints }}
-                </a>
-            </td>
-        {{ else }}
-            <td>{{ $record.InjectPoints }}</td>
-        {{ end }}
+<figure>
+    <table>
+        <th>Rank</th>
+        <th>Team</th>
+        <th>Service</th>
+        <th>SLA</th>
+        <th>Injects</th>
         {{ if $m.Red }}
-        <!--<td>{{ $record.RedTeamPoints }}</td>-->
+        <!--<th>Red Team</th>-->
         {{ end }}
         {{ if $m.Persists }}
-        <td>{{ $record.PointsLost }}</td>
-        <td>{{ $record.PointsStolen }}</td>
-        <td>{{ $record.PersistPoints }}</td>
-        {{ end  }}
-        <td>{{ $record.ManualAdjustment }}</td>
-        <td><b>{{ $record.Total }}</b></td>
-    </tr>
-    {{ end }}
-</table>
+        <th>Stolen From You</th>
+        <th>You've Stolen</th>
+        <th>Hack Points</th>
+        {{ end }}
+        <th>Adjustment</th>
+        <th>Total</th>
+
+        {{ range $index, $record := .records }}
+        <tr>
+            <td>{{ $index | increment }}</td>
+            {{ if eq $record.TeamID $team.ID }}
+                <td class="teamname">
+                    <a style="text-align: center" href="/team/{{ $team.ID }}">
+                        {{ $record.Team.Name }}
+                    </a>
+                </td>
+            {{ else }}
+                <td>{{ $record.Team.Name }}</td>
+            {{ end }}
+            <td>{{ mul $record.ServicePoints $m.ServicePoints }}</td>
+            <td>{{ $record.SlaViolations }}</td>
+            {{ if eq $record.TeamID $team.ID }}
+                <td>
+                    <a style="text-align: center" href="/injects">
+                        {{ $record.InjectPoints }}
+                    </a>
+                </td>
+            {{ else }}
+                <td>{{ $record.InjectPoints }}</td>
+            {{ end }}
+            {{ if $m.Red }}
+            <!--<td>{{ $record.RedTeamPoints }}</td>-->
+            {{ end }}
+            {{ if $m.Persists }}
+            <td>{{ $record.PointsLost }}</td>
+            <td>{{ $record.PointsStolen }}</td>
+            <td>{{ $record.PersistPoints }}</td>
+            {{ end  }}
+            <td>{{ $record.ManualAdjustment }}</td>
+            <td><b>{{ $record.Total }}</b></td>
+        </tr>
+        {{ end }}
+    </table>
+</figure>
 {{ end }}
 {{ else }}
 

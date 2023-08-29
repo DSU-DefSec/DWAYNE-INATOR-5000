@@ -12,7 +12,11 @@
 </head>
 
 <body>
-    <nav>
+    <nav class="container">
+        <input class="menu-btn" type="checkbox" id="menu-btn" />
+        <label class="menu-icon" for="menu-btn">
+            <span class="nav-icon" style="font-size: 1.8em">&#x2261;</span>
+        </label>
         <ul>
             <li>
                 <a href="/">
@@ -20,32 +24,32 @@
                 </a>
             </li>
         </ul>
-        <ul>
+        <ul class="menu">
             {{- if not .m.DisableInfoPage -}}
-                <li><a href="/info">info</a></li>
+                <li class="item"><a href="/info">info</a></li>
             {{- end }}
-            <li><a href="/">scoreboard</a></li>
+            <li class="item"><a href="/">scoreboard</a></li>
             {{ if .user.IsValid -}}
                 {{ if and (not .user.IsAdmin) (not .user.IsRed) }}
-                <li><a href="/team/{{ .user.ID }}">team</a></li>
+                <li class="item"><a href="/team/{{ .user.ID }}">team</a></li>
                 {{ end -}}
                 {{- if .user.IsRed -}}
-                <li><a href="/red">red</a></li>
+                <li class="item"><a href="/red">red</a></li>
                 {{ else -}}
                 {{- if and .m.EasyPCR (not .m.NoPasswords) -}}
-                <li><a href="/pcr">passwords</a></li>
+                <li class="item"><a href="/pcr">passwords</a></li>
                 {{ end -}}
-                <li><a href="/injects">injects</a></li>
+                <li class="item"><a href="/injects">injects</a></li>
                 {{- end }}
             {{ end -}}
             {{- if .m.Persists -}}
-            <li><a href="/persist">persists</a></li>
+            <li class="item"><a href="/persist">persists</a></li>
             {{- end -}}
             {{- if .m.Uptime -}}
-            <li><a href="/agents">agents</a></li>
+            <li class="item"><a href="/agents">agents</a></li>
             {{- end -}}
             {{ if .user.IsAdmin -}}
-            <li>
+            <li class="item">
                 <details role="list" dir="rtl">
                     <summary aria-haspopup="listbox" role="link">admin panel</summary>
                     <ul>
@@ -56,9 +60,9 @@
             </li>
             {{ end -}}
             {{- if .user.IsValid -}}
-                <li><a href="/logout">{{ .user.Name }} (logout)</a></li>
+                <li class="item"><a href="/logout">{{ .user.Name }} (logout)</a></li>
             {{- else }}
-                <li><a href="/login">login</a></li>
+                <li class="item"><a href="/login">login</a></li>
             {{- end }}
         </ul>
     </nav>

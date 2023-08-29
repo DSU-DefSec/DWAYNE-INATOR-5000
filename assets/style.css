@@ -69,13 +69,17 @@
 	}
 }
 
+:root {
+	font-size: 16px;
+    --font-size: 16px;
+}
+
 html {
     background-color: var(--white);
 }
 
 body {
-	font-size: 105%;
-	max-width: 55rem;
+	max-width: 960px;
 	width: 80%;
 	margin: 0.4rem auto;
 	padding: 1.5rem;
@@ -114,8 +118,8 @@ p {
     margin-top: 0.8rem;
 }
 
-a, summary {
-	color: var(--darkblue) !important;
+a, summary, [role=link] {
+	color: var(--darkblue);
 }
 
 code {
@@ -168,14 +172,14 @@ hr {
 
 table {
     margin: 0 auto 1rem auto;
-    padding: 0 0.5rem;
     text-align: center;
     border-spacing: 0;
     border-collapse: 0;
     background-image: url("/assets/logo.png");
     background-size: 8rem;
-    display: flex;
     justify-content: center;
+    display: table;
+    width: 100%;
 }
 
 .graph {
@@ -199,8 +203,9 @@ table td {
 }
 
 tbody {
-    flex-grow: 1;
     display: table;
+    table-layout: fixed;
+	width: 100%;
 }
 
 td, th {
@@ -208,47 +213,88 @@ td, th {
     padding: 0.4rem;
 }
 
-th {
-    font-weight: bold;
-    text-align: center;
+table:is(.checks,.uptime) {
+    font-size: 10px;
 }
 
-td a {
-    padding: 0.2rem;
-}
-
-th {
-    border-bottom: 3px solid var(--darkgray);
-}
-
-.teamname {
-    font-weight: normal;
-}
-
-tr td:first-child.teamname {
-    text-align: right;
-    padding-right: 1rem;
-}
-tr td:first-child.teamname > * {
-    text-align: right;
+table:is(.checks,.uptime) td:not(.teamname), table:is(.checks,.uptime) td:not(.teamname) > * {
     padding: 0;
 }
 
-th:nth-child(n+2){
+th.boxname {
+    text-align: center;
+    width: 20px;
+}
+
+.checks th:not(.teamname) {
+    width: 2em;
+}
+
+.checks th:not(.teamname,.checkname) {
+    width: 4em;
+}
+.uptime th:not(.teamname) {
+    width: 2em;
+}
+
+td a {
+    padding: 0.2em;
+}
+
+th {
+    vertical-align: bottom;
+}
+
+.checkname p {
+	min-width: max-content;
+	white-space: nowrap;
+    text-align: right;
+	transform-origin: bottom right;
+    transform: rotate(30deg);
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.checkname div {
+    display: flex;
+    justify-content: flex-end;
+    width: 50%;
+}
+
+.teamname div {
+    margin-left: auto;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+}
+
+th.teamname {
+    width: 6em;
+}
+
+td.teamname div > * {
+    font-weight: bold;
+    text-align: right;
+    width: max-content;
+}
+
+table:not(.checks,.uptime) :is(th,td){
+    border-right: 3px solid var(--darkgray);
     border-left: 3px solid var(--darkgray);
 }
 
-tr td:nth-child(n+2){
+td{
+    border-right: 3px solid var(--darkgray);
+}
+
+td:first-child:not(.teamname) {
     border-left: 3px solid var(--darkgray);
 }
 
-tr td {
+tr {
     border-bottom: 3px solid var(--darkgray);
 }
 
-tr:last-child td {
-    border-bottom-width: 0;
-}
 
 tr:nth-child(n+2) a {
     cursor: pointer;
@@ -289,6 +335,10 @@ td img {
 
 /* form styles
 –––––––––––––––––––––––––––––––––––––––––– */
+
+table td > form, table td > form input[type=submit] {
+    margin: 0 auto;
+}
 
 input, select {
     color: var(--black);
@@ -337,13 +387,63 @@ a:hover {
     text-decoration: underline;
 }
 
-input.red {
+input.danger {
 	background-color: var(--red);
 	border-color: var(--red);
+}
+
+form input[type=submit] {
+    height: max-content;
 }
 
 /* visibility trick
 –––––––––––––––––––––––––––––––––––––––––– */
 html {
     display: block;
+}
+
+/* nav
+–––––––––––––––––––––––––––––––––––––––––– */
+
+nav.container {
+	background-color: var(gray);
+    /* remove the 'flex-direction' to move menu to the right */
+    flex-direction: row;
+	align-items: center;
+}
+
+nav :is(.menu-btn, .menu-icon) {
+	display: none;
+	cursor: pointer;
+	user-select: none;
+}
+
+@media (width < 48em) {
+	nav.container {
+		flex-wrap: wrap;
+		& .menu-icon {
+			display:block;
+		}
+		& >ul.menu {
+			flex-direction: column;
+			align-items:flex-start;
+			width: 100%;
+			max-height: 0;
+			transition: max-height 0.3s ease-out;
+            margin: 10px 10px;
+            background-color: var(gray);
+            & li {
+                width: 100%;
+            }
+            & a {
+                display: block;
+            }
+        }
+        & .menu-btn:checked ~ .menu {
+            max-height: 100vh;
+            display: block;
+        }
+        & .menu-btn ~ .menu {
+            display: none;
+	}
 }
