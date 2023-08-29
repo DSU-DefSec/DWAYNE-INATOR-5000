@@ -9,5 +9,7 @@ templates/info.html
 tags
 *.swp
 submissions/*
+checkfiles/*
 scripts/*
+injects/*
 *.bak
