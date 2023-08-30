@@ -18,12 +18,13 @@ type Sql struct {
 }
 
 type queryData struct {
-	UseRegex bool
-	Contains bool
-	Database string
-	Table    string
-	Column   string
-	Output   string
+	UseRegex       bool
+	Contains       bool
+	DatabaseExists bool
+	Database       string
+	Table          string
+	Column         string
+	Output         string
 }
 
 func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
@@ -54,16 +55,31 @@ func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
 
 	// Query the DB
 	// TODO: This is SQL injectable. Figure out Paramerterized queries. not that it really matters...
-	rows, err := db.QueryContext(context.TODO(), fmt.Sprintf("SELECT %s FROM %s;", q.Column, q.Table))
-	if err != nil {
-		res <- Result{
-			Error: "could not query db for database " + q.Database + " table " + q.Table + " column " + q.Column,
-			Debug: err.Error(),
+	var rows *sql.Rows
+	if q.DatabaseExists {
+		rows, err = db.QueryContext(context.TODO(), fmt.Sprint("SHOW DATABASES;"))
+		if err != nil {
+			res <- Result{
+				Error: "could not query db for database " + q.Database,
+				Debug: err.Error(),
+			}
+			return
 		}
-		return
-	}
-	defer rows.Close()
+		defer rows.Close()
 
+		q.Contains = true
+		q.Output = q.Database
+	} else {
+		rows, err = db.QueryContext(context.TODO(), fmt.Sprintf("SELECT %s FROM %s;", q.Column, q.Table))
+		if err != nil {
+			res <- Result{
+				Error: "could not query db for database " + q.Database + " table " + q.Table + " column " + q.Column,
+				Debug: err.Error(),
+			}
+			return
+		}
+		defer rows.Close()
+	}
 	var output string
 	if q.Output != "" {
 		foundSwitch := false
@@ -108,10 +124,15 @@ func (c Sql) Run(teamID uint, boxIp string, res chan Result) {
 			}
 		}
 		if !foundSwitch {
+			var debug string
+			if q.DatabaseExists {
+				debug = "database server didn't contain database " + q.Output
+			} else {
+				debug = "database " + q.Database + " table " + q.Table + " column " + q.Column + " didn't contain " + q.Output
+			}
 			res <- Result{
 				Error: "query output didn't contain value",
-				Debug: "database " + q.Database + " table " + q.Table + " column " + q.Column + " didn't contain " + q.Output,
-			}
+				Debug: debug}
 			return
 		}
 		// Check for error in the rows

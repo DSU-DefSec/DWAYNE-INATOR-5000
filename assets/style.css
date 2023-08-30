@@ -69,14 +69,17 @@
 	}
 }
 
+:root {
+	font-size: 16px;
+    --font-size: 16px;
+}
+
 html {
     background-color: var(--white);
 }
 
 body {
-	font-family: Helvetica, Noto Sans, sans-serif;
-	font-size: 105%;
-	max-width: 55rem;
+	max-width: 960px;
 	width: 80%;
 	margin: 0.4rem auto;
 	padding: 1.5rem;
@@ -115,17 +118,16 @@ p {
     margin-top: 0.8rem;
 }
 
-a {
+a, summary, [role=link] {
 	color: var(--darkblue);
 }
 
 code {
-    font-size: 120%;
 }
 
 hr {
     color: var(--lightgray);
-    margin: 1rem 0;
+    margin: 1rem 0 2rem 0;
 }
 
 
@@ -169,15 +171,15 @@ hr {
 –––––––––––––––––––––––––––––––––––––––––– */
 
 table {
-    margin: 0 auto;
-    padding: 0 0.5rem;
+    margin: 0 auto 1rem auto;
     text-align: center;
     border-spacing: 0;
     border-collapse: 0;
     background-image: url("/assets/logo.png");
     background-size: 8rem;
-    display: flex;
     justify-content: center;
+    display: table;
+    width: 100%;
 }
 
 .graph {
@@ -187,19 +189,23 @@ table {
     background-size: 8rem;
 }
 
+table, .graph {
+    background-repeat: repeat;
+}
 table a {
     display: block;
     text-decoration: none;
     text-align: center;
 }
 
-tbody {
-    flex-grow: 1;
-    display: table;
+table td {
+    text-align: center;
 }
 
-th {
-    font-weight: bold;
+tbody {
+    display: table;
+    table-layout: fixed;
+	width: 100%;
 }
 
 td, th {
@@ -207,47 +213,88 @@ td, th {
     padding: 0.4rem;
 }
 
-td a {
-    padding: 0.2rem;
+table:is(.checks,.uptime) {
+    font-size: 10px;
 }
 
-.status {
+table:is(.checks,.uptime) td:not(.teamname), table:is(.checks,.uptime) td:not(.teamname) > * {
+    padding: 0;
+}
+
+th.boxname {
     text-align: center;
+    width: 20px;
+}
+
+.checks th:not(.teamname) {
+    width: 2em;
+}
+
+.checks th:not(.teamname,.checkname) {
+    width: 4em;
+}
+.uptime th:not(.teamname) {
+    width: 2em;
+}
+
+td a {
+    padding: 0.2em;
 }
 
 th {
-    border-bottom: 3px solid var(--darkgray);
+    vertical-align: bottom;
 }
 
-.checks tr td:first-child {
-    font-weight: normal;
+.checkname p {
+	min-width: max-content;
+	white-space: nowrap;
+    text-align: right;
+	transform-origin: bottom right;
+    transform: rotate(30deg);
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
-.teamname, .teamname a {
-    justify-content: right;
-    padding-right: 0.5rem;
-    font-weight: normal;
+.checkname div {
+    display: flex;
+    justify-content: flex-end;
+    width: 50%;
 }
 
-th:nth-child(n+2){
-    border-left: 3px solid var(--darkgray);
+.teamname div {
+    margin-left: auto;
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
 }
 
-tr td:nth-child(n+2){
-    border-left: 3px solid var(--darkgray);
+th.teamname {
+    width: 6em;
 }
 
-tr td:first-child {
+td.teamname div > * {
     font-weight: bold;
+    text-align: right;
+    width: max-content;
 }
 
-tr td {
+table:not(.checks,.uptime) :is(th,td){
+    border-right: 3px solid var(--darkgray);
+    border-left: 3px solid var(--darkgray);
+}
+
+td{
+    border-right: 3px solid var(--darkgray);
+}
+
+td:first-child:not(.teamname) {
+    border-left: 3px solid var(--darkgray);
+}
+
+tr {
     border-bottom: 3px solid var(--darkgray);
 }
 
-tr:last-child td {
-    border-bottom-width: 0;
-}
 
 tr:nth-child(n+2) a {
     cursor: pointer;
@@ -289,12 +336,17 @@ td img {
 /* form styles
 –––––––––––––––––––––––––––––––––––––––––– */
 
+table td > form, table td > form input[type=submit] {
+    margin: 0 auto;
+}
+
 input, select {
     color: var(--black);
     background-color: var(--white);
     padding: 0.2rem 0.4rem;
     margin: 0.1rem auto;
 	border-radius: 0.2rem;
+    white-space: normal;
 }
 
 textarea {
@@ -315,8 +367,83 @@ textarea {
     border-radius: 0.3em;
 }
 
+pre {
+    padding: 1.5rem;
+}
+
+hgroup h2, hgroup h3 {
+    text-align: left;
+}
+
+details[role=list] summary::after, li[role=list]>a::after {
+    min-width: 18px;
+}
+
+.grid > * {
+    height: calc(1rem * var(--line-height) + var(--form-element-spacing-vertical) * 2 + var(--border-width) * 2);
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+input.danger {
+	background-color: var(--red);
+	border-color: var(--red);
+}
+
+form input[type=submit] {
+    height: max-content;
+}
+
 /* visibility trick
 –––––––––––––––––––––––––––––––––––––––––– */
 html {
     display: block;
+}
+
+/* nav
+–––––––––––––––––––––––––––––––––––––––––– */
+
+nav.container {
+	background-color: var(gray);
+    /* remove the 'flex-direction' to move menu to the right */
+    flex-direction: row;
+	align-items: center;
+}
+
+nav :is(.menu-btn, .menu-icon) {
+	display: none;
+	cursor: pointer;
+	user-select: none;
+}
+
+@media (width < 48em) {
+	nav.container {
+		flex-wrap: wrap;
+		& .menu-icon {
+			display:block;
+		}
+		& >ul.menu {
+			flex-direction: column;
+			align-items:flex-start;
+			width: 100%;
+			max-height: 0;
+			transition: max-height 0.3s ease-out;
+            margin: 10px 10px;
+            background-color: var(gray);
+            & li {
+                width: 100%;
+            }
+            & a {
+                display: block;
+            }
+        }
+        & .menu-btn:checked ~ .menu {
+            max-height: 100vh;
+            display: block;
+        }
+        & .menu-btn ~ .menu {
+            display: none;
+	}
 }

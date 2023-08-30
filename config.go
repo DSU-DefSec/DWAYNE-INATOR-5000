@@ -21,13 +21,19 @@ var (
 )
 
 type config struct {
-	Event           string
-	Verbose         bool
-	NoPasswords     bool
-	EasyPCR         bool
-	Port            int
-	DisableInfoPage bool
-	Timezone        string
+	Event                string
+	Verbose              bool
+	NoPasswords          bool
+	EasyPCR              bool
+	Port                 int
+	Https                bool
+	Cert                 string
+	Key                  string
+	Timezone             string
+	StartPaused          bool
+	DisableInfoPage      bool
+	DisableHeadToHead    bool
+	DisableExternalPorts bool
 
 	Uptime    bool // Score agent callback uptime (like CCS uptime)
 	UptimeSLA int  // Number in minutes
@@ -151,7 +157,7 @@ func readConfig(conf *config) {
 }
 
 func checkConfig(conf *config) error {
-	// general error checking
+	// general error checking and set defaults
 	if conf.Event == "" {
 		return errors.New("event title blank or not specified")
 	}
@@ -164,8 +170,18 @@ func checkConfig(conf *config) error {
 		conf.Jitter = 30
 	}
 
+	if conf.Https == true {
+		if conf.Cert == "" || conf.Key == "" {
+			return errors.New("illegal config: https requires a cert and key pair")
+		}
+	}
+
 	if conf.Port == 0 {
-		conf.Port = 80
+		if conf.Https == false {
+			conf.Port = 80
+		} else {
+			conf.Port = 443
+		}
 	}
 
 	if conf.DBPath == "" {
@@ -495,6 +511,12 @@ func validateChecks(boxList []Box) error {
 					ck.Port = 3306
 				}
 				for _, q := range ck.Query {
+					if q.DatabaseExists && (q.Column != "" || q.Table != "" || q.Output != "") {
+						return errors.New("cannot use both database exists check and row check")
+					}
+					if q.DatabaseExists && q.Database == "" {
+						return errors.New("must specify database for database exists check")
+					}
 					if q.UseRegex {
 						regexp.MustCompile(q.Output)
 					}

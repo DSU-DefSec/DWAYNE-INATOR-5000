@@ -1,6 +1,5 @@
 {{ template "head.html" . }}
 
-<br>
 <h2>Inject {{ .inject.ID }} Submissions: <i>{{ .inject.Title }}</i></h2>
 
 {{ $m := .m }}
@@ -23,27 +22,22 @@
     </p>
     {{ end }}
 
-<br>
 Welcome to the password change request portal! Your changes will not process unless you follow the naming convention:
 
-<br>
 <pre>Team_SERVICE_PWD_Y.txt</pre>
 
 Where X is your team number and Y is the iteration of password changes for this services. For example, if I was <code>team1</code>, for my second password change file for village-ssh, my file would be named:
 
-<br>
 <pre>team1_village-ssh_PWD_2.txt</pre>
 
 In your password change file, use the format:
 
-<br>
 <pre>
 username1,password1!
 username2,coolpassword
 </pre>
 
 You must allow 3 to 5 minutes for password changes to take effect. You do NOT need to provide us with password changes for "root" or "administrator" accounts. Passwords can be up to 24 characters Long. Make sure to only use the following special charaters: <code>. @ # $ % & ! ? : * ^ _ - + = < > ~</code>
-<br>
 
 {{ else }}
 
@@ -57,7 +51,6 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
 
 {{ end }}
 
-<br>
 {{ if .submissions }}
 <table style="width: 100%">
     {{ if .user.IsAdmin }}
@@ -130,17 +123,14 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
 
 {{ end }}
 
-<br>
 
 {{ if not .user.IsAdmin }}
-<br>
 <form id="injectUpload" method="post" enctype="multipart/form-data">
     <input type="file" id="submission" name="submission" accept="application/pdf,text/plain">
     <input type="submit" value="Upload submission">
 </form>
 
 {{ if and (eq .inject.ID 1) (not .m.NoPasswords) }}
-<br>
 <p style="text-align: center">You can check on your PCRs <a href="/pcr">here</a>.</p>
 {{ end }}
 
@@ -148,7 +138,7 @@ You must allow 3 to 5 minutes for password changes to take effect. You do NOT ne
 	{{ if eq .inject.ID 1 }}
 	<p style="text-align: center">Admin view for PCRs <a href="/pcr">here</a>.</p>
 	{{ else }}
-	<p style="text-align: center">Inject feed for admins <a href="/injectfeed">here</a>.</p>
+	<p style="text-align: center">Inject feed for admins <a href="/injects/feed">here</a>.</p>
 	{{ end }}
 {{ end }}
 

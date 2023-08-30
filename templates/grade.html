@@ -1,15 +1,12 @@
 {{ template "head.html" . }}
 
-<br>
 <h2>Grade Inject</h2>
 
 <embed height="900px" width="100%" src="/submissions/{{ .submission.DiskFile }}" type="application/pdf" download="{{ .submission.Team.ID }}.pdf"/>
 
-<br>
-<br>
 <form id="gradeInject" method="post" enctype="multipart/form-data">
-  <label for="grade"> Grade (percentage, 0 to 100): </label><br>
-  <input type="text" id="score" name="score" {{ if .submission.Score }} value="{{ .submission.Score }}" {{ end }}><br>
+  <label for="grade"> Grade (percentage, 0 to 100): </label>
+  <input type="text" id="score" name="score" {{ if .submission.Score }} value="{{ .submission.Score }}" {{ end }}>
   <label for="feedback"> Feedback: </label>
   <textarea id="feedback" name="feedback" {{ if .submission.Feedback }} placeholder="{{ .submission.Feedback }}" {{ end }}></textarea>
   <input type="hidden" id="submissionID" name="submissionID" value="{{ .submission.ID }}">

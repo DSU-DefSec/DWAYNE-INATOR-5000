@@ -28,6 +28,7 @@ func (c Ping) Run(teamID uint, boxIp string, res chan Result) {
 	// Send ping
 	pinger.Count = 1
 	pinger.Timeout = 5 * time.Second
+	pinger.SetPrivileged(true)
 	err = pinger.Run()
 	if err != nil {
 		res <- Result{

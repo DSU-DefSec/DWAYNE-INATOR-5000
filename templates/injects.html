@@ -1,10 +1,11 @@
 {{ template "head.html" . }}
 
+{{ template "refresh.html" }}
+
 {{ $loc := .loc }}
 {{ $time := .time }}
 {{ $user := .user }}
 
-<br>
 <h2>Injects</h2>
 
 {{ if $user.IsAdmin }}
@@ -15,7 +16,6 @@ Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
 
 <p style="text-align: center">
     🕒 Current time is <b>{{ (.time.In .loc).Format "03:04:05 PM" }}</b>. Event started at <b>{{ (.start.In .loc).Format "03:04:05 PM" }}</b>.</p>
-<br>
 
 <table style="width: 100%">
     <th>Posted</th>
@@ -34,12 +34,12 @@ Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
     {{ if $time.After .OpenTime }}
     {{ $posted = true }}
     <tr 
-       {{ if .Due.IsZero }}
-           style="background-color: var(--green)"
-       {{ else if not ($time.After .DueTime )}}
-           style="background-color: var(--green)"
-       {{ else }}
+       {{ if $time.After .CloseTime }}
+           style="background-color: var(--red)"
+       {{ else if ($time.After .DueTime )}}
            style="background-color: var(--orange)"
+       {{ else if or (.Due.IsZero) ($time.Before .DueTime) }}
+           style="background-color: var(--green)"
        {{ end }}
     >
         <td style="font-weight: normal">
@@ -47,7 +47,7 @@ Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
         </td>
         <td>
             <a href="/injects/view/{{ .ID }}">
-                {{ $inject.Title }}
+	        {{ $inject.Title }}
             </a>
         </td>
         <td>
@@ -77,7 +77,7 @@ Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
         </td>
         {{ else }}
         <td>
-            <a style="color: var(--darkred)";  href="/injects/delete/{{ .ID }}">
+            <a style="color: var(--darkred)" onclick="return confirm('Are you sure? You will not be able to recover this inject!')" href="/injects/delete/{{ .ID }}">
 	            Delete!
             </a>
         </td>
@@ -96,10 +96,8 @@ Grade injects via the <b><a href="/injects/feed">inject feed</a></b>.
 
 
 {{ if .user.IsAdmin }}
-<br>
 <hr>
 
-<br>
 <p style="text-align: center">
 These injects have not yet been posted:
 </p>
@@ -145,7 +143,7 @@ These injects have not yet been posted:
             {{ end }}
         </td>
         <td>
-            <a style="color: var(--darkred)";  href="/injects/delete/{{ .ID }}">
+            <a style="color: var(--darkred)" onclick="return confirm('Are you sure? You will not be able to recover this inject!')" href="/injects/delete/{{ .ID }}">
 	            Delete!
             </a>
         </td>
@@ -164,7 +162,6 @@ These injects have not yet been posted:
 
 
 
-<br>
 <p style="text-align: center">
 ℹ️ All times are in the <b>{{ .m.Timezone }}</b> timezone.
 </p>

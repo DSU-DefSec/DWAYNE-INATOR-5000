@@ -197,3 +197,42 @@ func (m *config) GetTeam(teamID uint) (TeamData, error) {
 func oneOfN(points, parties int) int {
 	return int(float64(points)/float64(parties) + 0.5)
 }
+
+func resetEvent(c *gin.Context) {
+	team := getUser(c)
+	if !team.IsAdmin() {
+		errorOutAnnoying(c, errors.New("non-admin tried to issue a scoring engine reset: "+c.Param("team")))
+		return
+	}
+
+	teamMutex.Lock()
+	resetIssued = true
+
+	db.Exec("DELETE FROM result_entries")
+	db.Exec("DELETE FROM team_records")
+	db.Exec("DELETE FROM inject_submissions")
+	db.Exec("DELETE FROM slas")
+	db.Exec("DELETE FROM persists")
+
+	// Deal with cache
+	cachedStatus = []TeamRecord{}
+	cachedRound = 0
+	roundNumber = 0
+	startTime = time.Now().In(loc)
+	persistHits = make(map[uint]map[string][]uint)
+	teamMutex.Unlock()
+
+	c.Redirect(http.StatusSeeOther, "/")
+}
+
+func pauseEvent(c *gin.Context) {
+	team := getUser(c)
+	if !team.IsAdmin() {
+		errorOutAnnoying(c, errors.New("non-admin tried to start scoring: "+c.Param("team")))
+		return
+	}
+	dwConf.Running = false
+	resetIssued = true
+	pauseTime = time.Now()
+	c.Redirect(http.StatusSeeOther, "/settings")
+}
