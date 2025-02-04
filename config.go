@@ -72,6 +72,7 @@ type Box struct {
 	Dns       []checks.Dns
 	Ftp       []checks.Ftp
 	Imap      []checks.Imap
+	Irc       []checks.Irc
 	Ldap      []checks.Ldap
 	Ping      []checks.Ping
 	Rdp       []checks.Rdp
@@ -102,6 +103,9 @@ func getBoxChecks(b Box) []checks.Check {
 		checkList = append(checkList, c)
 	}
 	for _, c := range b.Imap {
+		checkList = append(checkList, c)
+	}
+	for _, c := range b.Irc {
 		checkList = append(checkList, c)
 	}
 	for _, c := range b.Ping {
@@ -424,6 +428,19 @@ func validateChecks(boxList []Box) error {
 				}
 				if ck.Port == 0 {
 					ck.Port = 143
+				}
+				boxList[i].CheckList[j] = ck
+			case checks.Irc:
+				ck := c.(checks.Irc)
+				ck.IP = b.IP
+				if ck.Display == "" {
+					ck.Display = "irc"
+				}
+				if ck.Name == "" {
+					ck.Name = b.Name + "-" + ck.Display
+				}
+				if ck.Port == 0 {
+					ck.Port = 6667
 				}
 				boxList[i].CheckList[j] = ck
 			case checks.Ldap:
