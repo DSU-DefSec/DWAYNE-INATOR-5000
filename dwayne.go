@@ -160,6 +160,7 @@ func main() {
 	routes := r.Group("/")
 	{
 		routes.GET("/", viewStatus)
+		routes.GET("/scoreboard.json", viewScoreboardAPI)
 		routes.GET("/scoreboard", viewScoreboard)
 		routes.GET("/info", func(c *gin.Context) {
 			c.HTML(http.StatusOK, "info.html", pageData(c, "Information", nil))
