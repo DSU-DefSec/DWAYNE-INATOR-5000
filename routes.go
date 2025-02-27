@@ -124,6 +124,17 @@ func viewScoreboard(c *gin.Context) {
 	c.HTML(http.StatusOK, "scoreboard.html", pageData(c, "Scoreboard", gin.H{"statusRecords": cachedStatus, "records": sortedRecords, "persists": persistHits, "team": team, "ip": ip, "round": roundNumber, "pauseTime": pauseTime, "configErrors": configErrors}))
 }
 
+func viewScoreboardAPI(c *gin.Context) {
+	// TODO fix this, horrendous
+	teamMutex.Lock()
+	var allResults []ResultEntry
+	for _, record := range cachedStatus {
+		allResults = append(allResults, record.Results...)
+	}
+	teamMutex.Unlock()
+	c.JSON(http.StatusOK, gin.H{"results": allResults})
+}
+
 func viewTeam(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("team"))
 	if err != nil || id < 1 {
