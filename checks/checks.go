@@ -62,7 +62,7 @@ type Check interface {
 type Result struct {
 	Name   string `json:"name,omitempty"`
 	Box    string `json:"box,omitempty"`
-	Status bool   `json:"status,omitempty"`
+	Status bool   `json:"status"`
 	IP     string `json:"ip,omitempty"`
 	Error  string `json:"error,omitempty"`
 	Debug  string `json:"debug,omitempty"`
